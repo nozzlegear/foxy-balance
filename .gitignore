@@ -353,3 +353,7 @@ MigrationBackup/
 packages
 paket-files
 Paket.Restore.targets
+
+# IDE files
+.idea
+.vscode
