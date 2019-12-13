@@ -1,4 +1,4 @@
-storage: none
+storage: packages
 source https://api.nuget.org/v3/index.json
 
 nuget Microsoft.AspNetCore.App
@@ -7,3 +7,6 @@ nuget Microsoft.NET.Test.Sdk
 nuget Microsoft.AspNetCore.TestHost
 nuget xunit
 nuget xunit.runner.visualstudio
+nuget taskbuilder.fs
+nuget dapper
+nuget system.data.sqlclient
