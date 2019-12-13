@@ -2,13 +2,18 @@
 
 open System
 open System.Collections.Generic
+open System.Data
 open Dapper
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open FoxyBalance.Database.Interfaces
-open Models
+open FoxyBalance.Database.Models
 
 type UserDatabase(connectionString : string) =
     let tableName = "FoxyBalance_User"
+    /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
+    let toSelector = function
+        | Id id -> "Id", box id
+        | Email email -> "EmailAddress", box email
     
     interface IUserDatabase with
         member x.CreateAsync partialUser =
@@ -35,7 +40,6 @@ type UserDatabase(connectionString : string) =
              
             withConnection connectionString (fun conn -> task {
                 let! result = conn.QuerySingleAsync<Dictionary<string, int>>(sql tableName, data)
-                let m = dictionaryToMap result
                 let user : User =
                     { DateCreated = dateCreated
                       Id = dictionaryToMap result |> Map.find "Id"
@@ -46,8 +50,39 @@ type UserDatabase(connectionString : string) =
             })
 
         member x.GetAsync userId =
-            
-            failwith "not implemented"
+            let read (reader : IDataReader) : User seq =
+                let col name = reader.GetOrdinal name 
+                seq {
+                    while reader.Read() do
+                        yield
+                            { Id = col "Id" |> reader.GetInt32
+                              EmailAddress = col "EmailAddress" |> reader.GetString
+                              DateCreated =
+                                  let dt = col "DateCreated" |> reader.GetDateTime
+                                  DateTimeOffset(dt)
+                              HashedPassword = col "HashedPassword" |> reader.GetString } }
+            let columnName, selector = toSelector userId
+            let sql =
+                sprintf """
+                SELECT * FROM %s WHERE [%s] = @selector
+                """ tableName columnName
+            let data = dict [ "selector" => selector ]
+                
+            withConnection connectionString (fun conn -> task {
+                use! reader = conn.ExecuteReaderAsync(sql, data)
+                return read reader |> Seq.exactlyOne
+            })
 
         member x.ExistsAsync userId =
-            failwith "not implemented"
+            let columnName, selector = toSelector userId 
+            let sql =
+                sprintf """
+                SELECT CASE WHEN EXISTS (
+                    SELECT Id FROM %s WHERE [%s] = @selector
+                )
+                THEN CAST(1 AS BIT)
+                ELSE CAST(0 AS BIT) END
+                """ tableName columnName
+            let data = dict [ "selector" => selector ]
+            
+            withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<bool>(sql, data))
