@@ -4,7 +4,7 @@ open System
 
 type EmailAddress = string
 type UserId = int
-type TransactionId = int 
+type TransactionId = int
 
 type UserIdentifier =
     | Id of UserId
@@ -16,33 +16,42 @@ type User =
       DateCreated : DateTimeOffset
       HashedPassword : string }
     
+type PartialUser =
+    { EmailAddress : EmailAddress
+      HashedPassword : string }
+    
 type TransactionStatus =
     | Pending 
     | PendingWithExpectedChargeDate of DateTimeOffset
     | Completed of DateTimeOffset
     
-type Bill =
-    { Id : TransactionId
-      Name : string
-      Amount : decimal
-      DateCreated : DateTimeOffset
-      Status : TransactionStatus }
+type CheckDetails =
+    { CheckNumber : string }
     
-type Check =
+type BillDetails =
+    { Recurring : bool }
+    
+type TransactionDetails =
+    | CheckDetails of CheckDetails
+    | BillDetails of BillDetails
+    | None 
+    
+type Transaction =
     { Id : TransactionId
       Name : string
       Amount : decimal
       DateCreated : DateTimeOffset
       Status : TransactionStatus
-      CheckNumber : string }
-
-type Charge =
-    { Id : TransactionId
-      Name : string
+      Details : TransactionDetails }
+    
+type PartialTransaction =
+    { Name : string
       Amount : decimal
-      DateCreated : DateTimeOffset
-      Status : TransactionStatus }
-
-type PartialUser =
-    { EmailAddress : EmailAddress
-      HashedPassword : string }
+      Status : TransactionStatus
+      Details : TransactionDetails }
+    
+type Limit =
+    | Limit of int
+    
+type Offset =
+    | Offset of int 

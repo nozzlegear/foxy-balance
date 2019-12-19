@@ -7,7 +7,9 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Interfaces\IUserDatabase.fs" />
+    <Compile Include="Interfaces\ITransactionDatabase.fs" />
     <Compile Include="Implementations\UserDatabase.fs" />
+    <Compile Include="Implementations\TransactionDatabase.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
