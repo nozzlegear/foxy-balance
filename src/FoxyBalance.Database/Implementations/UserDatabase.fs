@@ -12,8 +12,8 @@ type UserDatabase(connectionString : string) =
     let tableName = "FoxyBalance_User"
     /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
     let toSelector = function
-        | Id id -> "Id", box id
-        | Email email -> "EmailAddress", box email
+        | Id id -> "Id", ParamValue.Int id
+        | Email email -> "EmailAddress", ParamValue.String email
     
     interface IUserDatabase with
         member x.CreateAsync partialUser =
@@ -33,9 +33,9 @@ type UserDatabase(connectionString : string) =
                 """
             let dateCreated = DateTimeOffset.UtcNow
             let data = dict [
-                "emailAddress" => partialUser.EmailAddress
-                "hashedPassword" => partialUser.HashedPassword
-                "dateCreated" => dateCreated 
+                "emailAddress" => ParamValue.String partialUser.EmailAddress
+                "hashedPassword" => ParamValue.String partialUser.HashedPassword
+                "dateCreated" => ParamValue.DateTimeOffset dateCreated 
             ]
              
             withConnection connectionString (fun conn -> task {

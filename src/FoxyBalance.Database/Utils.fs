@@ -7,7 +7,27 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 
 [<AutoOpen>]
 module internal Utils =
-    let inline (=>) key value = key, box value
+    type ParamValue =
+        | String of string
+        | Int of int
+        | Long of int64
+        | Decimal of decimal 
+        | Bool of bool
+        | DateTime of System.DateTime
+        | DateTimeOffset of System.DateTimeOffset
+    
+    let inline (=>) (key : string) (value : ParamValue) =
+        let value =
+            match value with
+            | String s -> box s
+            | Int i -> box i
+            | Long l -> box l
+            | Decimal d -> box d
+            | Bool b -> box b
+            | DateTime d -> box d
+            | DateTimeOffset d -> box d
+            
+        key, box value
 
     let inline withConnection connStr (fn : SqlConnection -> Task<_>) =
         task {
