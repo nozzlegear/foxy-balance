@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="Models.fs" />
+    <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
