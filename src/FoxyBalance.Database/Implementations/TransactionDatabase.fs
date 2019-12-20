@@ -64,6 +64,36 @@ type TransactionDatabase(connectionString : string) =
     let mapRowsToTransactions (reader : IDataReader) : Transaction seq =
         seq { while reader.Read() do yield mapRowToTransaction reader }
     
+    let mapDetailsToSqlParams details =
+        match details with
+        | CheckDetails check ->
+            {| typeStr = ParamValue.String "Check"
+               checkNumber = ParamValue.String check.CheckNumber
+               recurring = ParamValue.Bool false |}
+        | BillDetails bill ->
+            {| typeStr = ParamValue.String "Bill"
+               checkNumber = ParamValue.Null
+               recurring = ParamValue.Bool bill.Recurring |}
+        | None ->
+            {| typeStr = ParamValue.String "Generic"
+               checkNumber = ParamValue.Null
+               recurring = ParamValue.Bool false |}
+               
+    let mapStatusToSqlParams status =
+        match status with
+        | Pending ->
+            {| statusStr = ParamValue.String "Pending"
+               expectedChargeDate = ParamValue.Null
+               completedDate = ParamValue.Null |}
+        | PendingWithExpectedChargeDate date ->
+            {| statusStr = ParamValue.String "PendingWithExpectedChargeDate"
+               expectedChargeDate = ParamValue.DateTimeOffset date
+               completedDate = ParamValue.Null |}
+        | Completed date -> 
+            {| statusStr = ParamValue.String "Completed"
+               expectedChargeDate = ParamValue.Null
+               completedDate = ParamValue.DateTimeOffset date |}
+               
     interface ITransactionDatabase with
         member x.GetStatusAsync userId transactionId =
             let sql =
@@ -130,7 +160,7 @@ type TransactionDatabase(connectionString : string) =
                     Status,
                     ExpectedChargeDate,
                     CompletedDate,
-                ) OUTPUT INSERTED. VALUES(
+                ) OUTPUT INSERTED.Id VALUES(
                     @userId,
                     @dateCreated,
                     @name,
@@ -143,34 +173,8 @@ type TransactionDatabase(connectionString : string) =
                     @completedDate
                 )
                 """ tableName
-            let details =
-                match transaction.Details with
-                | CheckDetails check ->
-                    {| typeStr = ParamValue.String "Check"
-                       checkNumber = ParamValue.String check.CheckNumber
-                       recurring = ParamValue.Bool false |}
-                | BillDetails bill ->
-                    {| typeStr = ParamValue.String "Bill"
-                       checkNumber = ParamValue.Null
-                       recurring = ParamValue.Bool bill.Recurring |}
-                | None ->
-                    {| typeStr = ParamValue.String "Generic"
-                       checkNumber = ParamValue.Null
-                       recurring = ParamValue.Bool false |}
-            let status =
-                match transaction.Status with
-                | Pending ->
-                    {| statusStr = ParamValue.String "Pending"
-                       expectedChargeDate = ParamValue.Null
-                       completedDate = ParamValue.Null |}
-                | PendingWithExpectedChargeDate date ->
-                    {| statusStr = ParamValue.String "PendingWithExpectedChargeDate"
-                       expectedChargeDate = ParamValue.DateTimeOffset date
-                       completedDate = ParamValue.Null |}
-                | Completed date -> 
-                    {| statusStr = ParamValue.String "Completed"
-                       expectedChargeDate = ParamValue.Null
-                       completedDate = ParamValue.DateTimeOffset date |}
+            let details = mapDetailsToSqlParams transaction.Details
+            let status = mapStatusToSqlParams transaction.Status
             let dateCreated = System.DateTimeOffset.UtcNow
             let data = [
                 "userId" => ParamValue.Int userId
@@ -194,6 +198,50 @@ type TransactionDatabase(connectionString : string) =
                       Name = transaction.Name
                       Amount = transaction.Amount
                       DateCreated = dateCreated
+                      Status = transaction.Status
+                      Details = transaction.Details }
+                return transaction
+            })
+            
+        member x.UpdateAsync userId transactionId transaction =
+            let sql =
+                sprintf """
+                UPDATE %s
+                SET [Name] = @name,
+                [Amount] = @amount,
+                [Type] = @type,
+                [CheckNumber] = @checkNumber,
+                [Recurring] = @recurring,
+                [Status] = @status,
+                [ExpectedChargeDate] = @expectedChargeDate,
+                [CompletedDate] = @completedDate
+                OUTPUT INSERTED.DateCreated
+                WHERE [UserId] = @userId AND [Id] = @id
+                """ tableName
+            let details = mapDetailsToSqlParams transaction.Details
+            let status = mapStatusToSqlParams transaction.Status
+            let data = [
+                "userId" => ParamValue.Int userId
+                "id" => ParamValue.Int transactionId
+                "name" => ParamValue.String transaction.Name
+                "amount" => ParamValue.Decimal transaction.Amount
+                "type" => details.typeStr
+                "checkNumber" => details.checkNumber
+                "recurring" => details.recurring
+                "status" => status.statusStr
+                "expectedChargeDate" => status.expectedChargeDate
+                "completedDate" => status.completedDate
+            ]
+            
+            withConnection connectionString (fun conn -> task {
+                let! result = conn.QuerySingleAsync<IDictionary<string, DateTime>>(sql, data)
+                let transaction : Transaction =
+                    { Id = transactionId
+                      Name = transaction.Name
+                      Amount = transaction.Amount
+                      DateCreated = match result.TryGetValue "DateCreated" with
+                                    | true, date -> DateTimeOffset date
+                                    | false, _ -> failwith "Failed to read updated transaction's DateCreated column."
                       Status = transaction.Status
                       Details = transaction.Details }
                 return transaction
