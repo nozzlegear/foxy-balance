@@ -15,6 +15,7 @@ module internal Utils =
         | Bool of bool
         | DateTime of System.DateTime
         | DateTimeOffset of System.DateTimeOffset
+        | Null 
     
     let inline (=>) (key : string) (value : ParamValue) =
         let value =
@@ -26,6 +27,7 @@ module internal Utils =
             | Bool b -> box b
             | DateTime d -> box d
             | DateTimeOffset d -> box d
+            | Null -> box null
             
         key, box value
 

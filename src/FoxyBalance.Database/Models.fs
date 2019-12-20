@@ -49,9 +49,12 @@ type PartialTransaction =
       Amount : decimal
       Status : TransactionStatus
       Details : TransactionDetails }
-    
-type Limit =
-    | Limit of int
-    
-type Offset =
-    | Offset of int 
+
+type Order =
+    | Ascending
+    | Descending
+
+type ListOptions =
+    { Limit : int
+      Offset : int
+      Order : Order }

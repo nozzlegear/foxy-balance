@@ -1,7 +1,9 @@
 ﻿namespace FoxyBalance.Database
 
 open System
+open System.Collections.Generic
 open System.Data
+open System.Threading.Tasks
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
@@ -31,15 +33,17 @@ type TransactionDatabase(connectionString : string) =
         
     let mapRowToDetails (reader : IDataReader) : TransactionDetails =
         let typeCol = reader.GetOrdinal "Type"
+        let recurringCol = reader.GetOrdinal "Recurring"
+        let checkNumberCol = reader.GetOrdinal "CheckNumber"
         
         match reader.GetString typeCol with
         | "Generic" ->
             None
         | "Bill" ->
-            { Recurring = reader.GetOrdinal "Recurring" |> reader.GetBoolean }
+            { Recurring = reader.GetBoolean recurringCol }
             |> BillDetails
         | "Check" ->
-            { CheckNumber = reader.GetOrdinal "CheckNumber" |> reader.GetString }
+            { CheckNumber = reader.GetString checkNumberCol }
             |> CheckDetails
         | x ->
             failwithf """Unrecognized transaction type "%s".""" x 
@@ -114,10 +118,124 @@ type TransactionDatabase(connectionString : string) =
             withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<bool>(sql, data))
             
         member x.CreateAsync userId transaction =
-            failwith "not implemented"
+            let sql =
+                sprintf """
+                INSERT INTO %s (
+                    UserId,
+                    Name,
+                    Amount,
+                    Type,
+                    Recurring,
+                    CheckNumber,
+                    Status,
+                    ExpectedChargeDate,
+                    CompletedDate,
+                ) OUTPUT INSERTED. VALUES(
+                    @userId,
+                    @dateCreated,
+                    @name,
+                    @amount,
+                    @type,
+                    @recurring,
+                    @checkNumber,
+                    @status,
+                    @expectedChargeDate,
+                    @completedDate
+                )
+                """ tableName
+            let details =
+                match transaction.Details with
+                | CheckDetails check ->
+                    {| typeStr = ParamValue.String "Check"
+                       checkNumber = ParamValue.String check.CheckNumber
+                       recurring = ParamValue.Bool false |}
+                | BillDetails bill ->
+                    {| typeStr = ParamValue.String "Bill"
+                       checkNumber = ParamValue.Null
+                       recurring = ParamValue.Bool bill.Recurring |}
+                | None ->
+                    {| typeStr = ParamValue.String "Generic"
+                       checkNumber = ParamValue.Null
+                       recurring = ParamValue.Bool false |}
+            let status =
+                match transaction.Status with
+                | Pending ->
+                    {| statusStr = ParamValue.String "Pending"
+                       expectedChargeDate = ParamValue.Null
+                       completedDate = ParamValue.Null |}
+                | PendingWithExpectedChargeDate date ->
+                    {| statusStr = ParamValue.String "PendingWithExpectedChargeDate"
+                       expectedChargeDate = ParamValue.DateTimeOffset date
+                       completedDate = ParamValue.Null |}
+                | Completed date -> 
+                    {| statusStr = ParamValue.String "Completed"
+                       expectedChargeDate = ParamValue.Null
+                       completedDate = ParamValue.DateTimeOffset date |}
+            let dateCreated = System.DateTimeOffset.UtcNow
+            let data = [
+                "userId" => ParamValue.Int userId
+                "dateCreated" => ParamValue.DateTimeOffset dateCreated
+                "name" => ParamValue.String transaction.Name
+                "amount" => ParamValue.Decimal transaction.Amount
+                "type" => details.typeStr
+                "checkNumber" => details.checkNumber
+                "recurring" => details.recurring
+                "status" => status.statusStr
+                "expectedChargeDate" => status.expectedChargeDate
+                "completedDate" => status.completedDate
+            ]
             
-        member x.ListAsync userId limit offset =
-            failwith "not implemented"
+            withConnection connectionString (fun conn -> task {
+                let! result = conn.QuerySingleAsync<IDictionary<string, int>>(sql, data)
+                let transaction : Transaction =
+                    { Id = match result.TryGetValue "Id" with
+                           | true, id -> id
+                           | false, _ -> failwith "Failed to read new transaction's ID." 
+                      Name = transaction.Name
+                      Amount = transaction.Amount
+                      DateCreated = dateCreated
+                      Status = transaction.Status
+                      Details = transaction.Details }
+                return transaction
+            })
+            
+        member x.ListAsync userId options =
+            let sql =
+                sprintf """
+                SELECT *
+                FROM %s
+                WHERE [UserId] = @userId
+                ORDER BY [Id] @direction
+                OFFSET @offset ROWS
+                FETCH NEXT @limit ROWS ONLY
+                """ tableName
+            let data = dict [
+                "userId" => ParamValue.Int userId
+                "offset" => ParamValue.Int options.Offset
+                "limit" => ParamValue.Int options.Limit
+                "direction" =>
+                    (match options.Order with
+                     | Ascending -> "ASC"
+                     | Descending -> "DESC"
+                     |> ParamValue.String)
+            ]
+            
+            withConnection connectionString (fun conn -> task {
+                let! reader = conn.ExecuteReaderAsync(sql, data)
+                return mapRowsToTransactions reader 
+            })
             
         member x.DeleteAsync userId transactionId =
-            failwith "not implemented"
+            let sql =
+                sprintf """
+                DELETE FROM %s WHERE [UserId] = @userId AND [Id] = @id
+                """ tableName
+            let data = dict [
+                "userId" => ParamValue.Int userId
+                "id" => ParamValue.Int transactionId
+            ]
+            
+            withConnection connectionString (fun conn -> task {
+                let! _ = conn.ExecuteAsync(sql, data)
+                ()  
+            }) :> Task

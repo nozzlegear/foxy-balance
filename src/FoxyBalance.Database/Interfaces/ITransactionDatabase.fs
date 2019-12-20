@@ -8,5 +8,5 @@ type ITransactionDatabase =
     abstract member GetAsync : UserId -> TransactionId -> Task<Transaction>
     abstract member ExistsAsync : UserId -> TransactionId -> Task<bool>
     abstract member CreateAsync : UserId -> PartialTransaction -> Task<Transaction>
-    abstract member ListAsync : UserId -> Limit -> Offset -> Task<Transaction seq>
+    abstract member ListAsync : UserId -> ListOptions -> Task<Transaction seq>
     abstract member DeleteAsync : UserId -> TransactionId -> Task 
