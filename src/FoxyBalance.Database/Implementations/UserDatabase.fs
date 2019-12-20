@@ -9,7 +9,8 @@ open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models
 
 type UserDatabase(connectionString : string) =
-    let tableName = "FoxyBalance_User"
+    let tableName = "FoxyBalance_Users"
+    
     /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
     let toSelector = function
         | Id id -> "Id", ParamValue.Int id
