@@ -357,3 +357,6 @@ Paket.Restore.targets
 # IDE files
 .idea
 .vscode
+.gitsecret/keys/random_seed
+!*.secret
+.env
