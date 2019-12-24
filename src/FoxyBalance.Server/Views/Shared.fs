@@ -96,9 +96,9 @@ module Shared =
     let section children : XmlNode =
         section [_class "section"] children 
 
-    type SectionOption =
-        | InSection
-        | NoSection
+    type SectionWrap =
+        | WrappedInSection
+        | NoSectionWrap
         
     type FieldWrap =
         | WrappedInField
@@ -107,8 +107,8 @@ module Shared =
     let pageContainer pageTitle sectionOption children : XmlNode =
         let children =
             match sectionOption with
-            | InSection -> [section children]
-            | NoSection -> children
+            | WrappedInSection -> [section children]
+            | NoSectionWrap -> children
             
         html [_lang "en"] [
             head pageTitle
@@ -125,7 +125,7 @@ module Shared =
           HtmlName : string }
         
     let formField options control =
-        div [_class "field"] [
+        field [
             label [_class "label"; _for options.HtmlName] [str options.Title]
             div [_class "control"] control 
         ]
@@ -190,7 +190,8 @@ module Shared =
         | Type of ButtonType
         | Label of string
         | Color of ButtonColor
-        | Shade of ButtonShade 
+        | Shade of ButtonShade
+        | Wrap of FieldWrap
     
     let buttonField options =
         let find defaultValue fn = find options defaultValue fn 
@@ -236,13 +237,18 @@ module Shared =
   
             System.String.Join(" ", classList)          
         
-        div [_class "field"] [
+        let el = 
             p [_class "control"] [
                 button [_class classes; _type buttonType] [
                     str label 
                 ]
             ]
-        ]
+        
+        match find NoFieldWrap (function | Wrap x -> Some x | _ -> None) with
+        | NoFieldWrap ->
+            el
+        | WrappedInField ->
+            field [el]
 
     let title x = h1 [_class "title"] [str x]
     

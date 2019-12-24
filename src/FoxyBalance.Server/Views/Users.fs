@@ -5,7 +5,7 @@ open FoxyBalance.Server.Models.ViewModels
 
 module Users =
     let loginPageView (model : LoginViewModel) : XmlNode =
-        Shared.pageContainer "Login" Shared.InSection [
+        Shared.pageContainer "Login" Shared.WrappedInSection [
             form [_class "login-form"; _method "POST"] [
                 Shared.title "Login to your account here."
                 
@@ -23,13 +23,14 @@ module Users =
                 
                 Shared.buttonField [
                     Shared.ButtonFieldOption.Label "Login"
+                    Shared.ButtonFieldOption.Wrap Shared.WrappedInField
                     Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
                     Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
             ]
         ]
     
     let registerPageView (model : RegisterViewModel) : XmlNode =
-        Shared.pageContainer "Create an account" Shared.InSection [
+        Shared.pageContainer "Create an account" Shared.WrappedInSection [
             form [_class "register-form"; _method "POST"] [
                 Shared.subtitle "Create an account here."
                 
@@ -47,6 +48,7 @@ module Users =
                 
                 Shared.buttonField [
                     Shared.ButtonFieldOption.Label "Create Account"
+                    Shared.ButtonFieldOption.Wrap Shared.WrappedInField
                     Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
                     Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
             ]
