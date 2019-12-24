@@ -5,24 +5,49 @@ open FoxyBalance.Server.Models.ViewModels
 
 module Users =
     let loginPageView (model : LoginViewModel) : XmlNode =
-        section [_class "login-page"] [
-            form [_class "login-form"; _action "POST"] [
-                label [_for "username"] [str "Email address"]
-                input [
-                    _name "username"
-                    _type "text"
-                    _value (model.Username |> Option.defaultValue "")
-                    _placeholder "me@example.com" ]
+        Shared.pageContainer "Login" Shared.InSection [
+            form [_class "login-form"; _method "POST"] [
+                Shared.title "Login to your account here."
                 
-                label [_for "password"] [str "Password"]
-                input [
-                    _name "password"
-                    _type "text"
-                    _value ""
-                ]
+                Shared.textField [
+                    Shared.InputFieldOption.Title "Email address"
+                    Shared.InputFieldOption.Placeholder "me@example.com"
+                    Shared.InputFieldOption.Value (model.Username |> Option.defaultValue "")
+                    Shared.InputFieldOption.HtmlName "username" ]
+                
+                Shared.passwordField [
+                    Shared.InputFieldOption.Title "Password"
+                    Shared.InputFieldOption.HtmlName "password" ]
                 
                 maybeErr model.Error
+                
+                Shared.buttonField [
+                    Shared.ButtonFieldOption.Label "Login"
+                    Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
+                    Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
             ]
         ]
     
-
+    let registerPageView (model : RegisterViewModel) : XmlNode =
+        Shared.pageContainer "Create an account" Shared.InSection [
+            form [_class "register-form"; _method "POST"] [
+                Shared.subtitle "Create an account here."
+                
+                Shared.textField [
+                    Shared.InputFieldOption.Title "Email address"
+                    Shared.InputFieldOption.Placeholder "me@example.com"
+                    Shared.InputFieldOption.Value (model.Username |> Option.defaultValue "")
+                    Shared.InputFieldOption.HtmlName "username" ]
+                
+                Shared.passwordField [
+                    Shared.InputFieldOption.Title "Password"
+                    Shared.InputFieldOption.HtmlName "password" ]
+                
+                maybeErr model.Error
+                
+                Shared.buttonField [
+                    Shared.ButtonFieldOption.Label "Create Account"
+                    Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
+                    Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
+            ]
+        ]

@@ -33,6 +33,13 @@ module ViewModels =
     type LoginViewModel =
         { Error : string option
           Username : string option }
+        
+    type RegisterViewModel =
+        { Error : string option
+          Username : string option }
      
 module RequestModels =
-    ()
+    [<CLIMutable>]
+    type LoginRequest =
+        { Username : string
+          Password : string }

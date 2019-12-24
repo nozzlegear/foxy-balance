@@ -15,64 +15,22 @@ open Microsoft.AspNetCore
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Hosting
 
-// ---------------------------------
-// Models
-// ---------------------------------
-
-type Message =
-    {
-        Text : string
-    }
-
-// ---------------------------------
-// Views
-// ---------------------------------
-
-module Views =
-    open GiraffeViewEngine
-
-    let layout (content: XmlNode list) =
-        html [] [
-            head [] [
-                title []  [ encodedText "foxy_balance" ]
-                link [ _rel  "stylesheet"
-                       _type "text/css"
-                       _href "/main.css" ]
-            ]
-            body [] content
-        ]
-
-    let partial () =
-        h1 [] [ encodedText "foxy_balance" ]
-
-    let index (model : Message) =
-        [
-            partial()
-            p [] [ encodedText model.Text ]
-        ] |> layout
-
-// ---------------------------------
-// Web app
-// ---------------------------------
-
-let indexHandler (name : string) =
-    let greetings = sprintf "Hello %s, from Giraffe!" name
-    let model     = { Text = greetings }
-    let view      = Views.index model
-    htmlView view
-
-let webApp =
+let allRoutes : HttpHandler =
     choose [
-        GET >=>
+        GET >=> choose [
+            route "/auth/login" >=> Routes.Users.loginHandler
+            route "/auth/register" >=> Routes.Users.registerHandler
             choose [
-                route "/" >=> indexHandler "world"
-                routef "/hello/%s" indexHandler
-            ]
-        setStatusCode 404 >=> text "Not Found" ]
-
-// ---------------------------------
-// Error handler
-// ---------------------------------
+                route "/"
+                route "/home"
+            ] >=> RouteUtils.requiresAuthentication >=> text "This is the home page, but it is not yet implemented"
+        ]
+        POST >=> choose [
+            route "/auth/login" >=> Routes.Users.loginPostHandler
+            route "/auth/register" >=> Routes.Users.registerPostHandler
+        ]
+        setStatusCode 404 >=> text "Not Found"
+    ]
 
 let errorHandler (ex : Exception) (logger : ILogger) =
     logger.LogError(ex, "An unhandled exception has occurred while executing the request.")
@@ -95,7 +53,7 @@ let configureApp (app : IApplicationBuilder) =
     | false -> app.UseGiraffeErrorHandler errorHandler)
         .UseCors(configureCors)
         .UseStaticFiles()
-        .UseGiraffe(webApp)
+        .UseGiraffe(allRoutes)
 
 let configureServices (services : IServiceCollection) =
     let add (fn : unit -> IServiceCollection) = fn () |> ignore

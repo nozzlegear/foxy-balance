@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="Models.fs" />
     <Compile Include="Views\ViewUtils.fs" />
+    <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\Users.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
