@@ -19,7 +19,7 @@ module Users =
                     Shared.InputFieldOption.Title "Password"
                     Shared.InputFieldOption.HtmlName "password" ]
                 
-                maybeErr model.Error
+                Shared.maybeErr Shared.WrappedInField model.Error
                 
                 Shared.buttonField [
                     Shared.ButtonFieldOption.Label "Login"
@@ -43,7 +43,7 @@ module Users =
                     Shared.InputFieldOption.Title "Password"
                     Shared.InputFieldOption.HtmlName "password" ]
                 
-                maybeErr model.Error
+                Shared.maybeErr Shared.WrappedInField model.Error
                 
                 Shared.buttonField [
                     Shared.ButtonFieldOption.Label "Create Account"

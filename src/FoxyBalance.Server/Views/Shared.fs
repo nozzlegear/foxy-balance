@@ -4,6 +4,11 @@ open Giraffe.GiraffeViewEngine
 open Giraffe.GiraffeViewEngine.Accessibility
 
 module Shared =
+    let maybeEl nodeOption : XmlNode =
+        match nodeOption with
+        | Some el -> el
+        | None -> emptyText
+    
     let head pageTitle : XmlNode =
         head [] [
             title [] [str pageTitle]
@@ -94,6 +99,10 @@ module Shared =
     type SectionOption =
         | InSection
         | NoSection
+        
+    type FieldWrap =
+        | WrappedInField
+        | NoFieldWrap
     
     let pageContainer pageTitle sectionOption children : XmlNode =
         let children =
@@ -108,6 +117,8 @@ module Shared =
                 div [_id "content-host"; _class "container"] children 
             ]
         ]
+        
+    let field = div [_class "field"]
         
     type FieldOptions =
         { Title : string
@@ -236,3 +247,18 @@ module Shared =
     let title x = h1 [_class "title"] [str x]
     
     let subtitle x = h2 [_class "subtitle"] [str x]
+    
+    let error wrap text =
+        let el =
+            p [_class "error red"] [str text]
+            
+        match wrap with
+        | NoFieldWrap ->
+            el
+        | WrappedInField ->
+            field [el]
+    
+    let maybeErr wrap errorMessage : XmlNode =
+        errorMessage
+        |> Option.map (error wrap)
+        |> maybeEl
