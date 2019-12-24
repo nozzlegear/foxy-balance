@@ -256,7 +256,7 @@ module Shared =
     
     let error wrap text =
         let el =
-            p [_class "error red"] [str text]
+            p [_class "error has-text-danger"] [str text]
             
         match wrap with
         | NoFieldWrap ->
