@@ -2,6 +2,7 @@
 
 open SimpleMigrations
 
+[<Migration(01L, "Create the users and transactions tables")>]
 type Migration_01() =
     inherit Migration()
     override this.Down() =
