@@ -10,3 +10,4 @@ nuget xunit.runner.visualstudio
 nuget taskbuilder.fs
 nuget dapper
 nuget system.data.sqlclient
+nuget simple.migrations
