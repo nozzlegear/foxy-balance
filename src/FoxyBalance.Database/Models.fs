@@ -34,7 +34,7 @@ type BillDetails =
 type TransactionDetails =
     | CheckDetails of CheckDetails
     | BillDetails of BillDetails
-    | None 
+    | NoDetails 
     
 type Transaction =
     { Id : TransactionId

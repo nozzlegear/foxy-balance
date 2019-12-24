@@ -38,7 +38,7 @@ type TransactionDatabase(connectionString : string) =
         
         match reader.GetString typeCol with
         | "Generic" ->
-            None
+            NoDetails
         | "Bill" ->
             { Recurring = reader.GetBoolean recurringCol }
             |> BillDetails
@@ -74,7 +74,7 @@ type TransactionDatabase(connectionString : string) =
             {| typeStr = ParamValue.String "Bill"
                checkNumber = ParamValue.Null
                recurring = ParamValue.Bool bill.Recurring |}
-        | None ->
+        | NoDetails ->
             {| typeStr = ParamValue.String "Generic"
                checkNumber = ParamValue.Null
                recurring = ParamValue.Bool false |}
