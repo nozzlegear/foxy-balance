@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
+    <ProjectReference Include="..\FoxyBalance.Migrations\FoxyBalance.Migrations.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

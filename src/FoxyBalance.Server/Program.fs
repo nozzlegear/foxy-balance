@@ -14,6 +14,7 @@ open FoxyBalance.Server
 open Microsoft.AspNetCore
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.Hosting
+module Migrator = FoxyBalance.Migrations.Migrator
 
 let allRoutes : HttpHandler =
     choose [
@@ -47,7 +48,7 @@ let configureCors (builder : CorsPolicyBuilder) =
            |> ignore
 
 let configureApp (app : IApplicationBuilder) =
-    let env = app.ApplicationServices.GetService<IHostingEnvironment>()
+    let env = app.ApplicationServices.GetService<IHostEnvironment>()
     (match env.IsDevelopment() with
     | true  -> app.UseDeveloperExceptionPage()
     | false -> app.UseGiraffeErrorHandler errorHandler)
@@ -74,15 +75,20 @@ let configureLogging (builder : ILoggingBuilder) =
 let main _ =
     let contentRoot = Directory.GetCurrentDirectory()
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
-    WebHost.CreateDefaultBuilder()
-        .UseUrls([|"http://+:5000"|])
-//        .UseKestrel()
-//        .UseContentRoot(contentRoot)
-//        .UseIISIntegration()
-        .UseWebRoot(webRoot)
-        .Configure(Action<IApplicationBuilder> configureApp)
-        .ConfigureServices(configureServices)
-        .ConfigureLogging(configureLogging)
-        .Build()
-        .Run()
+    let host =
+        WebHost.CreateDefaultBuilder()
+            .UseUrls([|"http://+:5000"|])
+    //        .UseContentRoot(contentRoot)
+            .UseWebRoot(webRoot)
+            .Configure(Action<IApplicationBuilder> configureApp)
+            .ConfigureServices(configureServices)
+            .ConfigureLogging(configureLogging)
+            .Build()
+    
+    // Run post-startup tasks here
+    let constants = host.Services.GetRequiredService<Models.IConstants>()
+    // Migrate the SQL database to the latest version 
+    Migrator.migrate Migrator.Latest constants.ConnectionString
+    // Start up the web server 
+    host.Run()
     0
