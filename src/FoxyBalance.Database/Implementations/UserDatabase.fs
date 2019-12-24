@@ -71,7 +71,7 @@ type UserDatabase(connectionString : string) =
                 
             withConnection connectionString (fun conn -> task {
                 use! reader = conn.ExecuteReaderAsync(sql, data)
-                return read reader |> Seq.exactlyOne
+                return read reader |> Seq.tryExactlyOne
             })
 
         member x.ExistsAsync userId =

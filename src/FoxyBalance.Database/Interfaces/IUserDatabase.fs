@@ -6,5 +6,5 @@ open FoxyBalance.Database.Models
 type IUserDatabase =
     abstract member CreateAsync : PartialUser -> Task<User>
     abstract member ExistsAsync : UserIdentifier -> Task<bool>
-    abstract member GetAsync : UserIdentifier -> Task<User>
+    abstract member GetAsync : UserIdentifier -> Task<User option>
 
