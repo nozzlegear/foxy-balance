@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1
+ENV DOTNET_USE_POLLING_FILE_WATCHER 1
+RUN dotnet tool install -g paket
+ENV PATH="${PATH}:/root/.dotnet/tools"
+WORKDIR /app
+ENTRYPOINT dotnet watch --project src/FoxyBalance.Server run -- --no-restore -c Debug 

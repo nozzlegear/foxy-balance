@@ -1,0 +1,27 @@
+version: "3"
+services:
+  app:
+    build:  
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      ConnectionStrings__SqlDatabase: "Server=db;Database=master;User Id=sa;Password=a-BAD_passw0rd;"
+    ports:
+      - 5000:5000
+    depends_on: 
+      - db
+    volumes:
+      - './:/app'
+  db:
+    image: "mcr.microsoft.com/mssql/server:2017-latest-ubuntu"
+    environment: 
+      SA_PASSWORD: "a-BAD_passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - 3001:1433
+    volumes:
+      - "dbdata:/var/opt/mssql"
+    logging:
+        driver: none
+volumes:
+    dbdata:
