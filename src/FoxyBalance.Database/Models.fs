@@ -2,6 +2,9 @@ namespace FoxyBalance.Database.Models
 
 open System
 
+type IDatabaseOptions =
+    abstract member ConnectionString : string with get
+
 type EmailAddress = string
 type UserId = int
 type TransactionId = int

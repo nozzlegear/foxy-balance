@@ -9,8 +9,9 @@ open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
 open Dapper
 
-type TransactionDatabase(connectionString : string) =
+type TransactionDatabase(options : IDatabaseOptions) =
     let tableName = "FoxyBalance_Transactions"
+    let connectionString = options.ConnectionString
     
     let mapRowToStatus (reader : IDataReader) : TransactionStatus =
         let statusCol = reader.GetOrdinal "Status"

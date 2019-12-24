@@ -33,6 +33,8 @@
     <None Include="web.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Content Include="appsettings.json" />
+    <Content Include="appsettings.development.json" />
   </ItemGroup>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />

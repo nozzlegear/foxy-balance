@@ -8,8 +8,9 @@ open FSharp.Control.Tasks.V2.ContextInsensitive
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models
 
-type UserDatabase(connectionString : string) =
+type UserDatabase(options : IDatabaseOptions) =
     let tableName = "FoxyBalance_Users"
+    let connectionString = options.ConnectionString
     
     /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
     let toSelector = function

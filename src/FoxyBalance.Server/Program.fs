@@ -1,5 +1,7 @@
-module foxy_balance.App
+module Program 
 
+open FoxyBalance.Database
+open FoxyBalance.Database.Interfaces
 open System
 open System.IO
 open Microsoft.AspNetCore.Builder
@@ -8,6 +10,10 @@ open Microsoft.AspNetCore.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 open Giraffe
+open FoxyBalance.Server
+open Microsoft.AspNetCore
+open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.Hosting
 
 // ---------------------------------
 // Models
@@ -92,8 +98,14 @@ let configureApp (app : IApplicationBuilder) =
         .UseGiraffe(webApp)
 
 let configureServices (services : IServiceCollection) =
-    services.AddCors()    |> ignore
-    services.AddGiraffe() |> ignore
+    let add (fn : unit -> IServiceCollection) = fn () |> ignore
+    
+    add (fun _ -> services.AddCors())
+    add (fun _ -> services.AddGiraffe())
+    add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
+    add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
+    add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
+    add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)
@@ -104,11 +116,11 @@ let configureLogging (builder : ILoggingBuilder) =
 let main _ =
     let contentRoot = Directory.GetCurrentDirectory()
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
-    WebHostBuilder()
+    WebHost.CreateDefaultBuilder()
         .UseUrls([|"http://+:5000"|])
-        .UseKestrel()
-        .UseContentRoot(contentRoot)
-        .UseIISIntegration()
+//        .UseKestrel()
+//        .UseContentRoot(contentRoot)
+//        .UseIISIntegration()
         .UseWebRoot(webRoot)
         .Configure(Action<IApplicationBuilder> configureApp)
         .ConfigureServices(configureServices)
