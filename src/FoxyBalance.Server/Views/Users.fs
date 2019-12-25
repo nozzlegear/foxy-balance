@@ -32,7 +32,7 @@ module Users =
     let registerPageView (model : RegisterViewModel) : XmlNode =
         Shared.pageContainer "Create an account" Shared.WrappedInSection [
             form [_class "register-form"; _method "POST"] [
-                Shared.subtitle "Create an account here."
+                Shared.title "Create an account here."
                 
                 Shared.textField [
                     Shared.InputFieldOption.Title "Email address"
