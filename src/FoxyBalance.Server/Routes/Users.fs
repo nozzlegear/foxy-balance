@@ -48,7 +48,7 @@ module Users =
         fun next ctx -> task {
             let! body = ctx.BindFormAsync<LoginRequest>()
             let error str =
-                UserViews.loginPageView { Error = Some str; Username = Some body.Username }
+                UserViews.registerPageView { Error = Some str; Username = Some body.Username }
                 |> htmlView 
                 
             if body.Password.Length < 6 then
