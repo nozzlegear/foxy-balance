@@ -158,7 +158,7 @@ module Shared =
                    find "" (function | HtmlName x -> Some x | _ -> None) |}
                    
         formField { Title = defaults.Title; HtmlName = defaults.HtmlName } [
-            input [_type inputType; _value defaults.Value; _class "input" ]
+            input [_type inputType; _value defaults.Value; _class "input"; _name defaults.HtmlName]
         ]
     
     let textField options = inputField "text" options
