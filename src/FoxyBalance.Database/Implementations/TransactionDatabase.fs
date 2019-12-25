@@ -191,11 +191,13 @@ type TransactionDatabase(options : IDatabaseOptions) =
             ]
             
             withConnection connectionString (fun conn -> task {
-                let! result = conn.QuerySingleAsync<IDictionary<string, int>>(sql, data)
+                let! reader = conn.ExecuteReaderAsync(sql, data)
+                
+                if not (reader.Read()) then
+                    failwith "Output for transaction insert operation contained no data, cannot read new transaction ID."
+                    
                 let transaction : Transaction =
-                    { Id = match result.TryGetValue "Id" with
-                           | true, id -> id
-                           | false, _ -> failwith "Failed to read new transaction's ID." 
+                    { Id = readIdColumn reader
                       Name = transaction.Name
                       Amount = transaction.Amount
                       DateCreated = dateCreated
@@ -235,14 +237,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
             ]
             
             withConnection connectionString (fun conn -> task {
-                let! result = conn.QuerySingleAsync<IDictionary<string, DateTime>>(sql, data)
+                let! reader = conn.ExecuteReaderAsync(sql, data)
+                
+                if not (reader.Read()) then
+                    failwith "Output for transaction update operation contained no data, cannot read transaction's DateCreated."
+                
                 let transaction : Transaction =
                     { Id = transactionId
                       Name = transaction.Name
                       Amount = transaction.Amount
-                      DateCreated = match result.TryGetValue "DateCreated" with
-                                    | true, date -> DateTimeOffset date
-                                    | false, _ -> failwith "Failed to read updated transaction's DateCreated column."
+                      DateCreated = match readColumn "DateCreated" (fun x -> downcast x : DateTime) reader with
+                                    | Some x ->
+                                        DateTimeOffset x 
+                                    | None ->
+                                        failwith "Failed to read updated transaction's DateCreated column."
                       Status = transaction.Status
                       Details = transaction.Details }
                 return transaction

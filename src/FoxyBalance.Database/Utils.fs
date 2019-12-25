@@ -60,3 +60,22 @@ module internal Utils =
                 "Column value was not a string or null. Column name: %s. Value type: %s."
                 columnName
                 (reader.GetDataTypeName columnOrdinal)
+                
+    /// Parses the column from the data reader, returning None if it is null or an empty string. Maps the value with the
+    /// mapper function (e.g. to turn the object into a string or an int).
+    let readColumn name mapper (reader : IDataReader) =
+        let column = reader.GetOrdinal name
+        match reader.GetValue column with
+        | :? System.DBNull
+        | :? System.String as x when System.String.IsNullOrEmpty (string x) ->
+            None
+        | x ->
+            Some x |> Option.map mapper 
+
+    /// Parses the Id column from the data reader.
+    let readIdColumn reader =
+        match readColumn "Id" (fun x -> downcast x : int) reader with
+        | None ->
+            failwith "Id column is null or missing."
+        | Some x ->
+            x

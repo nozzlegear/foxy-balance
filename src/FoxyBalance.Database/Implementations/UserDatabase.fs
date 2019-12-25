@@ -41,13 +41,17 @@ type UserDatabase(options : IDatabaseOptions) =
             ]
              
             withConnection connectionString (fun conn -> task {
-                let! result = conn.QuerySingleAsync<Dictionary<string, int>>(sql tableName, data)
+                let! reader = conn.ExecuteReaderAsync(sql tableName, data)
+                
+                if not (reader.Read()) then
+                    failwith "Output for user insert operation contained no data, cannot read new user ID."
+                
                 let user : User =
                     { DateCreated = dateCreated
-                      Id = dictionaryToMap result |> Map.find "Id"
+                      Id = readIdColumn reader
                       EmailAddress = partialUser.EmailAddress
                       HashedPassword = partialUser.HashedPassword }
-                
+                    
                 return user 
             })
 
