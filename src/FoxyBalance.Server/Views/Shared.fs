@@ -43,44 +43,22 @@ module Shared =
             
             div [_id "navbar"; _class "navbar-menu"] [
                 div [_class "navbar-start"] [
-                    a [_class "navbar-item"] [
+                    a [_class "navbar-item"; _href "/"] [
                         str "Home"
                     ]
 
-                    a [_class "navbar-item"] [
-                        str "Documentation"
-                    ]
-
-                    div [_class "navbar-item has-dropdown is-hoverable"] [
-                        a [_class "navbar-link"] [
-                            str "More"
-                        ]
-
-                        div [_class "navbar-dropdown"] [
-                            a [_class "navbar-item"] [
-                                str "About"
-                            ]
-                            a [_class "navbar-item"] [
-                                str "Jobs"
-                            ]
-                            a [_class "navbar-item"] [
-                                str "Contact"
-                            ]
-                            hr [_class "navbar-divider"]
-                            a [_class "navbar-item"] [
-                                str "Report an issue"
-                            ]
-                        ]
+                    a [_class "navbar-item"; _href "https://github.com/nozzlegear/foxy-balance"; _target "blank"] [
+                        str "Open Source"
                     ]
                 ]
                 
                 div [_class "navbar-end"] [
                     div [_class "navbar-item"] [
                         div [_class "buttons"] [
-                            a [_class "button is-primary"] [
+                            a [_class "button is-primary"; _href "/auth/register"] [
                                 strong [] [str "Sign up"]
                             ]
-                            a [_class "button is-light"] [
+                            a [_class "button is-light"; _href "/auth/login"] [
                                 str "Log in"
                             ] 
                         ]
