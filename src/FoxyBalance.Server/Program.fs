@@ -12,7 +12,8 @@ open Microsoft.Extensions.DependencyInjection
 open Giraffe
 open FoxyBalance.Server
 open Microsoft.AspNetCore
-open Microsoft.Extensions.Configuration
+open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 module Migrator = FoxyBalance.Migrations.Migrator
 
@@ -55,9 +56,18 @@ let configureApp (app : IApplicationBuilder) =
         .UseCors(configureCors)
         .UseStaticFiles()
         .UseGiraffe(allRoutes)
+        
+let cookieAuth (options : CookieAuthenticationOptions) =
+    options.Cookie.HttpOnly <- true
+    options.Cookie.Expiration <- Nullable (TimeSpan.FromDays 7.0)
+    options.SlidingExpiration <- true
+    // After eight hours of inactivity, the user must sign in again
+    options.ExpireTimeSpan <- TimeSpan.FromHours 8.0
+    options.LoginPath <- PathString "/auth/login"
+    options.LogoutPath <- PathString "/auth/logout"
 
 let configureServices (services : IServiceCollection) =
-    let add (fn : unit -> IServiceCollection) = fn () |> ignore
+    let add (fn : unit -> _) = fn () |> ignore
     
     add (fun _ -> services.AddCors())
     add (fun _ -> services.AddGiraffe())
@@ -65,6 +75,8 @@ let configureServices (services : IServiceCollection) =
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
+    add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
+    
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)
