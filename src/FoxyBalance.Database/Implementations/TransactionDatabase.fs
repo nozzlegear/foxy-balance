@@ -257,24 +257,22 @@ type TransactionDatabase(options : IDatabaseOptions) =
             })
             
         member x.ListAsync userId options =
+            let direction =
+                match options.Order with
+                | Ascending -> "ASC"
+                | Descending -> "DESC"
             let sql =
                 sprintf """
-                SELECT *
-                FROM %s
+                SELECT * FROM %s
                 WHERE [UserId] = @userId
-                ORDER BY [Id] @direction
+                ORDER BY [Id] %s
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
-                """ tableName
+                """ tableName direction
             let data = dict [
                 "userId" => ParamValue.Int userId
                 "offset" => ParamValue.Int options.Offset
                 "limit" => ParamValue.Int options.Limit
-                "direction" =>
-                    (match options.Order with
-                     | Ascending -> "ASC"
-                     | Descending -> "DESC"
-                     |> ParamValue.String)
             ]
             
             withConnection connectionString (fun conn -> task {
