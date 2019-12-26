@@ -11,3 +11,4 @@ type ITransactionDatabase =
     abstract member UpdateAsync : UserId -> TransactionId -> PartialTransaction -> Task<Transaction>
     abstract member ListAsync : UserId -> ListOptions -> Task<Transaction seq>
     abstract member DeleteAsync : UserId -> TransactionId -> Task
+    abstract member CountAsync : UserId -> Task<int>

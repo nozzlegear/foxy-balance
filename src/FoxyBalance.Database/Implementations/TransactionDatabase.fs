@@ -296,3 +296,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 let! _ = conn.ExecuteAsync(sql, data)
                 ()  
             }) :> Task
+            
+        member x.CountAsync userId =
+            let sql =
+                sprintf """
+                COUNT [Id] FROM %s WHERE [UserId] = @userId
+                """ tableName
+            let data = dict [ "userId" => ParamValue.Int userId ]
+            
+            withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<int>(sql, data))
