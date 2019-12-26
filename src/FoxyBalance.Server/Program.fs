@@ -25,7 +25,7 @@ let allRoutes : HttpHandler =
             choose [
                 route "/"
                 route "/home"
-            ] >=> RouteUtils.requiresAuthentication >=> text "This is the home page, but it is not yet implemented"
+            ] >=> RouteUtils.requiresAuthentication >=> Routes.Home.homePageHandler
         ]
         POST >=> choose [
             route "/auth/login" >=> Routes.Users.loginPostHandler

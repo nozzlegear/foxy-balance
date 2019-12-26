@@ -37,6 +37,12 @@ module ViewModels =
     type RegisterViewModel =
         { Error : string option
           Username : string option }
+        
+    type HomePageViewModel =
+        { Transactions : FoxyBalance.Database.Models.Transaction seq
+          Page : int
+          TotalPages : int
+          TotalTransactions : int }
      
 module RequestModels =
     [<CLIMutable>]

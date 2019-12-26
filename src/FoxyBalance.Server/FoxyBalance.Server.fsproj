@@ -13,6 +13,7 @@
     <Compile Include="Models.fs" />
     <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\Users.fs" />
+    <Compile Include="Views\Home.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
   </ItemGroup>
@@ -30,6 +31,7 @@
 
   <ItemGroup>
     <Compile Include="Routes\Users.fs" />
+    <Compile Include="Routes\Home.fs" />
     <Compile Include="Program.fs" />
     <None Include="web.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
