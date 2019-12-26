@@ -15,11 +15,18 @@ module Shared =
             meta [_charset "UTF-8"]
             meta [_httpEquiv "X-UA-Compatible"; _content "IE=edge"]
             meta [_name "viewport"; _content "width=device-width, initial-scale=1.0"]
-            link [
-                _rel "shortcut icon"
-                _href "/public/favicon.ico"
-                _type "image/x-icon"
-            ]
+            // Icons
+            link [_rel "shortcut icon"; _href "/Images/Icons/favicon.ico"; _type "image/x-icon" ]
+            link [_rel "apple-touch-icon"; _href "/Images/Icons/apple-touch-icon.png" ]
+            link [_rel "apple-touch-icon"; _sizes "57x57"; _href "/Images/Icons/apple-touch-icon-57x57.png" ]
+            link [_rel "apple-touch-icon"; _sizes "72x72"; _href "/Images/Icons/apple-touch-icon-72x72.png" ]
+            link [_rel "apple-touch-icon"; _sizes "76x76"; _href "/Images/Icons/apple-touch-icon-76x76.png" ]
+            link [_rel "apple-touch-icon"; _sizes "114x114"; _href "/Images/Icons/apple-touch-icon-114x114.png" ]
+            link [_rel "apple-touch-icon"; _sizes "120x120"; _href "/Images/Icons/apple-touch-icon-120x120.png" ]
+            link [_rel "apple-touch-icon"; _sizes "144x144"; _href "/Images/Icons/apple-touch-icon-144x144.png" ]
+            link [_rel "apple-touch-icon"; _sizes "152x152"; _href "/Images/Icons/apple-touch-icon-152x152.png" ]
+            link [_rel "apple-touch-icon"; _sizes "180x180"; _href "/Images/Icons/apple-touch-icon-180x180.png" ]
+            // CSS stylesheets
             link [
                 _rel "stylesheet"
                 _href "https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css"
