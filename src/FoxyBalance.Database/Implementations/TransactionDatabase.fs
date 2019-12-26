@@ -298,7 +298,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member x.CountAsync userId =
             let sql =
                 sprintf """
-                COUNT [Id] FROM %s WHERE [UserId] = @userId
+                SELECT COUNT(Id) FROM %s WHERE [UserId] = @userId
                 """ tableName
             let data = dict [ "userId" => ParamValue.Int userId ]
             
