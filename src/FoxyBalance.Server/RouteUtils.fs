@@ -2,7 +2,6 @@
 
 open System.Security.Claims
 open Giraffe
-open Giraffe.Auth
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Authentication
 open FoxyBalance.Database.Models
@@ -18,7 +17,7 @@ module RouteUtils =
         
     /// Requires the user to be signed in before accessing a route. Redirects to /auth/login if the user is not logged in.
     let requiresAuthentication : HttpHandler =
-        requiresAuthentication redirectToLogin
+        requiresAuthentication (challenge authenticationScheme)
 
     let authenticateUser (user : User) : HttpHandler =
         fun next ctx -> 
