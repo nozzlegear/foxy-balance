@@ -26,8 +26,10 @@ module Home =
                   Order = Descending }
                 |> database.ListAsync session.UserId
             let! count = database.CountAsync session.UserId
+            let! sum = database.SumAsync session.UserId 
             let model : HomePageViewModel =
                 { Transactions = transactions
+                  Sum = sum
                   Page = page
                   TotalPages = if count % limit > 0 then (count / limit) + 1 else count / limit
                   TotalTransactions = count }

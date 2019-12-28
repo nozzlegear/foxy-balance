@@ -40,6 +40,7 @@ module ViewModels =
         
     type HomePageViewModel =
         { Transactions : FoxyBalance.Database.Models.Transaction seq
+          Sum : FoxyBalance.Database.Models.TransactionSum
           Page : int
           TotalPages : int
           TotalTransactions : int }
