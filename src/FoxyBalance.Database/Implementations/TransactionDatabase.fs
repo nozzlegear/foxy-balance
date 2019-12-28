@@ -303,3 +303,38 @@ type TransactionDatabase(options : IDatabaseOptions) =
             let data = dict [ "userId" => ParamValue.Int userId ]
             
             withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<int>(sql, data))
+            
+        member x.SumAsync userId =
+            let sql =
+                sprintf """
+                SELECT
+                    SUM(CASE WHEN [Status] = 'Completed' THEN [Amount] ELSE 0 END) as Completed,
+                    SUM(Amount) as Total
+                FROM %s
+                WHERE [UserId] = @userId
+                """ tableName
+            let data = dict [ "userId" => ParamValue.Int userId ]
+            
+            withConnection connectionString (fun conn -> task {
+                let! reader = conn.ExecuteReaderAsync(sql, data)
+                
+                if not (reader.Read()) then
+                    failwith "Output for transaction sum operation contained no data, cannot read sums."
+                    
+                let output: TransactionSum =
+                    let readToDecimal columnName =
+                        let mapper (value : obj) = value :?> decimal 
+                        match Utils.readColumn columnName mapper reader with
+                        | None ->
+                            failwithf "Unable to read %s sum column, value was None." columnName
+                        | Some x ->
+                            x
+                    let total = readToDecimal "Total"
+                    let completed = readToDecimal "Completed"
+                    
+                    { Sum = total
+                      ClearedSum = completed
+                      PendingSum = total - completed }
+                    
+                return output
+            })
