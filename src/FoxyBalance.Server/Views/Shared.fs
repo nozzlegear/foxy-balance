@@ -266,3 +266,153 @@ module Shared =
         errorMessage
         |> Option.map (error wrap)
         |> maybeEl
+
+    type LevelItem =
+        | HeadingAndTitle of string * string
+        | Element of XmlNode 
+    
+    let private levelItem = function
+        | HeadingAndTitle (heading, title) ->
+            div [_class "level-item has-text-centered"] [
+                div [] [
+                    p [_class "heading"] [str heading]
+                    p [_class "title"] [str title]
+                ]
+            ]
+        | Element el ->
+            div [_class "level-item"] [el]
+   
+    let evenlySpacedLevel levelItems =
+        levelItems
+        |> List.map levelItem
+        |> Giraffe.GiraffeViewEngine.nav [_class "level"]
+    
+    type LevelSection =
+        | LeftLevel of LevelItem list
+        | RightLevel of LevelItem list
+    
+    let level items =
+        let left, right =
+            let folder (leftState, rightState) itemGroup =
+                match itemGroup with
+                | LeftLevel items ->
+                    leftState@items, rightState
+                | RightLevel items ->
+                    leftState, rightState@items
+             
+            Seq.fold folder ([], []) items 
+                
+        Giraffe.GiraffeViewEngine.nav [_class "level"] [
+            left
+            |> List.map levelItem
+            |> div [_class "level-left"]
+            
+            right
+            |> List.map levelItem
+            |> div [_class "level-right"]
+        ]
+        
+    type TableCell =
+        | TableCell of XmlNode 
+        
+    type TableRow =
+        | TableRow of TableCell list
+        
+    type TableSection =
+        | TableHead of TableCell list 
+        | TableBody of TableRow list
+        
+    let table tableOptions =
+        let headCell = function
+            | TableCell el ->
+                th [] [el]
+        let bodyCell = function
+            | TableCell el ->
+                td [] [el]
+        let row = function
+            | TableRow cells ->
+                List.map bodyCell cells
+                |> tr []
+        let headCells, tableRows =
+            let folder (headState, rowState) option =
+                match option with
+                | TableHead cells ->
+                    headState@(List.map headCell cells), rowState
+                | TableBody rows ->
+                    headState, rowState@(List.map row rows)
+            List.fold folder ([], []) tableOptions
+        
+        table [_class "table is-striped is-hoverable is-fullwidth"] [
+            // Only show the table head if it isn't empty
+            (match headCells with
+             | [] -> None
+             | cells -> Some (thead [] [tr [] cells]))
+            |> maybeEl
+            
+            tbody [] tableRows
+        ]
+        
+    let pagination currentPage maxPages =
+        let previousPageAttrs =
+            let baseAttrs = [
+                _class "pagination-previous"
+                currentPage - 1 |> sprintf "/home?page=%i" |> _href 
+            ]
+            // Disable the previous page link if the user is on the first page
+            match currentPage <= 1 with
+            | true -> baseAttrs@[_disabled]
+            | false -> baseAttrs
+        let nextPageAttrs =
+            let baseAttrs = [
+                _class "pagination-next"
+                currentPage + 1 |> sprintf "/home?page=%i" |> _href
+            ]
+            // Disable the next page link if the user is on the last page
+            match currentPage + 1 > maxPages with
+            | true -> baseAttrs@[_disabled]
+            | false -> baseAttrs
+        let pageLinks =
+            let link page =
+                let attrs =
+                    if page = currentPage then
+                        // Do not add a link to the current page
+                        [ _class "pagination-link is-current" ]
+                    else
+                        [ _class "pagination-link"
+                          _href (sprintf "/home?page=%i" page)
+                          _ariaLabel (sprintf "Go to page %i" page) ]
+                    
+                li [] [
+                    a attrs [
+                        sprintf "%i" page |> str
+                    ] 
+                ]
+            let ellipsis =
+                li [] [
+                    span [_class "pagination-ellipsis"] [str "…"]
+                ]
+
+            [ for page in [1..maxPages] do
+                if maxPages <= 5 then
+                    // Show all pages as a link
+                    yield link page
+                else 
+                    match page with
+                    | 1 ->
+                        yield link page 
+                    | x when x = currentPage ->
+                        yield link page 
+                    | x when x = maxPages ->
+                        yield link page
+                    | x when x + 1 = currentPage || x - 1 = currentPage ->
+                        yield link page 
+                    | x when x + 2 = currentPage || x - 2 = currentPage ->
+                        yield ellipsis
+                    | _ ->
+                        () ]
+            
+        Giraffe.GiraffeViewEngine.nav [_class "pagination is-centered"; _roleNavigation; _ariaLabel "pagination"] [
+            a previousPageAttrs [str "Previous"]
+            a nextPageAttrs [str "Next"]
+            ul [_class "pagination-list"] pageLinks
+        ]
