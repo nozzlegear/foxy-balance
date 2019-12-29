@@ -2,6 +2,7 @@
 
 open Giraffe.GiraffeViewEngine
 open Giraffe.GiraffeViewEngine.Accessibility
+open FoxyBalance.Server.Models
 
 module Shared =
     let maybeEl nodeOption : XmlNode =
@@ -34,8 +35,31 @@ module Shared =
                 _crossorigin "anonymous"
             ]
         ]
+    
+    type AuthStatus =
+        | Unauthenticated
+        | Authenticated
+    
+    let nav authStatus : XmlNode =
+        let authButtons =
+            match authStatus with
+            | Authenticated ->
+                [
+                    a [_class "button is-light"; _href "/auth/logout"] [
+                        str "Log out"
+                    ]
+                ]
+            | Unauthenticated ->
+                [
+                    a [_class "button is-primary"; _href "/auth/register"] [
+                        strong [] [str "Sign up"]
+                    ]
+                    a [_class "button is-light"; _href "/auth/login"] [
+                        str "Log in"
+                    ] 
+                ]
+                
         
-    let nav : XmlNode =
         nav [_class "navbar has-shadow is-spaced"; _roleNavigation; _ariaLabel "main navigation"] [
             div [_class "navbar-brand"] [
                 a [_class "navbar-item"; _href "/"] [
@@ -61,14 +85,7 @@ module Shared =
                 
                 div [_class "navbar-end"] [
                     div [_class "navbar-item"] [
-                        div [_class "buttons"] [
-                            a [_class "button is-primary"; _href "/auth/register"] [
-                                strong [] [str "Sign up"]
-                            ]
-                            a [_class "button is-light"; _href "/auth/login"] [
-                                str "Log in"
-                            ] 
-                        ]
+                        div [_class "buttons"] authButtons
                     ]
                 ]
             ]
@@ -85,16 +102,16 @@ module Shared =
         | WrappedInField
         | NoFieldWrap
     
-    let pageContainer pageTitle sectionOption children : XmlNode =
+    let pageContainer pageTitle isAuthenticated sectionWrap children : XmlNode =
         let children =
-            match sectionOption with
+            match sectionWrap with
             | WrappedInSection -> [section children]
             | NoSectionWrap -> children
             
         html [_lang "en"] [
             head pageTitle
             body [] [
-                nav
+                nav isAuthenticated 
                 div [_id "content-host"; _class "container"] children 
             ]
         ]

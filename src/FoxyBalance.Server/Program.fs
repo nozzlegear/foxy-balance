@@ -20,16 +20,17 @@ module Migrator = FoxyBalance.Migrations.Migrator
 let allRoutes : HttpHandler =
     choose [
         GET >=> choose [
-            route "/auth/login" >=> Routes.Users.loginHandler
-            route "/auth/register" >=> Routes.Users.registerHandler
+            route "/auth/logout" >=> Routes.Auth.logoutHandler
+            route "/auth/login" >=> Routes.Auth.loginHandler
+            route "/auth/register" >=> Routes.Auth.registerHandler
             choose [
                 route "/"
                 route "/home"
             ] >=> RouteUtils.requiresAuthentication >=> Routes.Home.homePageHandler
         ]
         POST >=> choose [
-            route "/auth/login" >=> Routes.Users.loginPostHandler
-            route "/auth/register" >=> Routes.Users.registerPostHandler
+            route "/auth/login" >=> Routes.Auth.loginPostHandler
+            route "/auth/register" >=> Routes.Auth.registerPostHandler
         ]
         setStatusCode 404 >=> text "Not Found"
     ]

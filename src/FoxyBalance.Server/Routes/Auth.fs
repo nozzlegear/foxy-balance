@@ -8,18 +8,22 @@ open FoxyBalance.Server
 open FoxyBalance.Server.Hashes
 open FoxyBalance.Server.Models
 open FoxyBalance.Server.Models.RequestModels
-module UserViews = FoxyBalance.Server.Views.Users
+module AuthViews = FoxyBalance.Server.Views.AuthViews
 
-module Users =
+module Auth =
+    let logoutHandler : HttpHandler =
+        Giraffe.Auth.signOut RouteUtils.authenticationScheme
+        >=> RouteUtils.redirectToLogin
+    
     let loginHandler : HttpHandler =
-        UserViews.loginPageView { Error = None; Username = None }
+        AuthViews.loginPageView { Error = None; Username = None }
         |> htmlView 
         
     let loginPostHandler : HttpHandler =
         fun next ctx -> task {
             let! body = ctx.BindFormAsync<LoginRequest>()
             let error str =
-                UserViews.loginPageView { Error = Some str; Username = Some body.Username }
+                AuthViews.loginPageView { Error = Some str; Username = Some body.Username }
                 |> htmlView 
             let database, constants =
                 ctx.GetService<IUserDatabase>(),
@@ -41,14 +45,14 @@ module Users =
                              >=> redirectTo false "/") next ctx }
         
     let registerHandler : HttpHandler =
-        UserViews.registerPageView { Error = None; Username = None }
+        AuthViews.registerPageView { Error = None; Username = None }
         |> htmlView 
         
     let registerPostHandler : HttpHandler =
         fun next ctx -> task {
             let! body = ctx.BindFormAsync<LoginRequest>()
             let error str =
-                UserViews.registerPageView { Error = Some str; Username = Some body.Username }
+                AuthViews.registerPageView { Error = Some str; Username = Some body.Username }
                 |> htmlView 
                 
             if body.Password.Length < 6 then
