@@ -63,7 +63,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
           Details = mapRowToDetails reader }
         
     let mapRowsToTransactions (reader : IDataReader) : Transaction seq =
-        seq { while reader.Read() do yield mapRowToTransaction reader }
+        let output = [ while reader.Read() do yield mapRowToTransaction reader ]
+        List.toSeq output
     
     let mapDetailsToSqlParams details =
         match details with
