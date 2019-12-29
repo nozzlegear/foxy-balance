@@ -1,7 +1,6 @@
 ﻿namespace FoxyBalance.Database
 
 open System
-open System.Collections.Generic
 open System.Data
 open System.Threading.Tasks
 open FSharp.Control.Tasks.V2.ContextInsensitive
@@ -12,6 +11,14 @@ open Dapper
 type TransactionDatabase(options : IDatabaseOptions) =
     let tableName = "FoxyBalance_Transactions"
     let connectionString = options.ConnectionString
+    
+    /// Parses the Id column from the data reader.
+    let readIdColumn reader =
+        match readColumn "Id" (fun x -> downcast x : int64) reader with
+        | None ->
+            failwith "Id column is null or missing."
+        | Some x ->
+            x
     
     let mapRowToStatus (reader : IDataReader) : TransactionStatus =
         let statusCol = reader.GetOrdinal "Status"

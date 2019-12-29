@@ -1,7 +1,6 @@
 ﻿namespace FoxyBalance.Database
 
 open System
-open System.Collections.Generic
 open System.Data
 open Dapper
 open FSharp.Control.Tasks.V2.ContextInsensitive
@@ -11,6 +10,14 @@ open FoxyBalance.Database.Models
 type UserDatabase(options : IDatabaseOptions) =
     let tableName = "FoxyBalance_Users"
     let connectionString = options.ConnectionString
+    
+    /// Parses the Id column from the data reader.
+    let readIdColumn reader =
+        match readColumn "Id" (fun x -> downcast x : int) reader with
+        | None ->
+            failwith "Id column is null or missing."
+        | Some x ->
+            x
     
     /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
     let toSelector = function
