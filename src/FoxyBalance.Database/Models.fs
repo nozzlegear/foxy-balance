@@ -7,7 +7,7 @@ type IDatabaseOptions =
 
 type EmailAddress = string
 type UserId = int
-type TransactionId = int
+type TransactionId = int64
 
 type UserIdentifier =
     | Id of UserId

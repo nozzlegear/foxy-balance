@@ -62,7 +62,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
         let amountCol = reader.GetOrdinal "Amount"
         let dateCreatedCol = reader.GetOrdinal "DateCreated"
         
-        { Id = reader.GetInt32 idCol
+        { Id = reader.GetInt64 idCol
           Name = reader.GetString nameCol
           Amount = reader.GetDecimal amountCol
           DateCreated = reader.GetDateTime dateCreatedCol |> DateTimeOffset
@@ -113,7 +113,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 """ tableName
             let data = dict [
                 "userId" => ParamValue.Int userId
-                "id" => ParamValue.Int transactionId 
+                "id" => ParamValue.Long transactionId 
             ]
             
             withConnection connectionString (fun conn -> task {
@@ -132,7 +132,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 """ tableName
             let data = dict [
                 "userId" => ParamValue.Int userId
-                "id" => ParamValue.Int transactionId 
+                "id" => ParamValue.Long transactionId 
             ]
             
             withConnection connectionString (fun conn -> task {
@@ -151,7 +151,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 """ tableName
             let data = dict [
                 "userId" => ParamValue.Int userId
-                "id" => ParamValue.Int transactionId
+                "id" => ParamValue.Long transactionId
             ]
             
             withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<bool>(sql, data))
@@ -233,7 +233,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             let status = mapStatusToSqlParams transaction.Status
             let data = [
                 "userId" => ParamValue.Int userId
-                "id" => ParamValue.Int transactionId
+                "id" => ParamValue.Long transactionId
                 "name" => ParamValue.String transaction.Name
                 "amount" => ParamValue.Decimal transaction.Amount
                 "type" => details.typeStr
@@ -295,7 +295,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 """ tableName
             let data = dict [
                 "userId" => ParamValue.Int userId
-                "id" => ParamValue.Int transactionId
+                "id" => ParamValue.Long transactionId
             ]
             
             withConnection connectionString (fun conn -> task {
