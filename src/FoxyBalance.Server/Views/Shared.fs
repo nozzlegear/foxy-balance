@@ -416,3 +416,39 @@ module Shared =
             a nextPageAttrs [str "Next"]
             ul [_class "pagination-list"] pageLinks
         ]
+
+    type FormMethod =
+        | GET
+        | POST
+        
+    type FormEncType =
+        | Default
+        | Multipart
+    
+    type FormOption =
+        | Class of string
+        | Method of FormMethod
+        | Action of string
+        | EncType of FormEncType 
+    
+    let form formOptions children =
+        let props =
+            let rec mapNextProp current remaining =
+                match remaining with
+                | [] ->
+                    current 
+                | FormOption.Class str :: rest ->
+                    mapNextProp (current@[_class str]) rest
+                | FormOption.Method GET :: rest ->
+                    mapNextProp (current@[_method "GET"]) rest
+                | FormOption.Method POST :: rest ->
+                    mapNextProp (current@[_method "POST"]) rest
+                | FormOption.Action str :: rest ->
+                    mapNextProp (current@[_action str]) rest
+                | FormOption.EncType Default :: rest ->
+                    mapNextProp (current@[_enctype "application/x-www-form-urlencoded"]) rest
+                | FormOption.EncType Multipart :: rest ->
+                    mapNextProp (current@[_enctype "multipart/form-data"]) rest
+            mapNextProp [] formOptions 
+        
+        form props children

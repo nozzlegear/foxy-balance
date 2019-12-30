@@ -6,7 +6,7 @@ open FoxyBalance.Server.Models.ViewModels
 module Auth =
     let loginPageView (model : LoginViewModel) : XmlNode =
         Shared.pageContainer "Login" Shared.Unauthenticated Shared.WrappedInSection [
-            form [_class "login-form"; _method "POST"] [
+            Shared.form [Shared.FormOption.Class "login-form"; Shared.FormOption.Method Shared.FormMethod.POST] [
                 Shared.title "Login to your account here."
                 
                 Shared.textField [
@@ -31,7 +31,7 @@ module Auth =
     
     let registerPageView (model : RegisterViewModel) : XmlNode =
         Shared.pageContainer "Create an account" Shared.Unauthenticated Shared.WrappedInSection [
-            form [_class "register-form"; _method "POST"] [
+            Shared.form [Shared.FormOption.Class "register-form"; Shared.FormOption.Method Shared.FormMethod.POST] [
                 Shared.title "Create an account here."
                 
                 Shared.textField [

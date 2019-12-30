@@ -1,5 +1,6 @@
 ﻿namespace FoxyBalance.Server.Models
 
+open FoxyBalance.Database.Models
 open Microsoft.Extensions.Configuration
 
 type IConstants =
@@ -44,6 +45,13 @@ module ViewModels =
           Page : int
           TotalPages : int
           TotalTransactions : int }
+    
+    type NewTransactionViewModel =
+        { Error : string option
+          Amount : decimal option
+          Status : TransactionStatus option
+          Details : TransactionDetails option
+          Name : string option }
      
 module RequestModels =
     [<CLIMutable>]
