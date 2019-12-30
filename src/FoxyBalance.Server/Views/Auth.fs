@@ -3,7 +3,7 @@
 open Giraffe.GiraffeViewEngine
 open FoxyBalance.Server.Models.ViewModels
 
-module AuthViews =
+module Auth =
     let loginPageView (model : LoginViewModel) : XmlNode =
         Shared.pageContainer "Login" Shared.Unauthenticated Shared.WrappedInSection [
             form [_class "login-form"; _method "POST"] [

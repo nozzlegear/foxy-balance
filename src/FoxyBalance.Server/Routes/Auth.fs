@@ -8,7 +8,7 @@ open FoxyBalance.Server
 open FoxyBalance.Server.Hashes
 open FoxyBalance.Server.Models
 open FoxyBalance.Server.Models.RequestModels
-module AuthViews = FoxyBalance.Server.Views.AuthViews
+module AuthViews = FoxyBalance.Server.Views.Auth
 
 module Auth =
     let logoutHandler : HttpHandler =
