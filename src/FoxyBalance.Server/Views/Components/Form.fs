@@ -161,6 +161,7 @@ module Form =
         | Method of Method
         | EncType of EncType
         | Action of string
+        | AutoComplete of bool
         
     let private label htmlName title =
         G.label [A._class "label"; A._for htmlName] [G.str title]
@@ -292,6 +293,9 @@ module Form =
                     mapNextProp (current@[A._enctype "application/x-www-form-urlencoded"]) rest
                 | EncType Multipart :: rest ->
                     mapNextProp (current@[A._enctype "multipart/form-data"]) rest
+                | AutoComplete value:: rest ->
+                    let str = if value then "on" else "off"
+                    mapNextProp (current@[A._autocomplete str]) rest
             mapNextProp [] options
         let children =
             let rec mapNextChild rest (current : G.XmlNode list) =

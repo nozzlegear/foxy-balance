@@ -72,7 +72,7 @@ module Home =
             formattedDate, formattedClearDate, now
         
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
-            Form.create [Form.Method Form.Post] [
+            Form.create [Form.Method Form.Post; Form.AutoComplete false] [
                 Form.Element.Title "New Transaction"
                 
                 Form.Element.TextInput [
