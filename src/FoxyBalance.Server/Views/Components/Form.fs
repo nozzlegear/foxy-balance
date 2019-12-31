@@ -15,7 +15,6 @@ module Form =
         | Max of decimal
         | Step of decimal 
         | Required
-        | Expanded
         with
         static member Defaults (options : ControlOption list) =
             let inline find defaultValue fn = S.find options defaultValue fn
@@ -23,7 +22,6 @@ module Form =
             {| Value = find "" (function | Value str -> Some str | _ -> None)
                HtmlName = find "" (function | HtmlName str -> Some str | _ -> None)
                Label = find "" (function | LabelText str -> Some str | _ -> None)
-               Expanded = find false (function | Expanded -> Some true | _ -> None )
                Placeholder = find "" (function | Placeholder str -> Some str | _ -> None)
                HelpText = find None (function | HelpText str -> Some (Some str) | _ -> None)
                Required = find false (function | Required -> Some true | _ -> None)
@@ -111,7 +109,6 @@ module Form =
         | Type of ButtonType
         | Color of ButtonColor
         | Shade of ButtonShade
-        | Expanded
         with
         static member Defaults (options : ButtonOption list) =
             let inline find defaultValue fn = S.find options defaultValue fn
@@ -119,8 +116,7 @@ module Form =
             {| Label = find "" (function | ButtonText str -> Some str | _ -> None)
                Type = find Button (function | Type btnType -> Some btnType | _ -> None)
                Color = find Default (function | Color color -> Some color | _ -> None)
-               Shade = find Normal (function | Shade shade -> Some shade | _ -> None)
-               Expanded = find false (function | Expanded -> Some true | _ -> None) |}
+               Shade = find Normal (function | Shade shade -> Some shade | _ -> None) |}
         
     type Element =
         | TextInput of ControlOption list
@@ -149,26 +145,13 @@ module Form =
         | EncType of EncType
         | Action of string
         
-    type WrapLevel =
-        | TopLevel
-        | Nested 
-        
     let private label htmlName title =
         G.label [A._class "label"; A._for htmlName] [G.str title]
         
-    let private field grouped =
-        let fieldClass =
-            match grouped with
-            | true -> "field is-grouped"
-            | false -> "field"
-            
-        G.div [A._class fieldClass]
-        
-    let private control expanded =
-        let className =
-            if expanded then "control is-expanded" else "control"
-        
-        G.div [A._class className]
+    let private control children =
+        G.div [A._class "field"] [
+            G.div [A._class "control"] children
+        ]
         
     let private inputControl typeAttr options : G.XmlNode =
         let defaults = ControlOption.Defaults options
@@ -200,7 +183,7 @@ module Form =
               | None ->
                   () ]
         
-        control defaults.Expanded [
+        control [
             label defaults.HtmlName defaults.Label
             G.input inputAttrs
             defaults.HelpText
@@ -226,7 +209,7 @@ module Form =
             | false ->
                 baseProps
                 
-        control false [
+        control [
             G.label [A._class "checkbox"] [
                 G.input inputProps
                 G.str defaults.Label
@@ -250,8 +233,7 @@ module Form =
                     G.str defaults.Label
                 ]
                 
-        control defaults.Expanded [buttonEl]
-        
+        control [buttonEl]
         
     let create (options : FormOption list) (children : Element list) : G.XmlNode =
         let props =
@@ -273,40 +255,34 @@ module Form =
                     mapNextProp (current@[A._enctype "multipart/form-data"]) rest
             mapNextProp [] options
         let children =
-            let rec mapNextChild wrapLevel rest (current : G.XmlNode list) =
-                let maybeWrap node =
-                    match wrapLevel with
-                    | TopLevel ->
-                        field false [node]
-                    | Nested ->
-                        node
+            let rec mapNextChild rest (current : G.XmlNode list) =
                 let next rest newNodes =
                     current @ newNodes
-                    |> mapNextChild wrapLevel rest
+                    |> mapNextChild rest
                 
                 match rest with
                 | [] ->
                     current
                 | TextInput options :: rest ->
-                    [textInput options |> maybeWrap]
+                    [textInput options]
                     |> next rest 
                 | PasswordInput options :: rest ->
-                    [passwordInput options |> maybeWrap]
+                    [passwordInput options]
                     |> next rest
                 | DateInput options :: rest ->
-                    [dateInput options |> maybeWrap]
+                    [dateInput options]
                     |> next rest
                 | NumberInput options :: rest ->
-                    [numberInput options |> maybeWrap]
+                    [numberInput options]
                     |> next rest
                 | CheckboxInput options :: rest ->
-                    [checkboxInput options |> maybeWrap]
+                    [checkboxInput options]
                     |> next rest
                 | Button options :: rest ->
-                    [button options |> maybeWrap]
+                    [button options]
                     |> next rest
                 | MaybeError err :: rest ->
-                    [S.maybeErr err |> maybeWrap]
+                    [S.maybeErr err]
                     |> next rest
                 | Title str :: rest ->
                     // Title is not wrapped in a field
@@ -321,12 +297,15 @@ module Form =
                     els
                     |> next rest
                 | Group els :: rest ->
-                    // Recursively create another group of elements, but these ones should not be wrapped in fields
-                    let groupedElements = mapNextChild WrapLevel.Nested els []
+                    // Recursively create another group of elements, but all of these will be wrapped in a Bulma r
+                    // responsive column
+                    let columns =
+                        mapNextChild els []
+                        |> List.map (fun el -> G.div [A._class "column"] [el])
                     
-                    [field true groupedElements]
+                    [G.div [A._class "columns"] columns]
                     |> next rest
                     
-            mapNextChild WrapLevel.TopLevel children []
+            mapNextChild children []
             
         G.form props children 
