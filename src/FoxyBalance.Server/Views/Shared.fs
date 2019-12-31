@@ -97,10 +97,6 @@ module Shared =
     type SectionWrap =
         | WrappedInSection
         | NoSectionWrap
-        
-    type FieldWrap =
-        | WrappedInField
-        | NoFieldWrap
     
     let pageContainer pageTitle isAuthenticated sectionWrap children : XmlNode =
         let children =
@@ -116,19 +112,7 @@ module Shared =
             ]
         ]
         
-    let field = div [_class "field"]
-        
-    type FieldOptions =
-        { Title : string
-          HtmlName : string }
-        
-    let formField options control =
-        field [
-            label [_class "label"; _for options.HtmlName] [str options.Title]
-            div [_class "control"] control 
-        ]
-        
-    let inline private find input defaultValue fn =
+    let inline find input defaultValue fn =
         let reducer (state : _ option) el : _ option =
             match fn el with
             | Some x -> Some x
@@ -137,134 +121,16 @@ module Shared =
         |> Seq.fold reducer Option.None
         |> Option.defaultValue defaultValue
 
-    type InputFieldOption =
-        | Value of string
-        | Placeholder of string
-        | Title of string
-        | HtmlName of string 
-    
-    let private inputField inputType options =
-        let find = find options 
-        let defaults =
-            {| Value =
-                   find "" (function | Value x -> Some x | _ -> None)
-               Placeholder =
-                   find "" (function | Placeholder x -> Some x | _ -> None)
-               Title =
-                   find "" (function | Title x -> Some x | _ -> None)
-               HtmlName =
-                   find "" (function | HtmlName x -> Some x | _ -> None) |}
-                   
-        formField { Title = defaults.Title; HtmlName = defaults.HtmlName } [
-            input [_type inputType; _value defaults.Value; _class "input"; _name defaults.HtmlName]
-        ]
-    
-    let textField options = inputField "text" options
-    
-    let passwordField options = inputField "password" options
-    
-    type ButtonType =
-        | Submit
-        | Button
-        
-    type ButtonColor =
-        | Default 
-        | Primary
-        | Link
-        | White
-        | Dark
-        | Black
-        | Text
-        | Info
-        | Success
-        | Warning
-        | Danger
-    
-    type ButtonShade =
-        | Light
-        | Normal 
-    
-    type ButtonFieldOption =
-        | Type of ButtonType
-        | Label of string
-        | Color of ButtonColor
-        | Shade of ButtonShade
-        | Wrap of FieldWrap
-    
-    let buttonField options =
-        let find defaultValue fn = find options defaultValue fn 
-        let buttonType =
-            match find Button (function | Type x -> Some x | _ -> None) with
-            | Button -> "button"
-            | Submit -> "submit"
-        let label =
-            find "" (function | Label x -> Some x | _ -> None)
-        let classes =
-            let classList =
-                [ yield "button"
-                
-                  match find Default (function | Color x -> Some x | _ -> None) with
-                  | Default ->
-                      () 
-                  | Primary ->
-                      yield "is-primary"
-                  | Link ->
-                      yield "is-link"
-                  | White ->
-                      yield "is-white"
-                  | Dark ->
-                      yield "is-dark"
-                  | Black ->
-                      yield "is-black"
-                  | Text ->
-                      yield "is-text"
-                  | Info ->
-                      yield "is-info"
-                  | Success ->
-                      yield "is-success"
-                  | Warning ->
-                      yield "is-warning"
-                  | Danger ->
-                      yield "is-danger"
-                    
-                  match find Normal (function | Shade x -> Some x | _ -> None) with
-                  | Normal ->
-                      ()
-                  | Light ->
-                      yield "is-light" ]
-  
-            System.String.Join(" ", classList)          
-        
-        let el = 
-            p [_class "control"] [
-                button [_class classes; _type buttonType] [
-                    str label 
-                ]
-            ]
-        
-        match find NoFieldWrap (function | Wrap x -> Some x | _ -> None) with
-        | NoFieldWrap ->
-            el
-        | WrappedInField ->
-            field [el]
-
     let title x = h1 [_class "title"] [str x]
     
     let subtitle x = h2 [_class "subtitle"] [str x]
     
-    let error wrap text =
-        let el =
-            p [_class "error has-text-danger"] [str text]
-            
-        match wrap with
-        | NoFieldWrap ->
-            el
-        | WrappedInField ->
-            field [el]
+    let error text =
+        p [_class "error has-text-danger"] [str text]
     
-    let maybeErr wrap errorMessage : XmlNode =
+    let maybeErr errorMessage : XmlNode =
         errorMessage
-        |> Option.map (error wrap)
+        |> Option.map error
         |> maybeEl
 
     type LevelItem =
@@ -416,39 +282,3 @@ module Shared =
             a nextPageAttrs [str "Next"]
             ul [_class "pagination-list"] pageLinks
         ]
-
-    type FormMethod =
-        | GET
-        | POST
-        
-    type FormEncType =
-        | Default
-        | Multipart
-    
-    type FormOption =
-        | Class of string
-        | Method of FormMethod
-        | Action of string
-        | EncType of FormEncType 
-    
-    let form formOptions children =
-        let props =
-            let rec mapNextProp current remaining =
-                match remaining with
-                | [] ->
-                    current 
-                | FormOption.Class str :: rest ->
-                    mapNextProp (current@[_class str]) rest
-                | FormOption.Method GET :: rest ->
-                    mapNextProp (current@[_method "GET"]) rest
-                | FormOption.Method POST :: rest ->
-                    mapNextProp (current@[_method "POST"]) rest
-                | FormOption.Action str :: rest ->
-                    mapNextProp (current@[_action str]) rest
-                | FormOption.EncType Default :: rest ->
-                    mapNextProp (current@[_enctype "application/x-www-form-urlencoded"]) rest
-                | FormOption.EncType Multipart :: rest ->
-                    mapNextProp (current@[_enctype "multipart/form-data"]) rest
-            mapNextProp [] formOptions 
-        
-        form props children

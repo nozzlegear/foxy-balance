@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="Models.fs" />
     <Compile Include="Views\Shared.fs" />
+    <Compile Include="Views\Components\Form.fs" />
     <Compile Include="Views\Auth.fs" />
     <Compile Include="Views\Home.fs" />
     <Compile Include="Hashes.fs" />

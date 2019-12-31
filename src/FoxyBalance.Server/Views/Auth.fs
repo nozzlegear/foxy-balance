@@ -1,55 +1,56 @@
 ﻿namespace FoxyBalance.Server.Views
 
 open Giraffe.GiraffeViewEngine
+open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
 
 module Auth =
-    let loginPageView (model : LoginViewModel) : XmlNode =
-        Shared.pageContainer "Login" Shared.Unauthenticated Shared.WrappedInSection [
-            Shared.form [Shared.FormOption.Class "login-form"; Shared.FormOption.Method Shared.FormMethod.POST] [
-                Shared.title "Login to your account here."
+    type private ViewType =
+        | Login of LoginViewModel
+        | Register of RegisterViewModel
+    
+    let private sharedView viewType : XmlNode =
+        let model =
+            match viewType with
+            | Login model ->
+                {| FormTitle = "Login to your account."
+                   PageTitle = "Login"
+                   ButtonText = "Login"
+                   Username = model.Username
+                   Error = model.Error |}
+            | Register model ->
+                {| FormTitle = "Create an account."
+                   PageTitle = "Create Account"
+                   ButtonText = "Create Account"
+                   Username = model.Username
+                   Error = model.Error |}
+                   
+        Shared.pageContainer model.PageTitle Shared.Unauthenticated Shared.WrappedInSection [
+            Form.create [Form.Method Form.Post] [
+                Form.Title model.FormTitle
                 
-                Shared.textField [
-                    Shared.InputFieldOption.Title "Email address"
-                    Shared.InputFieldOption.Placeholder "me@example.com"
-                    Shared.InputFieldOption.Value (model.Username |> Option.defaultValue "")
-                    Shared.InputFieldOption.HtmlName "username" ]
+                Form.TextInput [
+                    Form.LabelText "Email address"
+                    Form.Placeholder "me@example.com"
+                    Form.Value (model.Username |> Option.defaultValue "")
+                    Form.HtmlName "username" ]
                 
-                Shared.passwordField [
-                    Shared.InputFieldOption.Title "Password"
-                    Shared.InputFieldOption.HtmlName "password" ]
+                Form.PasswordInput [
+                    Form.LabelText "Password"
+                    Form.HtmlName "password" ]
                 
-                Shared.maybeErr Shared.WrappedInField model.Error
+                Form.MaybeError model.Error
                 
-                Shared.buttonField [
-                    Shared.ButtonFieldOption.Label "Login"
-                    Shared.ButtonFieldOption.Wrap Shared.WrappedInField
-                    Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
-                    Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
+                Form.Element.Button [
+                    Form.ButtonOption.ButtonText model.ButtonText
+                    Form.Color Form.Primary
+                    Form.Type Form.Submit ]
             ]
         ]
     
+    
+    let loginPageView (model : LoginViewModel) : XmlNode =
+        sharedView (Login model)
+    
     let registerPageView (model : RegisterViewModel) : XmlNode =
-        Shared.pageContainer "Create an account" Shared.Unauthenticated Shared.WrappedInSection [
-            Shared.form [Shared.FormOption.Class "register-form"; Shared.FormOption.Method Shared.FormMethod.POST] [
-                Shared.title "Create an account here."
-                
-                Shared.textField [
-                    Shared.InputFieldOption.Title "Email address"
-                    Shared.InputFieldOption.Placeholder "me@example.com"
-                    Shared.InputFieldOption.Value (model.Username |> Option.defaultValue "")
-                    Shared.InputFieldOption.HtmlName "username" ]
-                
-                Shared.passwordField [
-                    Shared.InputFieldOption.Title "Password"
-                    Shared.InputFieldOption.HtmlName "password" ]
-                
-                Shared.maybeErr Shared.WrappedInField model.Error
-                
-                Shared.buttonField [
-                    Shared.ButtonFieldOption.Label "Create Account"
-                    Shared.ButtonFieldOption.Wrap Shared.WrappedInField
-                    Shared.ButtonFieldOption.Color Shared.ButtonColor.Primary
-                    Shared.ButtonFieldOption.Type Shared.ButtonType.Submit ]
-            ]
-        ]
+        sharedView (Register model)
