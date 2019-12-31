@@ -282,7 +282,9 @@ module Form =
                     [button options]
                     |> next rest
                 | MaybeError err :: rest ->
-                    [S.maybeErr err]
+                    [ err
+                      |> Option.map (fun err -> control [ S.error err ])
+                      |> S.maybeEl ]
                     |> next rest
                 | Title str :: rest ->
                     // Title is not wrapped in a field
