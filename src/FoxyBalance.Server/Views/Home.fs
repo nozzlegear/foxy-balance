@@ -24,6 +24,7 @@ module Home =
                 ]
                 Shared.RightLevel [
                     Shared.LevelItem.Element (a [_href "/home/clear"; _class "button is-light"] [str "Clear All"])
+                    Shared.LevelItem.Element (a [_href "/home/adjust-balance"; _class "button is-light"] [str "Adjust Balance"])
                     Shared.LevelItem.Element (a [_href "/home/new"; _class "button is-success"] [str "New Transaction"])
                 ]
             ]
