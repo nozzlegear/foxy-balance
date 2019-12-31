@@ -40,6 +40,22 @@ module Form =
             {| Checked = find false (function | Checked x -> Some x | _ -> None)
                HtmlName = find "" (function | HtmlName x -> Some x | _ -> None)
                Label = find "" (function | CheckboxText x -> Some x | _ -> None) |}
+    
+    type SelectOption =
+        | Value of string
+        | Options of {| Value : string; Label :string |} list
+        | HtmlName of string
+        | LabelText of string
+        | Required
+        with
+        static member Defaults (options : SelectOption list) =
+            let inline find defaultValue fn = S.find options defaultValue fn
+            
+            {| Value = find "" (function | Value x -> Some x | _ -> None)
+               Options = find [] (function | Options x -> Some x | _ -> None)
+               HtmlName = find "" (function | HtmlName x -> Some x | _ -> None)
+               LabelText = find "" (function | LabelText x -> Some x | _ -> None)
+               Required = find false (function | Required -> Some true | _ -> None) |}
         
     type ButtonType =
         | Submit
@@ -123,6 +139,7 @@ module Form =
         | PasswordInput of ControlOption list 
         | DateInput of ControlOption list
         | NumberInput of ControlOption list
+        | SelectBox of SelectOption list
         | CheckboxInput of CheckboxOption list
         | Button of ButtonOption list
         | MaybeError of string option
@@ -198,6 +215,26 @@ module Form =
     let private dateInput = inputControl "date"
     
     let private numberInput = inputControl "number"
+    
+    let private selectBox options : G.XmlNode =
+        let defaults = SelectOption.Defaults options
+        let props = [
+            yield A._name defaults.HtmlName
+            yield A._value defaults.Value
+            
+            if defaults.Required then
+                yield A._required
+        ]
+        let options =
+            defaults.Options
+            |> List.map (fun o -> G.option [A._value o.Value] [G.str o.Label])
+        
+        control [
+            label defaults.HtmlName defaults.LabelText
+            G.div [A._class "select"] [
+                G.select props options
+            ]
+        ]
         
     let private checkboxInput options : G.XmlNode =
         let defaults = CheckboxOption.Defaults options
@@ -274,6 +311,9 @@ module Form =
                     |> next rest
                 | NumberInput options :: rest ->
                     [numberInput options]
+                    |> next rest
+                | SelectBox options :: rest ->
+                    [selectBox options]
                     |> next rest
                 | CheckboxInput options :: rest ->
                     [checkboxInput options]
