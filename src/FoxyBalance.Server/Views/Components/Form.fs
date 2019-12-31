@@ -11,6 +11,9 @@ module Form =
         | LabelText of string
         | Placeholder of string
         | HelpText of string
+        | Min of decimal
+        | Max of decimal
+        | Step of decimal 
         | Required
         | Expanded
         with
@@ -23,7 +26,10 @@ module Form =
                Expanded = find false (function | Expanded -> Some true | _ -> None )
                Placeholder = find "" (function | Placeholder str -> Some str | _ -> None)
                HelpText = find None (function | HelpText str -> Some (Some str) | _ -> None)
-               Required = find false (function | Required -> Some true | _ -> None) |}
+               Required = find false (function | Required -> Some true | _ -> None)
+               Min = find None (function | Min x -> Some (Some x) | _ -> None)
+               Max = find None (function | Max x -> Some (Some x) | _ -> None)
+               Step = find None (function | Step x -> Some (Some x) | _ -> None) |}
                
     type CheckboxOption =
         | Checked of bool
@@ -120,6 +126,7 @@ module Form =
         | TextInput of ControlOption list
         | PasswordInput of ControlOption list 
         | DateInput of ControlOption list
+        | NumberInput of ControlOption list
         | CheckboxInput of CheckboxOption list
         | Button of ButtonOption list
         | MaybeError of string option
@@ -166,17 +173,32 @@ module Form =
     let private inputControl typeAttr options : G.XmlNode =
         let defaults = ControlOption.Defaults options
         let inputAttrs =
-            let baseAttrs = [
-                A._class "input"
-                A._type typeAttr
-                A._placeholder defaults.Placeholder
-                A._name defaults.HtmlName
-                A._value defaults.Value ]
-            
-            if defaults.Required then
-                baseAttrs @ [A._required]
-            else
-                baseAttrs
+            [ yield A._class "input"
+              yield A._type typeAttr
+              yield A._placeholder defaults.Placeholder
+              yield A._name defaults.HtmlName
+              yield A._value defaults.Value
+              
+              if defaults.Required then
+                  yield A._required
+                  
+              match defaults.Max with
+              | Some x ->
+                  yield A._max (string x)
+              | None ->
+                  ()
+                  
+              match defaults.Min with
+              | Some x ->
+                  yield A._min (string x)
+              | None ->
+                  ()
+                  
+              match defaults.Step with
+              | Some x ->
+                  yield A._step (string x)
+              | None ->
+                  () ]
         
         control defaults.Expanded [
             label defaults.HtmlName defaults.Label
@@ -191,6 +213,8 @@ module Form =
     let private passwordInput = inputControl "password"
     
     let private dateInput = inputControl "date"
+    
+    let private numberInput = inputControl "number"
         
     let private checkboxInput options : G.XmlNode =
         let defaults = CheckboxOption.Defaults options
@@ -271,6 +295,9 @@ module Form =
                     |> next rest
                 | DateInput options :: rest ->
                     [dateInput options |> maybeWrap]
+                    |> next rest
+                | NumberInput options :: rest ->
+                    [numberInput options |> maybeWrap]
                     |> next rest
                 | CheckboxInput options :: rest ->
                     [checkboxInput options |> maybeWrap]
