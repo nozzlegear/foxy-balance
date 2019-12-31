@@ -49,8 +49,9 @@ module ViewModels =
     type NewTransactionViewModel =
         { Error : string option
           Amount : decimal option
-          Status : TransactionStatus option
-          Details : TransactionDetails option
+          ClearDate : System.DateTimeOffset option
+          CheckNumber : string option
+          DateCreated : System.DateTimeOffset option
           Name : string option }
      
 module RequestModels =

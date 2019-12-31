@@ -18,19 +18,32 @@ open Microsoft.Extensions.Hosting
 module Migrator = FoxyBalance.Migrations.Migrator
 
 let allRoutes : HttpHandler =
+    // Requires authentication for all routes inside the list
+    let authenticated routes =
+        let wrapped : HttpHandler list =
+            routes
+            |> List.map (fun r -> RouteUtils.requiresAuthentication >=> r)
+        choose wrapped
+        
     choose [
         GET >=> choose [
+            route "/" >=> redirectTo false "/home"
             route "/auth/logout" >=> Routes.Auth.logoutHandler
             route "/auth/login" >=> Routes.Auth.loginHandler
             route "/auth/register" >=> Routes.Auth.registerHandler
-            choose [
-                route "/"
-                route "/home"
-            ] >=> RouteUtils.requiresAuthentication >=> Routes.Home.homePageHandler
+            authenticated [
+                route "/home/clear" >=> text "Not yet implemented"
+                route "/home/adjust-balance" >=> text "Not yet implemented"
+                route "/home/new" >=> Routes.Home.newTransactionHandler
+                route "/home" >=> Routes.Home.homePageHandler
+            ]
         ]
         POST >=> choose [
             route "/auth/login" >=> Routes.Auth.loginPostHandler
             route "/auth/register" >=> Routes.Auth.registerPostHandler
+            authenticated [
+                
+            ]
         ]
         setStatusCode 404 >=> text "Not Found"
     ]

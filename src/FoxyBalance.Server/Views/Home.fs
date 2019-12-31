@@ -1,5 +1,6 @@
 ﻿namespace FoxyBalance.Server.Views
 
+open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
 open Giraffe.GiraffeViewEngine
 
@@ -29,6 +30,7 @@ module Home =
                 ]
             ]
             
+            // List of transactions
             Shared.table [
                 Shared.TableHead [
                     Shared.TableCell (str "#")
@@ -52,4 +54,92 @@ module Home =
             ]
             
             Shared.pagination model.Page model.TotalPages
+        ]
+
+    let newTransactionPage (model : NewTransactionViewModel) : XmlNode =
+        let title = "New Transaction"
+        let formattedDate, formattedClearDate, placeholderDate =
+            let format (d : System.DateTimeOffset) = d.ToString "yyyy-MM-dd"
+            let now = format System.DateTimeOffset.Now
+            let formattedDate =
+                model.DateCreated
+                |> Option.map format
+                |> Option.defaultValue now 
+            let formattedClearDate =
+                model.ClearDate
+                |> Option.map format
+                |> Option.defaultValue ""
+            formattedDate, formattedClearDate, now
+        
+        Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Form.create [Form.Method Form.Post] [
+                Form.Element.Title "New Transaction"
+                
+                Form.Element.TextInput [
+                    Form.Placeholder "Supermarket purchase"
+                    Form.LabelText "Name or description"
+                    Form.HtmlName "name"
+                    Form.Required
+                    
+                    model.Name
+                    |> Option.defaultValue ""
+                    |> Form.Value ]
+                
+                // Group the amount and check number inputs together
+                Form.Element.Group [
+                    Form.Element.NumberInput [
+                        Form.Placeholder "0.00"
+                        Form.LabelText "Amount"
+                        Form.HtmlName "amount"
+                        Form.Min 0.01M
+                        // By setting the step to 0.01, the user cannot enter more than two decimal places
+                        Form.Step 0.01M
+                        Form.Required
+                        
+                        model.Amount
+                        |> Option.map string
+                        |> Option.defaultValue ""
+                        |> Form.Value ]
+                    
+                    Form.Element.TextInput [
+                        Form.Placeholder "1234"
+                        Form.LabelText "Check Number (optional)"
+                        Form.HtmlName "checkNumber"
+                        
+                        model.CheckNumber
+                        |> Option.defaultValue ""
+                        |> Form.Value ]
+                ]
+                
+                // Group the date inputs together
+                Form.Element.Group [
+                    Form.Element.DateInput [
+                        Form.Placeholder placeholderDate
+                        Form.LabelText "Date"
+                        Form.Value formattedDate
+                        Form.HtmlName "date"
+                        Form.Required ]
+                    
+                    Form.Element.DateInput [
+                        Form.Placeholder placeholderDate
+                        Form.LabelText "Date Cleared (optional)"
+                        Form.Value formattedClearDate
+                        Form.HtmlName "clearDate" ]
+                ]
+                
+                Form.Element.MaybeError model.Error
+                
+                // Group the buttons together
+                Form.Element.Group [
+                    Form.Element.Button [
+                        Form.ButtonText "Save Transaction"
+                        Form.Color Form.ButtonColor.Success
+                        Form.Type Form.Submit ]
+                    
+                    Form.Element.Button [
+                        Form.ButtonText "Cancel"
+                        Form.Shade Form.Light
+                        Form.Type (Form.ButtonType.Link "/home") ]
+                ]
+            ]
         ]

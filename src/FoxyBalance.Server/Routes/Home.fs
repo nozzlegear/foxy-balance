@@ -36,3 +36,14 @@ module Home =
             
             return! htmlView (Views.homePage model) next ctx
         })
+        
+    let newTransactionHandler : HttpHandler =
+        let model : NewTransactionViewModel =
+            { Error = None
+              Amount = None
+              ClearDate = None
+              CheckNumber = None
+              DateCreated = None
+              Name = None }
+            
+        htmlView (Views.newTransactionPage model)
