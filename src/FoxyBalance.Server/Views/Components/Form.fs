@@ -11,6 +11,7 @@ module Form =
         | LabelText of string
         | Placeholder of string
         | HelpText of string
+        | Required
         | Expanded
         with
         static member Defaults (options : ControlOption list) =
@@ -21,7 +22,8 @@ module Form =
                Label = find "" (function | LabelText str -> Some str | _ -> None)
                Expanded = find false (function | Expanded -> Some true | _ -> None )
                Placeholder = find "" (function | Placeholder str -> Some str | _ -> None)
-               HelpText = find None (function | HelpText str -> Some (Some str) | _ -> None) |}
+               HelpText = find None (function | HelpText str -> Some (Some str) | _ -> None)
+               Required = find false (function | Required -> Some true | _ -> None) |}
                
     type CheckboxOption =
         | Checked of bool
@@ -163,16 +165,22 @@ module Form =
         
     let private inputControl typeAttr options : G.XmlNode =
         let defaults = ControlOption.Defaults options
-        
-        control defaults.Expanded [
-            label defaults.HtmlName defaults.Label
-            G.input [
+        let inputAttrs =
+            let baseAttrs = [
                 A._class "input"
                 A._type typeAttr
                 A._placeholder defaults.Placeholder
                 A._name defaults.HtmlName
-                A._value defaults.Value
-            ]
+                A._value defaults.Value ]
+            
+            if defaults.Required then
+                baseAttrs @ [A._required]
+            else
+                baseAttrs
+        
+        control defaults.Expanded [
+            label defaults.HtmlName defaults.Label
+            G.input inputAttrs
             defaults.HelpText
             |> Option.map (fun text -> G.p [A._class "help"] [G.str text])
             |> S.maybeEl 

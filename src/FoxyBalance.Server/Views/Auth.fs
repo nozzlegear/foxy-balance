@@ -30,14 +30,16 @@ module Auth =
                 Form.Title model.FormTitle
                 
                 Form.TextInput [
-                    Form.LabelText "Email address"
-                    Form.Placeholder "me@example.com"
+                    Form.LabelText "Username"
+                    Form.Placeholder "foxy"
                     Form.Value (model.Username |> Option.defaultValue "")
-                    Form.HtmlName "username" ]
+                    Form.HtmlName "username"
+                    Form.Required ]
                 
                 Form.PasswordInput [
                     Form.LabelText "Password"
-                    Form.HtmlName "password" ]
+                    Form.HtmlName "password"
+                    Form.Required ]
                 
                 Form.MaybeError model.Error
                 
