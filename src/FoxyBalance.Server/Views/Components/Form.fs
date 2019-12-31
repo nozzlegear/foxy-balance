@@ -231,7 +231,9 @@ module Form =
         
         control [
             label defaults.HtmlName defaults.LabelText
-            G.div [A._class "select"] [
+            // Select containers must specifically be set to fullwidth, as they do not naturally expand like
+            // text inputs do. 
+            G.div [A._class "select is-fullwidth"] [
                 G.select props options
             ]
         ]
