@@ -306,8 +306,10 @@ type TransactionDatabase(options : IDatabaseOptions) =
             let sql =
                 sprintf """
                 SELECT
-                    SUM(CASE WHEN [Status] = 'Cleared' THEN [Amount] ELSE 0 END) as Cleared,
-                    SUM(Amount) as Total
+                    SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] <> 'Credit') THEN [Amount] ELSE 0 END) as ClearedDebit,
+                    SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] =  'Credit') THEN [Amount] ELSE 0 END) as ClearedCredit,
+                    SUM(CASE WHEN ([Type] <> 'Credit') THEN [Amount] ELSE 0 END) as TotalDebit,
+                    SUM(CASE WHEN ([Type] =  'Credit') THEN [AMOUNT] ELSE 0 END) as TotalCredit
                 FROM %s
                 WHERE [UserId] = @userId
                 """ tableName
@@ -327,12 +329,21 @@ type TransactionDatabase(options : IDatabaseOptions) =
                             failwithf "Unable to read %s sum column, value was None." columnName
                         | Some x ->
                             x
-                    let total = readToDecimal "Total"
-                    let cleared = readToDecimal "Cleared"
+                    let totalCredit = readToDecimal "TotalCredit"
+                    let totalDebit = readToDecimal "TotalDebit"
+                    let clearedDebit = readToDecimal "ClearedDebit"
+                    let clearedCredit = readToDecimal "ClearedCredit"
+                    let pendingDebit = totalDebit - clearedDebit
+                    let pendingCredit = totalCredit - clearedCredit
                     
-                    { Sum = total
-                      ClearedSum = cleared
-                      PendingSum = total - cleared }
+                    
+                    { Sum = totalCredit - totalDebit
+                      PendingSum = pendingCredit - pendingDebit
+                      ClearedSum = clearedCredit - clearedDebit
+                      ClearedDebitSum = clearedDebit
+                      ClearedCreditSum = clearedCredit
+                      PendingDebitSum = pendingDebit
+                      PendingCreditSum = pendingCredit }
                     
                 return output
             })

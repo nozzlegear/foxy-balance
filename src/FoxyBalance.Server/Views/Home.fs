@@ -12,7 +12,7 @@ module Home =
             // Balances
             Shared.evenlySpacedLevel [
                 Shared.LevelItem.HeadingAndTitle ("Pending", sprintf "$%.2M" model.Sum.PendingSum)
-                Shared.LevelItem.HeadingAndTitle ("Available", sprintf "$%.2M" model.Sum.Sum)
+                Shared.LevelItem.HeadingAndTitle ("Balance", sprintf "$%.2M" model.Sum.Sum)
                 Shared.LevelItem.HeadingAndTitle ("Actual", sprintf "$%.2M" model.Sum.ClearedSum)
             ]
             

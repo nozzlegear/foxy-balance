@@ -58,7 +58,11 @@ type PartialTransaction =
 type TransactionSum =
     { Sum : decimal
       PendingSum : decimal
-      ClearedSum : decimal }
+      ClearedSum : decimal
+      PendingDebitSum : decimal
+      ClearedDebitSum : decimal
+      PendingCreditSum : decimal
+      ClearedCreditSum : decimal }
 
 type Order =
     | Ascending
