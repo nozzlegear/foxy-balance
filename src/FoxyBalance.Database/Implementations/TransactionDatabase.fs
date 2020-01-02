@@ -263,7 +263,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 sprintf """
                 SELECT * FROM %s
                 WHERE [UserId] = @userId
-                ORDER BY [Id] %s
+                ORDER BY [DateCreated] %s
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
                 """ tableName direction
