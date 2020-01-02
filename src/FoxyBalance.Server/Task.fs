@@ -1,5 +1,4 @@
-﻿[<AutoOpen>]
-module FoxyBalance.Server.Task
+﻿module Task
     open FSharp.Control.Tasks.V2.ContextInsensitive
 
     /// Maps the result of a task.

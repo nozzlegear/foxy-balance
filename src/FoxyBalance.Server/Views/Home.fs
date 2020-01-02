@@ -58,14 +58,8 @@ module Home =
 
     let newTransactionPage (model : NewTransactionViewModel) : XmlNode =
         let title = "New Transaction"
-        let formattedDate, placeholderDate =
-            let now = System.DateTimeOffset.Now.ToString "yyyy-MM-dd"
-            let formattedDate =
-                if System.String.IsNullOrEmpty model.DateCreated then
-                    now
-                else
-                    model.DateCreated
-            formattedDate, now
+        let date = String.defaultValue "" model.DateCreated
+        let placeholderDate = System.DateTimeOffset.Now.ToString "yyyy-MM-dd"
         
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             Form.create [Form.Method Form.Post; Form.AutoComplete false] [
@@ -112,7 +106,7 @@ module Home =
                     Form.Element.DateInput [
                         Form.Placeholder placeholderDate
                         Form.LabelText "Date"
-                        Form.Value formattedDate
+                        Form.Value date
                         Form.HtmlName "date"
                         Form.Required ]
                     

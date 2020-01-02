@@ -47,7 +47,6 @@ module RequestModels =
           TransactionType : string }
         with
         static member Validate model : Result<PartialTransaction, string> =
-            let strNull = System.String.IsNullOrEmpty
             let tryParseDate dateStr =
                 System.DateTimeOffset.TryParseExact(
                     dateStr,
@@ -56,7 +55,7 @@ module RequestModels =
                     DateTimeStyles.None)
                 
             let validateName (output : PartialTransaction) =
-                if strNull model.Name then
+                if String.isEmpty model.Name then
                     Error "You must enter a name or description for this transaction."
                 else
                     Ok { output with Name = model.Name }
@@ -82,23 +81,23 @@ module RequestModels =
                     Ok { output with DateCreated = date }
                     
             let validateType (output : PartialTransaction) =
-                match model.TransactionType, strNull model.CheckNumber with
+                match model.TransactionType, model.CheckNumber with
                 | "credit", _ ->
                     Ok { output with Type = Credit }
-                | "debit", true ->
+                | "debit", String.NotEmpty x ->
                     Ok { output with Type = Check { CheckNumber = model.CheckNumber } }
-                | "debit", false ->
+                | "debit", String.EmptyOrWhitespace ->
                     Ok { output with Type = Debit }
                 | x, _ ->
                     Error (sprintf "Unrecognized transaction type %s." x)
                     
             let validateStatus (output : PartialTransaction) =
-                match strNull model.ClearDate, tryParseDate model.ClearDate with
-                | true, _ ->
+                match model.ClearDate, tryParseDate model.ClearDate with
+                | String.EmptyOrWhitespace, _ ->
                     Ok { output with Status = Pending }
-                | false, (false, _) ->
+                | String.NotEmpty _, (false, _) ->
                     Error (sprintf "Unable to parse transaction's clear date. Received %s." model.ClearDate)
-                | false, (true, clearDate) ->
+                | String.NotEmpty _, (true, clearDate) ->
                     Ok { output with Status = Cleared clearDate }
             
             // Create a default PartialTransaction, then modify it while validating the request
@@ -140,19 +139,14 @@ module ViewModels =
           Name : string }
         with
         static member FromBadRequest (r : RequestModels.CreateTransactionRequest) msg : NewTransactionViewModel =
-            let notNull x =
-                if System.String.IsNullOrEmpty x then
-                    System.String.Empty
-                else
-                    x
-            
+            let empty = System.String.Empty
             { Error = Some msg
-              Amount = notNull r.Amount
-              ClearDate = notNull r.ClearDate
-              CheckNumber = notNull r.CheckNumber
-              DateCreated = notNull r.Date
-              Type = notNull r.TransactionType
-              Name = notNull r.Name }
+              Amount = String.defaultValue empty r.Amount
+              ClearDate = String.defaultValue empty r.ClearDate
+              CheckNumber = String.defaultValue empty r.CheckNumber
+              DateCreated = String.defaultValue empty r.Date
+              Type = String.defaultValue empty r.TransactionType
+              Name = String.defaultValue empty r.Name }
         static member Default =
             { Error = None
               Amount = ""
