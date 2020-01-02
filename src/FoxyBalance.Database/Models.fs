@@ -1,6 +1,7 @@
 namespace FoxyBalance.Database.Models
 
 open System
+open System
 
 type IDatabaseOptions =
     abstract member ConnectionString : string with get
@@ -24,9 +25,8 @@ type PartialUser =
       HashedPassword : string }
     
 type TransactionStatus =
-    | Pending 
-    | PendingWithExpectedChargeDate of DateTimeOffset
-    | Completed of DateTimeOffset
+    | Pending
+    | Cleared of DateTimeOffset
     
 type CheckDetails =
     { CheckNumber : string }
@@ -34,10 +34,11 @@ type CheckDetails =
 type BillDetails =
     { Recurring : bool }
     
-type TransactionDetails =
-    | CheckDetails of CheckDetails
-    | BillDetails of BillDetails
-    | NoDetails 
+type TransactionType =
+    | Check of CheckDetails
+    | Bill of BillDetails
+    | Credit 
+    | Debit 
     
 type Transaction =
     { Id : TransactionId
@@ -45,13 +46,14 @@ type Transaction =
       Amount : decimal
       DateCreated : DateTimeOffset
       Status : TransactionStatus
-      Details : TransactionDetails }
+      Type : TransactionType }
     
 type PartialTransaction =
     { Name : string
+      DateCreated : DateTimeOffset
       Amount : decimal
       Status : TransactionStatus
-      Details : TransactionDetails }
+      Type : TransactionType }
     
 type TransactionSum =
     { Sum : decimal

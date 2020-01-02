@@ -22,37 +22,34 @@ type TransactionDatabase(options : IDatabaseOptions) =
     
     let mapRowToStatus (reader : IDataReader) : TransactionStatus =
         let statusCol = reader.GetOrdinal "Status"
-        let expectedChargeDateCol = reader.GetOrdinal "ExpectedChargeDate"
-        let completedDateCol = reader.GetOrdinal "CompletedDate"
+        let clearedDateCol = reader.GetOrdinal "DateCleared"
         
         match reader.GetString statusCol with
         | "Pending" ->
             Pending
-        | "PendingWithExpectedChargeDate" ->
-            reader.GetDateTime expectedChargeDateCol
+        | "Cleared" ->
+            reader.GetDateTime clearedDateCol 
             |> DateTimeOffset
-            |> PendingWithExpectedChargeDate
-        | "Completed" ->
-            reader.GetDateTime completedDateCol
-            |> DateTimeOffset
-            |> Completed
+            |> Cleared
         | x ->
             failwithf """Unrecognized Status type "%s".""" x 
         
-    let mapRowToDetails (reader : IDataReader) : TransactionDetails =
+    let mapRowToDetails (reader : IDataReader) : TransactionType =
         let typeCol = reader.GetOrdinal "Type"
         let recurringCol = reader.GetOrdinal "Recurring"
         let checkNumberCol = reader.GetOrdinal "CheckNumber"
         
         match reader.GetString typeCol with
-        | "Generic" ->
-            NoDetails
+        | "Debit" ->
+            Debit
+        | "Credit" ->
+            Credit 
         | "Bill" ->
             { Recurring = reader.GetBoolean recurringCol }
-            |> BillDetails
+            |> Bill
         | "Check" ->
             { CheckNumber = reader.GetString checkNumberCol }
-            |> CheckDetails
+            |> Check
         | x ->
             failwithf """Unrecognized transaction type "%s".""" x 
         
@@ -67,7 +64,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
           Amount = reader.GetDecimal amountCol
           DateCreated = reader.GetDateTime dateCreatedCol |> DateTimeOffset
           Status = mapRowToStatus reader
-          Details = mapRowToDetails reader }
+          Type = mapRowToDetails reader }
         
     let mapRowsToTransactions (reader : IDataReader) : Transaction seq =
         let output = [ while reader.Read() do yield mapRowToTransaction reader ]
@@ -75,16 +72,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
     
     let mapDetailsToSqlParams details =
         match details with
-        | CheckDetails check ->
+        | Check check ->
             {| typeStr = ParamValue.String "Check"
                checkNumber = ParamValue.String check.CheckNumber
                recurring = ParamValue.Bool false |}
-        | BillDetails bill ->
+        | Bill bill ->
             {| typeStr = ParamValue.String "Bill"
                checkNumber = ParamValue.Null
                recurring = ParamValue.Bool bill.Recurring |}
-        | NoDetails ->
-            {| typeStr = ParamValue.String "Generic"
+        | Debit ->
+            {| typeStr = ParamValue.String "Debit"
+               checkNumber = ParamValue.Null
+               recurring = ParamValue.Bool false |}
+        | Credit ->
+            {| typeStr = ParamValue.String "Credit"
                checkNumber = ParamValue.Null
                recurring = ParamValue.Bool false |}
                
@@ -92,22 +93,16 @@ type TransactionDatabase(options : IDatabaseOptions) =
         match status with
         | Pending ->
             {| statusStr = ParamValue.String "Pending"
-               expectedChargeDate = ParamValue.Null
-               completedDate = ParamValue.Null |}
-        | PendingWithExpectedChargeDate date ->
-            {| statusStr = ParamValue.String "PendingWithExpectedChargeDate"
-               expectedChargeDate = ParamValue.DateTimeOffset date
-               completedDate = ParamValue.Null |}
-        | Completed date -> 
-            {| statusStr = ParamValue.String "Completed"
-               expectedChargeDate = ParamValue.Null
-               completedDate = ParamValue.DateTimeOffset date |}
+               dateCleared = ParamValue.Null |}
+        | Cleared date -> 
+            {| statusStr = ParamValue.String "Cleared"
+               dateCleared = ParamValue.DateTimeOffset date |}
                
     interface ITransactionDatabase with
         member x.GetStatusAsync userId transactionId =
             let sql =
                 sprintf """
-                SELECT [Status], [ExpectedChargeDate], [CompletedDate]
+                SELECT [Status], [DateCleared]
                 FROM %s
                 WHERE [UserId] = @userId AND [Id] = @id
                 """ tableName
@@ -168,8 +163,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Recurring,
                     CheckNumber,
                     Status,
-                    ExpectedChargeDate,
-                    CompletedDate,
+                    DateCleared
                 ) OUTPUT INSERTED.Id VALUES(
                     @userId,
                     @dateCreated,
@@ -179,25 +173,21 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     @recurring,
                     @checkNumber,
                     @status,
-                    @expectedChargeDate,
-                    @completedDate
+                    @dateCleared
                 )
                 """ tableName
-            let details = mapDetailsToSqlParams transaction.Details
+            let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
-            let dateCreated = System.DateTimeOffset.UtcNow
-            let data = [
             let data = dict [
                 "userId" => ParamValue.Int userId
-                "dateCreated" => ParamValue.DateTimeOffset dateCreated
+                "dateCreated" => ParamValue.DateTimeOffset transaction.DateCreated
                 "name" => ParamValue.String transaction.Name
                 "amount" => ParamValue.Decimal transaction.Amount
                 "type" => details.typeStr
                 "checkNumber" => details.checkNumber
                 "recurring" => details.recurring
                 "status" => status.statusStr
-                "expectedChargeDate" => status.expectedChargeDate
-                "completedDate" => status.completedDate
+                "dateCleared" => status.dateCleared
             ]
             
             withConnection connectionString (fun conn -> task {
@@ -210,9 +200,9 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     { Id = readIdColumn reader
                       Name = transaction.Name
                       Amount = transaction.Amount
-                      DateCreated = dateCreated
+                      DateCreated = transaction.DateCreated
                       Status = transaction.Status
-                      Details = transaction.Details }
+                      Type = transaction.Type }
                 return transaction
             })
             
@@ -226,14 +216,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 [CheckNumber] = @checkNumber,
                 [Recurring] = @recurring,
                 [Status] = @status,
-                [ExpectedChargeDate] = @expectedChargeDate,
-                [CompletedDate] = @completedDate
+                [DateCleared] = @dateCleared
                 OUTPUT INSERTED.DateCreated
                 WHERE [UserId] = @userId AND [Id] = @id
                 """ tableName
-            let details = mapDetailsToSqlParams transaction.Details
+            let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
-            let data = [
             let data = dict [
                 "userId" => ParamValue.Int userId
                 "id" => ParamValue.Long transactionId
@@ -243,8 +231,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "checkNumber" => details.checkNumber
                 "recurring" => details.recurring
                 "status" => status.statusStr
-                "expectedChargeDate" => status.expectedChargeDate
-                "completedDate" => status.completedDate
+                "dateCleared" => status.dateCleared
             ]
             
             withConnection connectionString (fun conn -> task {
@@ -263,7 +250,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                                     | None ->
                                         failwith "Failed to read updated transaction's DateCreated column."
                       Status = transaction.Status
-                      Details = transaction.Details }
+                      Type = transaction.Type }
                 return transaction
             })
             
@@ -319,7 +306,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             let sql =
                 sprintf """
                 SELECT
-                    SUM(CASE WHEN [Status] = 'Completed' THEN [Amount] ELSE 0 END) as Completed,
+                    SUM(CASE WHEN [Status] = 'Cleared' THEN [Amount] ELSE 0 END) as Cleared,
                     SUM(Amount) as Total
                 FROM %s
                 WHERE [UserId] = @userId
@@ -341,11 +328,11 @@ type TransactionDatabase(options : IDatabaseOptions) =
                         | Some x ->
                             x
                     let total = readToDecimal "Total"
-                    let completed = readToDecimal "Completed"
+                    let cleared = readToDecimal "Cleared"
                     
                     { Sum = total
-                      ClearedSum = completed
-                      PendingSum = total - completed }
+                      ClearedSum = cleared
+                      PendingSum = total - cleared }
                     
                 return output
             })
