@@ -42,7 +42,7 @@ let allRoutes : HttpHandler =
             route "/auth/login" >=> Routes.Auth.loginPostHandler
             route "/auth/register" >=> Routes.Auth.registerPostHandler
             authenticated [
-                
+                route "/home/new" >=> Routes.Home.newTransactionPostHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"
@@ -90,7 +90,6 @@ let configureServices (services : IServiceCollection) =
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
-    
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)

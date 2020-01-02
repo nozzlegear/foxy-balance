@@ -5,6 +5,10 @@ open FoxyBalance.Database.Interfaces
 open Giraffe
 open FoxyBalance.Server
 open FoxyBalance.Database.Models
+open FoxyBalance.Server
+
+open FoxyBalance.Server.Models.RequestModels
+
 open FoxyBalance.Server.Models.ViewModels
 open Microsoft.AspNetCore.Http
 module Views = FoxyBalance.Server.Views.Home
@@ -38,12 +42,23 @@ module Home =
         })
         
     let newTransactionHandler : HttpHandler =
-        let model : NewTransactionViewModel =
-            { Error = None
-              Amount = None
-              ClearDate = None
-              CheckNumber = None
-              DateCreated = None
-              Name = None }
-            
-        htmlView (Views.newTransactionPage model)
+        Views.newTransactionPage NewTransactionViewModel.Default
+        |> htmlView
+        
+    let newTransactionPostHandler : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let! model = ctx.BindFormAsync<CreateTransactionRequest>()
+                
+            match CreateTransactionRequest.Validate model with
+            | Error msg ->
+                let result =
+                    NewTransactionViewModel.FromBadRequest model msg
+                    |> Views.newTransactionPage
+                    |> htmlView
+                    >=> setStatusCode 422 
+                return! result next ctx
+            | Ok partialTransaction ->
+                let database = ctx.GetService<ITransactionDatabase>()
+                let! _ = database.CreateAsync session.UserId partialTransaction
+                return! redirectTo false "/home" next ctx
+        })

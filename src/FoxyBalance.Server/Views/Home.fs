@@ -58,32 +58,35 @@ module Home =
 
     let newTransactionPage (model : NewTransactionViewModel) : XmlNode =
         let title = "New Transaction"
-        let formattedDate, formattedClearDate, placeholderDate =
-            let format (d : System.DateTimeOffset) = d.ToString "yyyy-MM-dd"
-            let now = format System.DateTimeOffset.Now
+        let formattedDate, placeholderDate =
+            let now = System.DateTimeOffset.Now.ToString "yyyy-MM-dd"
             let formattedDate =
-                model.DateCreated
-                |> Option.map format
-                |> Option.defaultValue now 
-            let formattedClearDate =
-                model.ClearDate
-                |> Option.map format
-                |> Option.defaultValue ""
-            formattedDate, formattedClearDate, now
+                if System.String.IsNullOrEmpty model.DateCreated then
+                    now
+                else
+                    model.DateCreated
+            formattedDate, now
         
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             Form.create [Form.Method Form.Post; Form.AutoComplete false] [
                 Form.Element.Title "New Transaction"
+                
+                Form.Element.SelectBox [
+                    Form.SelectOption.LabelText "Transaction Type"
+                    Form.SelectOption.Value "debit"
+                    Form.SelectOption.HtmlName "transactionType"
+                    Form.SelectOption.Options [
+                        {| Value = "debit"; Label = "Debit/Charge" |}
+                        {| Value = "credit"; Label = "Credit/Deposit" |}
+                    ]
+                ]
                 
                 Form.Element.TextInput [
                     Form.Placeholder "Supermarket purchase"
                     Form.LabelText "Name or description"
                     Form.HtmlName "name"
                     Form.Required
-                    
-                    model.Name
-                    |> Option.defaultValue ""
-                    |> Form.Value ]
+                    Form.Value model.Name ]
                 
                 // Group the amount and check number inputs together
                 Form.Element.Group [
@@ -95,20 +98,13 @@ module Home =
                         // By setting the step to 0.01, the user cannot enter more than two decimal places
                         Form.Step 0.01M
                         Form.Required
-                        
-                        model.Amount
-                        |> Option.map string
-                        |> Option.defaultValue ""
-                        |> Form.Value ]
+                        Form.Value model.Amount ]
                     
                     Form.Element.TextInput [
                         Form.Placeholder "1234"
                         Form.LabelText "Check Number (optional)"
                         Form.HtmlName "checkNumber"
-                        
-                        model.CheckNumber
-                        |> Option.defaultValue ""
-                        |> Form.Value ]
+                        Form.Value model.CheckNumber ]
                 ]
                 
                 // Group the date inputs together
@@ -123,7 +119,7 @@ module Home =
                     Form.Element.DateInput [
                         Form.Placeholder placeholderDate
                         Form.LabelText "Date Cleared (optional)"
-                        Form.Value formattedClearDate
+                        Form.Value model.ClearDate
                         Form.HtmlName "clearDate" ]
                 ]
                 
