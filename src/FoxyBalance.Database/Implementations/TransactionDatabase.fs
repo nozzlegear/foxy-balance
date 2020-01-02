@@ -161,6 +161,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 sprintf """
                 INSERT INTO %s (
                     UserId,
+                    DateCreated,
                     Name,
                     Amount,
                     Type,
