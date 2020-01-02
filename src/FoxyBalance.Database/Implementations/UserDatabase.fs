@@ -13,11 +13,11 @@ type UserDatabase(options : IDatabaseOptions) =
     
     /// Parses the Id column from the data reader.
     let readIdColumn reader =
-        match readColumn "Id" (fun x -> downcast x : int) reader with
-        | None ->
-            failwith "Id column is null or missing."
-        | Some x ->
-            x
+        match readColumn "Id" reader with
+        | Error msg ->
+            failwithf "Could not read Id column: %s" msg
+        | Ok x ->
+            downcast x : int
     
     /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
     let toSelector = function

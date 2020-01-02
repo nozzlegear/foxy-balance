@@ -14,11 +14,11 @@ type TransactionDatabase(options : IDatabaseOptions) =
     
     /// Parses the Id column from the data reader.
     let readIdColumn reader =
-        match readColumn "Id" (fun x -> downcast x : int64) reader with
-        | None ->
-            failwith "Id column is null or missing."
-        | Some x ->
-            x
+        match readColumn "Id" reader with
+        | Error msg ->
+            failwith msg
+        | Ok x ->
+            downcast x : int64 
     
     let mapRowToStatus (reader : IDataReader) : TransactionStatus =
         let statusCol = reader.GetOrdinal "Status"
@@ -244,11 +244,13 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     { Id = transactionId
                       Name = transaction.Name
                       Amount = transaction.Amount
-                      DateCreated = match readColumn "DateCreated" (fun x -> downcast x : DateTime) reader with
-                                    | Some x ->
-                                        DateTimeOffset x 
-                                    | None ->
-                                        failwith "Failed to read updated transaction's DateCreated column."
+                      DateCreated =
+                            match readColumn "DateCreated" reader with
+                            | Error msg ->
+                                failwithf "Failed to read updated transaction's DateCreated column: %s" msg
+                            | Ok x ->
+                                (downcast x : DateTime)
+                                |> DateTimeOffset
                       Status = transaction.Status
                       Type = transaction.Type }
                 return transaction
@@ -323,12 +325,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     
                 let output: TransactionSum =
                     let readToDecimal columnName =
-                        let mapper (value : obj) = value :?> decimal 
-                        match Utils.readColumn columnName mapper reader with
-                        | None ->
-                            failwithf "Unable to read %s sum column, value was None." columnName
-                        | Some x ->
-                            x
+                        match Utils.readColumn columnName reader with
+                        | Error msg ->
+                            failwithf "Unable to read sum column %s: %s" columnName msg
+                        | Ok x ->
+                            // A SQL Sum operation returns null if there are no records matched.
+                            // Default to 0 when that happens.
+                            match x with
+                            | :? System.DBNull ->
+                                0.0M
+                            | :? System.Decimal as x ->
+                                x
+                            | x ->
+                                failwithf "Unexpected sum column value type %s" (x.GetType().Name)
+                                
                     let totalCredit = readToDecimal "TotalCredit"
                     let totalDebit = readToDecimal "TotalDebit"
                     let clearedDebit = readToDecimal "ClearedDebit"

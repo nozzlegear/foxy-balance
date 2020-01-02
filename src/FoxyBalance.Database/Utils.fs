@@ -44,31 +44,32 @@ module internal Utils =
         d :> seq<_>
         |> Seq.map (|KeyValue|)
         |> Map.ofSeq
-
-    /// Converts the column to a string option, handling null and empty values. Will throw an exception if the column type
-    /// is not string.
-    let stringColumnToOption (columnOrdinal: int) (reader: IDataReader) =
-        let columnName = reader.GetName columnOrdinal
-        match reader.GetValue columnOrdinal with
-        | :? System.DBNull
-        | :? System.String as x when System.String.IsNullOrEmpty (string x) ->
-            None
-        | :? System.String as x ->
-            Some x
-        | x ->
-            failwithf
-                "Column value was not a string or null. Column name: %s. Value type: %s."
-                columnName
-                (reader.GetDataTypeName columnOrdinal)
                 
-    /// Parses the column from the data reader, returning None if it is null or an empty string. Maps the value with the
-    /// mapper function (e.g. to turn the object into a string or an int).
-    let readColumn name mapper (reader : IDataReader) =
-        let column = reader.GetOrdinal name
-        match reader.GetValue column with
-        | :? System.DBNull
-        | :? System.String as x when System.String.IsNullOrEmpty (string x) ->
-            None
+    /// Attempts to read the column from the reader, returning an Error if the column does not exist at all. Does not check
+    /// for null or empty string values. 
+    let readColumn name (reader : IDataReader) =
+        match reader.GetOrdinal name with
+        | x when x < 0 ->
+            sprintf "Column %s was not returned in query." name
+            |> Error
         | x ->
-            Some x |> Option.map mapper 
+            reader.GetValue x
+            |> Ok 
 
+    /// Converts the column to a string option, handling null and empty values. 
+    let stringColumnToOption name (reader: IDataReader) =
+        readColumn name reader
+        |> Result.bind (function
+            | :? System.DBNull
+            | :? System.String as x when System.String.IsNullOrEmpty (string x) ->
+                Ok None
+            | :? System.String as x ->
+                Ok (Some x)
+            | x ->
+                let msg = 
+                    sprintf 
+                        "Column value was not a string or null. Column name: %s. Value type: %s."
+                        name
+                        (x.GetType().Name)
+                Error msg
+            )
