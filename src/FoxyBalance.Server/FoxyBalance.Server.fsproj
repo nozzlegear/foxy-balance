@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="Models.fs" />
+    <Compile Include="Task.fs" />
     <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\Components\Form.fs" />
     <Compile Include="Views\Auth.fs" />
