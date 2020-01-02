@@ -11,8 +11,8 @@ module Home =
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             // Balances
             Shared.evenlySpacedLevel [
-                Shared.LevelItem.HeadingAndTitle ("Pending", sprintf "$%.2M" model.Sum.PendingSum)
                 Shared.LevelItem.HeadingAndTitle ("Balance", sprintf "$%.2M" model.Sum.Sum)
+                Shared.LevelItem.HeadingAndTitle ("Pending", sprintf "$%.2M" model.Sum.PendingSum)
                 Shared.LevelItem.HeadingAndTitle ("Actual", sprintf "$%.2M" model.Sum.ClearedSum)
             ]
             
