@@ -311,7 +311,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] <> 'Credit') THEN [Amount] ELSE 0 END) as ClearedDebit,
                     SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] =  'Credit') THEN [Amount] ELSE 0 END) as ClearedCredit,
                     SUM(CASE WHEN ([Type] <> 'Credit') THEN [Amount] ELSE 0 END) as TotalDebit,
-                    SUM(CASE WHEN ([Type] =  'Credit') THEN [AMOUNT] ELSE 0 END) as TotalCredit
+                    SUM(CASE WHEN ([Type] =  'Credit') THEN [Amount] ELSE 0 END) as TotalCredit
                 FROM %s
                 WHERE [UserId] = @userId
                 """ tableName
@@ -345,7 +345,6 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     let clearedCredit = readToDecimal "ClearedCredit"
                     let pendingDebit = totalDebit - clearedDebit
                     let pendingCredit = totalCredit - clearedCredit
-                    
                     
                     { Sum = totalCredit - totalDebit
                       PendingSum = pendingCredit - pendingDebit
