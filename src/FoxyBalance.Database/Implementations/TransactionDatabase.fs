@@ -265,10 +265,10 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 sprintf """
                 SELECT * FROM %s
                 WHERE [UserId] = @userId
-                ORDER BY [DateCreated] %s
+                ORDER BY [DateCreated] %s, [Id] %s
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
-                """ tableName direction
+                """ tableName direction direction
             let data = dict [
                 "userId" => ParamValue.Int userId
                 "offset" => ParamValue.Int options.Offset
