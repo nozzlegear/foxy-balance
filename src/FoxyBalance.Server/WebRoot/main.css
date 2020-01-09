@@ -1,10 +1,11 @@
-body {
-    font-family: Arial, Helvetica, sans-serif;
-    color: #333;
-    font-size: .9em;
+.amount {
+    /*font-weight: bold;*/
 }
 
-h1 {
-    font-size: 1.5em;
-    color: #334499;
+.amount.credit {
+    color: green;
+}
+
+.amount.debit {
+    color: red;
 }

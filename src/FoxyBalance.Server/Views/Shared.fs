@@ -34,6 +34,10 @@ module Shared =
                 _integrity "sha256-D9M5yrVDqFlla7nlELDaYZIpXfFWDytQtiV+TaH6F1I="
                 _crossorigin "anonymous"
             ]
+            link [
+                _rel "stylesheet"
+                _href "/main.css"
+            ]
         ]
     
     type AuthStatus =
