@@ -1,12 +1,44 @@
 ﻿namespace FoxyBalance.Server.Views
 
+open FoxyBalance.Database.Models
 open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
 open Giraffe.GiraffeViewEngine
 
 module Home =
+    let formatDate (date : System.DateTimeOffset) =
+        date.ToString "yyyy-MM-dd"
+        
     let homePage (model : HomePageViewModel) : XmlNode =
         let title = sprintf "Transactions - Page %i" model.Page
+        let clearedStatusCell = function
+            | TransactionStatus.Pending ->
+                str "Pending"
+            | TransactionStatus.Cleared date ->
+                formatDate date
+                |> str
+        let typeCell = function
+            | TransactionType.Check details ->
+                sprintf "Check %s" details.CheckNumber
+                |> str
+            | TransactionType.Bill _ ->
+                str "Bill"
+            | TransactionType.Credit ->
+                str "Credit"
+            | TransactionType.Debit ->
+                str "Debit"
+        let amountCell transactionType amount =
+            match transactionType with
+            | TransactionType.Credit ->
+                span [_class "amount credit"] [
+                    sprintf "+%.2M" amount
+                    |> str
+                ]
+            | _ ->
+                span [_class "amount debit"] [
+                    sprintf "-%.2M" amount
+                    |> str
+                ]
         
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             // Balances
@@ -36,19 +68,19 @@ module Home =
                     Shared.TableCell (str "#")
                     Shared.TableCell (str "Date")
                     Shared.TableCell (str "Amount")
+                    Shared.TableCell (str "Name")
                     Shared.TableCell (str "Type")
                     Shared.TableCell (str "Cleared")
-                    Shared.TableCell (str "Name")
                 ]
                 Shared.TableBody [
                     for (index, transaction) in Seq.indexed model.Transactions do
                         yield Shared.TableRow [
                             Shared.TableCell (index + 1 |> string |> str)
-                            Shared.TableCell (transaction.DateCreated.ToString "yyyy-MM-dd" |> str)
-                            Shared.TableCell (sprintf "$%.2M" transaction.Amount |> str)
-                            Shared.TableCell (sprintf "NYI" |> str)
-                            Shared.TableCell (sprintf "NYI" |> str)
+                            Shared.TableCell (formatDate transaction.DateCreated |> str)
+                            Shared.TableCell (amountCell transaction.Type transaction.Amount)
                             Shared.TableCell (a [_href (sprintf "/home/%i" transaction.Id)] [str transaction.Name])
+                            Shared.TableCell (typeCell transaction.Type)
+                            Shared.TableCell (clearedStatusCell transaction.Status)
                         ]
                 ]
             ]
