@@ -38,6 +38,11 @@ module Shared =
                 _rel "stylesheet"
                 _href "/main.css"
             ]
+            // Let the app be installed as a full screen web app on mobile devices
+            meta [_name "mobile-web-app-capable"; _content "yes"]
+            meta [_name "mobile-web-app-title"; _content "Foxy Balance"]
+            meta [_name "apple-mobile-web-app-capable"; _content "yes"]
+            meta [_name "apple-mobile-web-app-title"; _content "Foxy Balance"]
         ]
     
     type AuthStatus =
