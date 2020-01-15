@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile.dev
     environment:
       ConnectionStrings__SqlDatabase: "Server=db;Database=master;User Id=sa;Password=a-BAD_passw0rd;"
+      ASPNETCORE_ENVIRONMENT: "development"
     ports:
       - 5000:5000
     depends_on: 
