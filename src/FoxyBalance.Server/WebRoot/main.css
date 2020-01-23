@@ -9,3 +9,9 @@
 .amount.debit {
     color: red;
 }
+
+/*Disable clicks on anchor links with the disabled attribute.
+  If you don't turn off pointer events, users will still be able to click on them and follow the link. */
+a[disabled] {
+    pointer-events: none;
+}
