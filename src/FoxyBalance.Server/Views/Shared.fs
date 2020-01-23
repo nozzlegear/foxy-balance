@@ -90,7 +90,7 @@ module Shared =
         nav [_class "navbar has-shadow is-spaced"; _roleNavigation; _ariaLabel "main navigation"] [
             div [_class "navbar-brand"] [
                 a [_class "navbar-item"; _href "/"] [
-                    img [_src "/images/logo.png"; _height "28px"]
+                    img [_src "/Images/logo.png"; _height "28px"]
                 ]
                 a [_roleButton; _class "navbar-burger burger"; _ariaLabel "menu"; _ariaExpanded "false"; _data "target" "navbarBasicExample"] [
                     span [_ariaHidden "true"] []
