@@ -53,6 +53,14 @@ type TransactionDatabase(options : IDatabaseOptions) =
         | x ->
             failwithf """Unrecognized transaction type "%s".""" x 
         
+    let statusFilter = function
+        | AllTransactions ->
+            ""
+        | PendingTransactions ->
+            " AND [Status] = 'Pending' "
+        | ClearedTransactions ->
+            " AND [Status] = 'Cleared' "
+                    
     let mapRowToTransaction (reader : IDataReader) : Transaction =
         let idCol = reader.GetOrdinal "Id"
         let nameCol = reader.GetOrdinal "Name"
@@ -261,14 +269,17 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 match options.Order with
                 | Ascending -> "ASC"
                 | Descending -> "DESC"
+            let whereClause =
+                statusFilter options.Status
+                |> sprintf "[UserId] = @userId %s"
             let sql =
                 sprintf """
                 SELECT * FROM %s
-                WHERE [UserId] = @userId
+                WHERE %s
                 ORDER BY [DateCreated] %s, [Id] %s
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
-                """ tableName direction direction
+                """ tableName whereClause direction direction
             let data = dict [
                 "userId" => ParamValue.Int userId
                 "offset" => ParamValue.Int options.Offset
@@ -295,11 +306,16 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 ()  
             }) :> Task
             
-        member x.CountAsync userId =
+        member x.CountAsync userId status =
             let sql =
+                let whereClause =
+                    statusFilter status
+                    |> sprintf "[UserId] = @userId %s"
                 sprintf """
-                SELECT COUNT(Id) FROM %s WHERE [UserId] = @userId
-                """ tableName
+                SELECT COUNT(Id)
+                FROM %s
+                WHERE %s
+                """ tableName whereClause
             let data = dict [ "userId" => ParamValue.Int userId ]
             
             withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<int>(sql, data))

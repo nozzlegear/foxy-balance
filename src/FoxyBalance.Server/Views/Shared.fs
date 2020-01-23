@@ -2,9 +2,27 @@
 
 open Giraffe.GiraffeViewEngine
 open Giraffe.GiraffeViewEngine.Accessibility
-open FoxyBalance.Server.Models
+open FoxyBalance.Database.Models
 
 module Shared =
+    let statusFilterText status =
+        match status with
+        | AllTransactions ->
+            "All"
+        | PendingTransactions ->
+            "Pending"
+        | ClearedTransactions ->
+            "Cleared"
+            
+    let statusFilterQueryParam status =
+        match status with
+        | AllTransactions ->
+            "all"
+        | PendingTransactions ->
+            "pending"
+        | ClearedTransactions ->
+            "cleared"
+            
     let maybeEl nodeOption : XmlNode =
         match nodeOption with
         | Some el -> el
@@ -227,11 +245,15 @@ module Shared =
             tbody [] tableRows
         ]
         
-    let pagination currentPage maxPages =
+    let pagination statusFilter currentPage maxPages =
+        let statusQueryParam =
+            statusFilterQueryParam statusFilter 
         let previousPageAttrs =
             let baseAttrs = [
                 _class "pagination-previous"
-                currentPage - 1 |> sprintf "/home?page=%i" |> _href 
+                currentPage - 1
+                |> sprintf "/home?status=%s&page=%i" statusQueryParam
+                |> _href 
             ]
             // Disable the previous page link if the user is on the first page
             match currentPage <= 1 with
@@ -240,7 +262,9 @@ module Shared =
         let nextPageAttrs =
             let baseAttrs = [
                 _class "pagination-next"
-                currentPage + 1 |> sprintf "/home?page=%i" |> _href
+                currentPage + 1
+                |> sprintf "/home?status=%s&page=%i" statusQueryParam
+                |> _href
             ]
             // Disable the next page link if the user is on the last page
             match currentPage + 1 > maxPages with
@@ -254,7 +278,7 @@ module Shared =
                         [ _class "pagination-link is-current" ]
                     else
                         [ _class "pagination-link"
-                          _href (sprintf "/home?page=%i" page)
+                          _href (sprintf "/home?status=%s&page=%i" statusQueryParam page)
                           _ariaLabel (sprintf "Go to page %i" page) ]
                     
                 li [] [

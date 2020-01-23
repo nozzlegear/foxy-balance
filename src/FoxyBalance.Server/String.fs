@@ -15,4 +15,14 @@
         | EmptyOrWhitespace ->
             defaultValue
         | NotEmpty x ->
-            x 
+            x
+            
+    /// Transforms the string to lowercase.
+    let toLower x = 
+        match x with
+        | EmptyOrWhitespace ->
+            x
+        | NotEmpty x ->
+            x.ToLower()
+            
+        

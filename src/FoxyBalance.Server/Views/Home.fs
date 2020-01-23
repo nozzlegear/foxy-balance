@@ -39,6 +39,25 @@ module Home =
                     sprintf "-%.2M" amount
                     |> str
                 ]
+        let statusControls =
+            let unselected status =
+                let url =
+                    Shared.statusFilterQueryParam status
+                    |> sprintf "/home?status=%s" 
+                a [_href url] [str (Shared.statusFilterText status)]
+            let selected status =
+                strong [] [str (Shared.statusFilterText status)]
+            let control status =
+                let el = 
+                    if status = model.Status then
+                        selected status
+                    else
+                        unselected status
+                Shared.LevelItem.Element el
+                
+            [ control AllTransactions
+              control PendingTransactions
+              control ClearedTransactions ]
         
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             // Balances
@@ -50,11 +69,7 @@ module Home =
             
             // Controls
             Shared.level [
-                Shared.LeftLevel [
-                    Shared.LevelItem.Element (strong [] [str "All"])
-                    Shared.LevelItem.Element (a [_href "/home?status=pending"] [str "Pending"])
-                    Shared.LevelItem.Element (a [_href "/home?status=cleared"] [str "Cleared"])
-                ]
+                Shared.LeftLevel statusControls
                 Shared.RightLevel [
                     Shared.LevelItem.Element (a [_href "/home/clear"; _class "button is-light"] [str "Clear All"])
                     Shared.LevelItem.Element (a [_href "/home/adjust-balance"; _class "button is-light"] [str "Adjust Balance"])
@@ -85,7 +100,7 @@ module Home =
                 ]
             ]
             
-            Shared.pagination model.Page model.TotalPages
+            Shared.pagination model.Status model.Page model.TotalPages
         ]
 
     let newTransactionPage (model : NewTransactionViewModel) : XmlNode =

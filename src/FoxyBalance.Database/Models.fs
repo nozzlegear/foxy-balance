@@ -68,7 +68,13 @@ type Order =
     | Ascending
     | Descending
 
+type StatusFilter =
+    | AllTransactions
+    | PendingTransactions
+    | ClearedTransactions
+
 type ListOptions =
     { Limit : int
       Offset : int
-      Order : Order }
+      Order : Order
+      Status : StatusFilter }

@@ -123,11 +123,12 @@ module ViewModels =
           Username : string option }
         
     type HomePageViewModel =
-        { Transactions : FoxyBalance.Database.Models.Transaction seq
-          Sum : FoxyBalance.Database.Models.TransactionSum
+        { Transactions : Transaction seq
+          Sum : TransactionSum
           Page : int
           TotalPages : int
-          TotalTransactions : int }
+          TotalTransactions : int
+          Status : StatusFilter }
     
     type NewTransactionViewModel =
         { Error : string option

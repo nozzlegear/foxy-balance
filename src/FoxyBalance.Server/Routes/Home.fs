@@ -5,12 +5,8 @@ open FoxyBalance.Database.Interfaces
 open Giraffe
 open FoxyBalance.Server
 open FoxyBalance.Database.Models
-open FoxyBalance.Server
-
 open FoxyBalance.Server.Models.RequestModels
-
 open FoxyBalance.Server.Models.ViewModels
-open Microsoft.AspNetCore.Http
 module Views = FoxyBalance.Server.Views.Home
 
 module Home =
@@ -23,18 +19,28 @@ module Home =
                     |> Option.map int
                     |> Option.defaultValue 1
                 if parsedValue < 0 then 1 else parsedValue
+            let status =
+                match ctx.TryGetQueryStringValue "status" |> Option.map String.toLower with
+                | Some "pending" ->
+                    PendingTransactions
+                | Some "cleared" ->
+                    ClearedTransactions
+                | _ ->
+                    AllTransactions
             let database = ctx.GetService<ITransactionDatabase>()
             let! transactions =
                 { Limit = limit
                   Offset = limit * (page - 1)
-                  Order = Descending }
+                  Order = Descending
+                  Status = status }
                 |> database.ListAsync session.UserId
-            let! count = database.CountAsync session.UserId
+            let! count = database.CountAsync session.UserId status
             let! sum = database.SumAsync session.UserId 
             let model : HomePageViewModel =
                 { Transactions = transactions
                   Sum = sum
                   Page = page
+                  Status = status
                   TotalPages = if count % limit > 0 then (count / limit) + 1 else count / limit
                   TotalTransactions = count }
             
