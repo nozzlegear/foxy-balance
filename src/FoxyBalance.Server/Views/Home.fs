@@ -15,7 +15,7 @@ module Home =
             | TransactionStatus.Pending ->
                 str "Pending"
             | TransactionStatus.Cleared date ->
-                formatDate date
+                Format.date date
                 |> str
         let typeCell = function
             | TransactionType.Check details ->
@@ -31,12 +31,12 @@ module Home =
             match transactionType with
             | TransactionType.Credit ->
                 span [_class "amount credit"] [
-                    sprintf "+%.2M" amount
+                    Format.amountWithPositiveSign amount
                     |> str
                 ]
             | _ ->
                 span [_class "amount debit"] [
-                    sprintf "-%.2M" amount
+                    Format.amountWithNegativeSign amount
                     |> str
                 ]
         let statusControls =
@@ -62,9 +62,9 @@ module Home =
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             // Balances
             Shared.evenlySpacedLevel [
-                Shared.LevelItem.HeadingAndTitle ("Balance", sprintf "$%.2M" model.Sum.Sum)
-                Shared.LevelItem.HeadingAndTitle ("Pending", sprintf "$%.2M" model.Sum.PendingSum)
-                Shared.LevelItem.HeadingAndTitle ("Actual", sprintf "$%.2M" model.Sum.ClearedSum)
+                Shared.LevelItem.HeadingAndTitle ("Balance", Format.amountWithDollarSign model.Sum.Sum)
+                Shared.LevelItem.HeadingAndTitle ("Pending", Format.amountWithDollarSign model.Sum.PendingSum)
+                Shared.LevelItem.HeadingAndTitle ("Actual", Format.amountWithDollarSign model.Sum.ClearedSum)
             ]
             
             // Controls
@@ -91,7 +91,7 @@ module Home =
                     for (index, transaction) in Seq.indexed model.Transactions do
                         yield Shared.TableRow [
                             Shared.TableCell (index + 1 |> string |> str)
-                            Shared.TableCell (formatDate transaction.DateCreated |> str)
+                            Shared.TableCell (Format.date transaction.DateCreated |> str)
                             Shared.TableCell (amountCell transaction.Type transaction.Amount)
                             Shared.TableCell (a [_href (sprintf "/home/%i" transaction.Id)] [str transaction.Name])
                             Shared.TableCell (typeCell transaction.Type)

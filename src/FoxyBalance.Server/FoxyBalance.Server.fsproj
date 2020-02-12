@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="String.fs" />
+    <Compile Include="Format.fs" />
     <Compile Include="Task.fs" />
     <Compile Include="Models.fs" />
     <Compile Include="Views\Shared.fs" />
