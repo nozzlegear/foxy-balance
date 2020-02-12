@@ -140,7 +140,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             
             withConnection connectionString (fun conn -> task {
                 let! result = conn.ExecuteReaderAsync(sql, data)
-                return mapRowsToTransactions result |> Seq.exactlyOne
+                return mapRowsToTransactions result |> Seq.tryExactlyOne
             })
             
         member x.ExistsAsync userId transactionId =

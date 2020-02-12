@@ -5,7 +5,7 @@ open System.Threading.Tasks
 
 type ITransactionDatabase =
     abstract member GetStatusAsync : UserId -> TransactionId -> Task<TransactionStatus>
-    abstract member GetAsync : UserId -> TransactionId -> Task<Transaction>
+    abstract member GetAsync : UserId -> TransactionId -> Task<Transaction option>
     abstract member ExistsAsync : UserId -> TransactionId -> Task<bool>
     abstract member CreateAsync : UserId -> PartialTransaction -> Task<Transaction>
     abstract member UpdateAsync : UserId -> TransactionId -> PartialTransaction -> Task<Transaction>
