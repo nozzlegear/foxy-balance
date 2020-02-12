@@ -6,9 +6,6 @@ open FoxyBalance.Server.Models.ViewModels
 open Giraffe.GiraffeViewEngine
 
 module Home =
-    let formatDate (date : System.DateTimeOffset) =
-        date.ToString "yyyy-MM-dd"
-        
     let homePage (model : HomePageViewModel) : XmlNode =
         let title = sprintf "Transactions - Page %i" model.Page
         let clearedStatusCell = function
@@ -102,19 +99,26 @@ module Home =
             
             Shared.pagination model.Status model.Page model.TotalPages
         ]
-
-    let newTransactionPage (model : NewTransactionViewModel) : XmlNode =
-        let title = "New Transaction"
-        let date = String.defaultValue "" model.DateCreated
-        let placeholderDate = System.DateTimeOffset.Now.ToString "yyyy-MM-dd"
         
+    let createOrEditTransactionPage (model : TransactionViewModel) : XmlNode =
+        let model, title, buttonText =
+            match model with
+            | NewTransaction n ->
+                n, "New Transaction", "Create Transaction"
+            | ExistingTransaction (id, e) ->
+                e, sprintf "Edit Transaction #%i" id, "Update Transaction"
+        let date =
+            String.defaultValue "" model.DateCreated
+        let placeholderDate =
+            Format.date System.DateTimeOffset.Now
+                
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             Form.create [Form.Method Form.Post; Form.AutoComplete false] [
-                Form.Element.Title "New Transaction"
+                Form.Element.Title title
                 
                 Form.Element.SelectBox [
                     Form.SelectOption.LabelText "Transaction Type"
-                    Form.SelectOption.Value "debit"
+                    Form.SelectOption.Value model.Type
                     Form.SelectOption.HtmlName "transactionType"
                     Form.SelectOption.Options [
                         {| Value = "debit"; Label = "Debit/Charge" |}
@@ -169,7 +173,7 @@ module Home =
                 // Group the buttons together
                 Form.Element.Group [
                     Form.Element.Button [
-                        Form.ButtonText "Save Transaction"
+                        Form.ButtonText buttonText
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
                     

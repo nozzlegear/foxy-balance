@@ -36,6 +36,7 @@ let allRoutes : HttpHandler =
                 route "/home/adjust-balance" >=> text "Not yet implemented"
                 route "/home/new" >=> Routes.Home.newTransactionHandler
                 route "/home" >=> Routes.Home.homePageHandler
+                routef "/home/%d" Routes.Home.editTransactionHandler
             ]
         ]
         POST >=> choose [
@@ -43,6 +44,7 @@ let allRoutes : HttpHandler =
             route "/auth/register" >=> Routes.Auth.registerPostHandler
             authenticated [
                 route "/home/new" >=> Routes.Home.newTransactionPostHandler
+                routef "/home/%d" Routes.Home.existingTransactionPostHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"

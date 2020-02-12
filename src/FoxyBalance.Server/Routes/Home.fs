@@ -48,23 +48,60 @@ module Home =
         })
         
     let newTransactionHandler : HttpHandler =
-        Views.newTransactionPage NewTransactionViewModel.Default
+        EditTransactionViewModel.Default
+        |> NewTransaction
+        |> Views.createOrEditTransactionPage
         |> htmlView
-        
-    let newTransactionPostHandler : HttpHandler =
+    
+    let editTransactionHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let! model = ctx.BindFormAsync<CreateTransactionRequest>()
-                
-            match CreateTransactionRequest.Validate model with
-            | Error msg ->
-                let result =
-                    NewTransactionViewModel.FromBadRequest model msg
-                    |> Views.newTransactionPage
+            let database = ctx.GetService<ITransactionDatabase>()
+            
+            match! database.GetAsync session.UserId transactionId with
+            | Some transaction ->
+                let view = 
+                    (transactionId, EditTransactionViewModel.FromExistingTransaction transaction)
+                    |> ExistingTransaction
+                    |> Views.createOrEditTransactionPage
                     |> htmlView
-                    >=> setStatusCode 422 
-                return! result next ctx
+                return! view next ctx
+            | None ->
+                return! (setStatusCode 404 >=> text "Not Found") next ctx 
+        })
+        
+    let private createOrEditTransaction (transactionId : int64 option) =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let! model = ctx.BindFormAsync<EditTransactionRequest>()
+            
+            match EditTransactionRequest.Validate model with
+            | Error msg ->
+                let view =
+                    let viewModel = EditTransactionViewModel.FromBadRequest model msg
+                    
+                    transactionId
+                    |> Option.map (fun i -> ExistingTransaction (i, viewModel))
+                    |> Option.defaultWith (fun _ -> NewTransaction viewModel)
+                    |> Views.createOrEditTransactionPage
+                    |> htmlView
+                    
+                return! (view >=> setStatusCode 422) next ctx
             | Ok partialTransaction ->
                 let database = ctx.GetService<ITransactionDatabase>()
-                let! _ = database.CreateAsync session.UserId partialTransaction
+                
+                do! match transactionId with
+                    | Some transactionId ->
+                        database.UpdateAsync session.UserId transactionId partialTransaction
+                        |> Task.Ignore 
+                    | None ->
+                        database.CreateAsync session.UserId partialTransaction
+                        |> Task.Ignore 
+                
                 return! redirectTo false "/home" next ctx
         })
+        
+    let newTransactionPostHandler : HttpHandler =
+        createOrEditTransaction None 
+
+    let existingTransactionPostHandler (transactionId : int64) : HttpHandler =
+        Some transactionId
+        |> createOrEditTransaction

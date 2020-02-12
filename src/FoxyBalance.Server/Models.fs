@@ -38,7 +38,7 @@ module RequestModels =
           Password : string }
         
     [<CLIMutable>]
-    type CreateTransactionRequest =
+    type EditTransactionRequest =
         { Amount : string
           Name : string
           CheckNumber : string
@@ -130,7 +130,7 @@ module ViewModels =
           TotalTransactions : int
           Status : StatusFilter }
     
-    type NewTransactionViewModel =
+    type EditTransactionViewModel =
         { Error : string option
           Type : string
           Amount : string
@@ -139,15 +139,40 @@ module ViewModels =
           DateCreated : string
           Name : string }
         with
-        static member FromBadRequest (r : RequestModels.CreateTransactionRequest) msg : NewTransactionViewModel =
+        static member FromBadRequest (r : RequestModels.EditTransactionRequest) msg : EditTransactionViewModel =
             let empty = System.String.Empty
             { Error = Some msg
               Amount = String.defaultValue empty r.Amount
               ClearDate = String.defaultValue empty r.ClearDate
               CheckNumber = String.defaultValue empty r.CheckNumber
               DateCreated = String.defaultValue empty r.Date
-              Type = String.defaultValue empty r.TransactionType
+              Type = 
+                match r.TransactionType with
+                | "credit" -> "credit"
+                | _ -> "debit"
               Name = String.defaultValue empty r.Name }
+        static member FromExistingTransaction (t : Transaction) =
+            let empty = System.String.Empty
+            let clearDate =
+                match t.Status with
+                | Cleared cleared ->
+                    Format.date cleared
+                | Pending ->
+                    empty
+            let checkNumber =
+                match t.Type with
+                | Check check ->
+                    check.CheckNumber
+                | _ ->
+                    empty
+            
+            { Error = None
+              Amount = Format.amount t.Amount
+              ClearDate = clearDate
+              CheckNumber = checkNumber
+              DateCreated = Format.date t.DateCreated
+              Type = Format.transactionType t.Type
+              Name = t.Name }
         static member Default =
             { Error = None
               Amount = ""
@@ -156,3 +181,7 @@ module ViewModels =
               DateCreated = ""
               Type = "debit"
               Name = "" }
+            
+    type TransactionViewModel =
+        | NewTransaction of EditTransactionViewModel
+        | ExistingTransaction of int64 * EditTransactionViewModel
