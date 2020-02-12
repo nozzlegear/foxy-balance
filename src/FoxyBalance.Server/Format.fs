@@ -1,4 +1,6 @@
 module Format
+    open FoxyBalance.Database.Models
+
     let date (d : System.DateTimeOffset) =
         d.ToString "yyyy-MM-dd"
         
@@ -16,3 +18,10 @@ module Format
     let amountWithDollarSign (d : decimal) =
         amount d
         |> sprintf "$%s"
+
+    let transactionType (t : TransactionType) =
+        match t with
+        | Credit ->
+            "credit"
+        | _ ->
+            "debit"
