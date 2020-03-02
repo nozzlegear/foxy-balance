@@ -45,6 +45,8 @@ module Shared =
             link [_rel "apple-touch-icon"; _sizes "144x144"; _href "/Images/Icons/apple-touch-icon-144x144.png" ]
             link [_rel "apple-touch-icon"; _sizes "152x152"; _href "/Images/Icons/apple-touch-icon-152x152.png" ]
             link [_rel "apple-touch-icon"; _sizes "180x180"; _href "/Images/Icons/apple-touch-icon-180x180.png" ]
+            // Manifest for PWA capabilities
+            link [_rel "manifest"; _href "/manifest.json"]
             // CSS stylesheets
             link [
                 _rel "stylesheet"
