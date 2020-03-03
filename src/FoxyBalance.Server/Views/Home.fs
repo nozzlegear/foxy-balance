@@ -121,8 +121,8 @@ module Home =
                     Form.SelectOption.Value model.Type
                     Form.SelectOption.HtmlName "transactionType"
                     Form.SelectOption.Options [
-                        {| Value = "debit"; Label = "Debit/Charge" |}
-                        {| Value = "credit"; Label = "Credit/Deposit" |}
+                        {| Value = "debit"; Label = "Debit/Charge"; Selected = model.Type = "debit" |}
+                        {| Value = "credit"; Label = "Credit/Deposit"; Selected = model.Type = "credit" |}
                     ]
                 ]
                 

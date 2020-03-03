@@ -43,7 +43,7 @@ module Form =
     
     type SelectOption =
         | Value of string
-        | Options of {| Value : string; Label :string |} list
+        | Options of {| Value : string; Label : string; Selected : bool |} list
         | HtmlName of string
         | LabelText of string
         | Required
@@ -228,7 +228,13 @@ module Form =
         ]
         let options =
             defaults.Options
-            |> List.map (fun o -> G.option [A._value o.Value] [G.str o.Label])
+            |> List.map (fun o ->
+                G.option
+                  [ yield A._value o.Value
+                    if o.Selected then
+                        yield A._selected ]
+                  [G.str o.Label]
+            )
         
         control [
             label defaults.HtmlName defaults.LabelText
