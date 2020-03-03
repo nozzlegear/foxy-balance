@@ -77,8 +77,8 @@ let configureApp (app : IApplicationBuilder) =
 let cookieAuth (options : CookieAuthenticationOptions) =
     options.Cookie.HttpOnly <- true
     options.SlidingExpiration <- true
-    // After eight hours of inactivity, the user must sign in again
-    options.ExpireTimeSpan <- TimeSpan.FromHours 8.0
+    // After 60 days of inactivity, the user must sign in again
+    options.ExpireTimeSpan <- TimeSpan.FromDays 60.0
     options.LoginPath <- PathString "/auth/login"
     options.LogoutPath <- PathString "/auth/logout"
 
