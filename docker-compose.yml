@@ -8,7 +8,7 @@ services:
       ConnectionStrings__SqlDatabase: "Server=db;Database=master;User Id=sa;Password=a-BAD_passw0rd;"
       ASPNETCORE_ENVIRONMENT: "development"
     ports:
-      - 5000:5000
+      - 3000:5000
     depends_on: 
       - db
     volumes:
@@ -19,7 +19,7 @@ services:
       SA_PASSWORD: "a-BAD_passw0rd"
       ACCEPT_EULA: "Y"
     ports:
-      - 3001:1433
+      - 3020:1433
     volumes:
       - "dbdata:/var/opt/mssql"
     logging:
