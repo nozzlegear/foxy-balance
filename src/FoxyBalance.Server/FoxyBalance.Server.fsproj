@@ -37,9 +37,6 @@
     <Compile Include="Routes\Auth.fs" />
     <Compile Include="Routes\Home.fs" />
     <Compile Include="Program.fs" />
-    <None Include="web.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Content Include="appsettings.json" />
     <Content Include="appsettings.development.json" />
   </ItemGroup>
