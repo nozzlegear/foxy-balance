@@ -7,7 +7,6 @@ ENV PATH="/root/.dotnet/tools:${PATH}"
 
 # Restore dotnet packages
 COPY paket.lock paket.dependencies ./
-COPY ./.paket ./.paket
 RUN paket restore
 
 # Get the build ID from --build-arg BUILD=xyz
