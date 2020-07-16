@@ -21,8 +21,8 @@ services:
     ports:
       - 3020:1433
     volumes:
-      - "dbdata:/var/opt/mssql"
+      - "~/docker/custom-volumes/foxybalance_db:/var/opt/mssql"
     logging:
         driver: none
-volumes:
-    dbdata:
+#volumes:
+#    dbdata:
