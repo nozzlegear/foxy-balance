@@ -18,6 +18,8 @@ module Migrator =
         use connection = new SqlConnection(connStr)
         connection.Open()
         let provider = MssqlDatabaseProvider connection
+        // Customize the name of the migration history table
+        provider.TableName <- "FoxyBalance_Migrations"
         let migrator = SimpleMigrator(assembly, provider)
         
         migrator.Load()
