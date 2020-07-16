@@ -37,8 +37,12 @@
     <Compile Include="Routes\Auth.fs" />
     <Compile Include="Routes\Home.fs" />
     <Compile Include="Program.fs" />
-    <Content Include="appsettings.json" />
-    <Content Include="appsettings.development.json" />
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="appsettings.development.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <Import Project="..\..\.paket\Paket.Restore.targets" />
