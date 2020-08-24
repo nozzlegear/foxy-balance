@@ -156,6 +156,7 @@ module Form =
         | Alignment of ButtonAlignment
         | ButtonHtmlName of string
         | ButtonFormAction of string
+        | OnClick of string 
         with
         static member Defaults (options : ButtonOption list) =
             let inline find defaultValue fn = S.find options defaultValue fn
@@ -165,6 +166,7 @@ module Form =
                Color = find Default (function | Color color -> Some color | _ -> None)
                Shade = find Normal (function | Shade shade -> Some shade | _ -> None)
                HtmlName = find "" (function | ButtonHtmlName str -> Some str | _ -> None)
+               OnClick = find None (function | OnClick str -> Some (Some str) | _ -> None)
                FormAction = find None (function | ButtonFormAction str -> Some (Some str) | _ -> None)
                Alignment = find DefaultAlignment (function | Alignment x -> Some x | _ -> None) |}
         
@@ -299,26 +301,40 @@ module Form =
         ]
         
     let private button options : G.XmlNode =
-        let defaults = ButtonOption.Defaults options
-        let buttonFn, extraAttrs =
+        let defaults =
+            ButtonOption.Defaults options
+        let buttonFn =
             match defaults.Type with
-            | ButtonType.Link href -> G.a, [A._href href]
-            | _ ->
-                let attrs = 
-                    let baseAttrs = [A._type defaults.Type.HtmlTypeAttr]
-                
-                    defaults.FormAction
-                    |> Option.map (fun action -> baseAttrs @ [A._formaction action])
-                    |> Option.defaultValue baseAttrs 
-                
-                G.button, attrs 
+            | ButtonType.Link _ -> G.a
+            | _ -> G.button
         let buttonAttrs =
-            let className =
+            let addClassName attrs =
                 let list = ["button"; defaults.Color.BulmaCssClass; defaults.Shade.BulmaCssClass]
-                System.String.Join(" ", list)
-            [ A._class className
-              A._name defaults.HtmlName ]
-            |> List.append extraAttrs
+                let className = System.String.Join(" ", list)
+                attrs @ [A._class className ]
+                
+            let addExtraAttrs attrs =
+                match defaults.Type with
+                | ButtonType.Link href ->
+                    attrs @ [A._href href]
+                | _ ->
+                    let extraAttrs = 
+                        let baseAttrs = [A._type defaults.Type.HtmlTypeAttr]
+                    
+                        defaults.FormAction
+                        |> Option.map (fun action -> baseAttrs @ [A._formaction action])
+                        |> Option.defaultValue baseAttrs
+                    attrs @ extraAttrs
+                    
+            let maybeAddOnClick attrs =
+                defaults.OnClick
+                |> Option.map (fun x -> attrs @ [A._onclick x])
+                |> Option.defaultValue attrs
+                
+            [ A._name defaults.HtmlName ]
+            |> addClassName
+            |> addExtraAttrs
+            |> maybeAddOnClick
                 
         // Wrap the button in a div so we can align the text
         G.div [A._class defaults.Alignment.BulmaCssClass] [

@@ -110,6 +110,7 @@ module Home =
                     Form.ButtonText "Delete"
                     Form.ButtonFormAction (sprintf "/home/%i/delete" id)
                     Form.Color Form.ButtonColor.Danger
+                    Form.OnClick "return confirm('Are you sure you want to delete this transaction? This action cannot be undone.')"
                     Form.Type Form.Submit ]
                 |> Some 
             | _ ->
