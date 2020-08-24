@@ -44,6 +44,7 @@ let allRoutes : HttpHandler =
             route "/auth/register" >=> Routes.Auth.registerPostHandler
             authenticated [
                 route "/home/new" >=> Routes.Home.newTransactionPostHandler
+                routef "/home/%d/delete" Routes.Home.deleteTransactionPostHandler
                 routef "/home/%d" Routes.Home.existingTransactionPostHandler
             ]
         ]

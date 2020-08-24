@@ -119,12 +119,29 @@ module Form =
                 ""
             | Light ->
                 "is-light"
+                
+    type ButtonPull =
+        | Left
+        | Right
+        | NoPull
+        with
+        member x.BulmaCssClass : string =
+            match x with
+            | NoPull ->
+                ""
+            | Left ->
+                "is-pulled-left"
+            | Right ->
+                "is-pulled-right"
     
     type ButtonOption =
         | ButtonText of string
         | Type of ButtonType
         | Color of ButtonColor
         | Shade of ButtonShade
+        | Pull of ButtonPull
+        | ButtonHtmlName of string
+        | ButtonFormAction of string
         with
         static member Defaults (options : ButtonOption list) =
             let inline find defaultValue fn = S.find options defaultValue fn
@@ -132,7 +149,10 @@ module Form =
             {| Label = find "" (function | ButtonText str -> Some str | _ -> None)
                Type = find Button (function | Type btnType -> Some btnType | _ -> None)
                Color = find Default (function | Color color -> Some color | _ -> None)
-               Shade = find Normal (function | Shade shade -> Some shade | _ -> None) |}
+               Shade = find Normal (function | Shade shade -> Some shade | _ -> None)
+               Pull = find NoPull (function | Pull p -> Some p | _ -> None)
+               HtmlName = find "" (function | ButtonHtmlName str -> Some str | _ -> None)
+               FormAction = find None (function | ButtonFormAction str -> Some (Some str) | _ -> None) |}
         
     type Element =
         | TextInput of ControlOption list
@@ -147,6 +167,7 @@ module Form =
         | Subtitle of string
         | Raw of G.XmlNode list
         | Group of Element list
+        | MaybeElement of Element option
         
     type Method =
         | Get
@@ -264,22 +285,30 @@ module Form =
         
     let private button options : G.XmlNode =
         let defaults = ButtonOption.Defaults options
-        let className =
-            let list = ["button"; defaults.Color.BulmaCssClass; defaults.Shade.BulmaCssClass]
-            System.String.Join(" ", list)
-        let buttonEl =  
+        let buttonFn, extraAttrs =
             match defaults.Type with
-            | ButtonType.Submit
-            | ButtonType.Button ->
-                G.button [A._class className; A._type defaults.Type.HtmlTypeAttr] [
-                    G.str defaults.Label
-                ]
-            | ButtonType.Link href ->
-                G.a [A._class className; A._href href] [
-                    G.str defaults.Label
-                ]
+            | ButtonType.Link href -> G.a, [A._href href]
+            | _ ->
+                let attrs = 
+                    let baseAttrs = [A._type defaults.Type.HtmlTypeAttr]
                 
-        control [buttonEl]
+                    defaults.FormAction
+                    |> Option.map (fun action -> baseAttrs @ [A._formaction action])
+                    |> Option.defaultValue baseAttrs 
+                
+                G.button, attrs 
+        let buttonAttrs =
+            let className =
+                let list = ["button"; defaults.Color.BulmaCssClass; defaults.Shade.BulmaCssClass; defaults.Pull.BulmaCssClass]
+                System.String.Join(" ", list)
+            [ A._class className
+              A._name defaults.HtmlName ]
+            |> List.append extraAttrs
+                
+        buttonFn buttonAttrs [
+            G.str defaults.Label ]
+        |> List.singleton
+        |> control 
         
     let create (options : FormOption list) (children : Element list) : G.XmlNode =
         let props =
@@ -337,6 +366,12 @@ module Form =
                     [ err
                       |> Option.map (fun err -> control [ S.error err ])
                       |> S.maybeEl ]
+                    |> next rest
+                | MaybeElement (Some el) :: rest ->
+                    mapNextChild [el] []
+                    |> next rest
+                | MaybeElement None :: rest ->
+                    []
                     |> next rest
                 | Title str :: rest ->
                     // Title is not wrapped in a field

@@ -4,6 +4,8 @@ open FoxyBalance.Database.Models
 open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
 open Giraffe.GiraffeViewEngine
+module G = Giraffe.GiraffeViewEngine
+module A = Giraffe.GiraffeViewEngine.Attributes
 
 module Home =
     let homePage (model : HomePageViewModel) : XmlNode =
@@ -101,6 +103,18 @@ module Home =
         ]
         
     let createOrEditTransactionPage (model : TransactionViewModel) : XmlNode =
+        let deleteButton =
+            match model with
+            | ExistingTransaction (id, _) ->
+                Form.Element.Button [
+                    Form.ButtonText "Delete"
+                    Form.ButtonFormAction (sprintf "/home/%i/delete" id)
+                    Form.Color Form.ButtonColor.Danger
+                    Form.Type Form.Submit ]
+                |> Some 
+            | _ ->
+                None 
+        
         let model, title, buttonText =
             match model with
             | NewTransaction n ->
@@ -113,9 +127,17 @@ module Home =
             Format.date System.DateTimeOffset.Now
                 
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     G.a [A._href "/home"; A._class "button"] [
+                        G.str "Cancel" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
             Form.create [Form.Method Form.Post; Form.AutoComplete false] [
-                Form.Element.Title title
-                
                 Form.Element.SelectBox [
                     Form.SelectOption.LabelText "Transaction Type"
                     Form.SelectOption.Value model.Type
@@ -177,10 +199,7 @@ module Home =
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
                     
-                    Form.Element.Button [
-                        Form.ButtonText "Cancel"
-                        Form.Shade Form.Light
-                        Form.Type (Form.ButtonType.Link "/home") ]
+                    Form.Element.MaybeElement deleteButton
                 ]
             ]
         ]

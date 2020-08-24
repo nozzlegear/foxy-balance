@@ -99,9 +99,21 @@ module Home =
                 return! redirectTo false "/home" next ctx
         })
         
+    let private deleteTransaction transactionId =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<ITransactionDatabase>()
+            
+            do! database.DeleteAsync session.UserId transactionId
+            
+            return! redirectTo false "/home" next ctx 
+        })
+        
     let newTransactionPostHandler : HttpHandler =
         createOrEditTransaction None 
 
     let existingTransactionPostHandler (transactionId : int64) : HttpHandler =
         Some transactionId
         |> createOrEditTransaction
+
+    let deleteTransactionPostHandler (transactionId : int64) : HttpHandler =
+        deleteTransaction transactionId 
