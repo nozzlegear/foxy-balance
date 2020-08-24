@@ -194,12 +194,15 @@ module Home =
                 
                 // Group the buttons together
                 Form.Element.Group [
+                    deleteButton
+                    // Use an empty div so we still have two columns
+                    |> Option.defaultValue Form.Element.EmptyDiv
+                    
                     Form.Element.Button [
                         Form.ButtonText buttonText
+                        Form.Alignment Form.ButtonAlignment.Right 
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
-                    
-                    Form.Element.MaybeElement deleteButton
                 ]
             ]
         ]

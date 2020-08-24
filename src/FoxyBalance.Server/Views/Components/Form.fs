@@ -133,13 +133,27 @@ module Form =
                 "is-pulled-left"
             | Right ->
                 "is-pulled-right"
+                
+    type ButtonAlignment =
+        | Left
+        | Right
+        | DefaultAlignment
+        with
+        member x.BulmaCssClass : string =
+            match x with
+            | Left ->
+                "has-text-left-tablet"
+            | Right ->
+                "has-text-right-tablet"
+            | DefaultAlignment ->
+                ""
     
     type ButtonOption =
         | ButtonText of string
         | Type of ButtonType
         | Color of ButtonColor
         | Shade of ButtonShade
-        | Pull of ButtonPull
+        | Alignment of ButtonAlignment
         | ButtonHtmlName of string
         | ButtonFormAction of string
         with
@@ -150,9 +164,9 @@ module Form =
                Type = find Button (function | Type btnType -> Some btnType | _ -> None)
                Color = find Default (function | Color color -> Some color | _ -> None)
                Shade = find Normal (function | Shade shade -> Some shade | _ -> None)
-               Pull = find NoPull (function | Pull p -> Some p | _ -> None)
                HtmlName = find "" (function | ButtonHtmlName str -> Some str | _ -> None)
-               FormAction = find None (function | ButtonFormAction str -> Some (Some str) | _ -> None) |}
+               FormAction = find None (function | ButtonFormAction str -> Some (Some str) | _ -> None)
+               Alignment = find DefaultAlignment (function | Alignment x -> Some x | _ -> None) |}
         
     type Element =
         | TextInput of ControlOption list
@@ -168,6 +182,7 @@ module Form =
         | Raw of G.XmlNode list
         | Group of Element list
         | MaybeElement of Element option
+        | EmptyDiv
         
     type Method =
         | Get
@@ -299,14 +314,18 @@ module Form =
                 G.button, attrs 
         let buttonAttrs =
             let className =
-                let list = ["button"; defaults.Color.BulmaCssClass; defaults.Shade.BulmaCssClass; defaults.Pull.BulmaCssClass]
+                let list = ["button"; defaults.Color.BulmaCssClass; defaults.Shade.BulmaCssClass]
                 System.String.Join(" ", list)
             [ A._class className
               A._name defaults.HtmlName ]
             |> List.append extraAttrs
                 
-        buttonFn buttonAttrs [
-            G.str defaults.Label ]
+        // Wrap the button in a div so we can align the text
+        G.div [A._class defaults.Alignment.BulmaCssClass] [
+            buttonFn buttonAttrs [
+                G.str defaults.Label
+            ]
+        ]
         |> List.singleton
         |> control 
         
@@ -385,6 +404,9 @@ module Form =
                     // Developer is responsible for wrapping elements in fields if necessary
                     els
                     |> next rest
+                | EmptyDiv :: rest ->
+                    [G.div [] []]
+                    |> next rest 
                 | Group els :: rest ->
                     // Recursively create another group of elements, but all of these will be wrapped in a Bulma r
                     // responsive column
