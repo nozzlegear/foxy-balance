@@ -32,5 +32,5 @@ RUN du -sh -- *
 
 # Change to /app/published so the program has the right ContentDirectoryRoot (i.e. it can load the App_Data files, appsettings.json files, etc.)
 WORKDIR "/app/published"
-EXPOSE 5000
+EXPOSE 3000
 CMD ["dotnet", "./foxy_balance.dll"]

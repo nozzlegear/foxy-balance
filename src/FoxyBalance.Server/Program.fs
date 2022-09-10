@@ -106,7 +106,7 @@ let main _ =
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
     let host =
         WebHost.CreateDefaultBuilder()
-            .UseUrls([|"http://+:5000"|])
+            .UseUrls([|"http://+:3000"|])
     //        .UseContentRoot(contentRoot)
             .UseWebRoot(webRoot)
             .Configure(Action<IApplicationBuilder> configureApp)
