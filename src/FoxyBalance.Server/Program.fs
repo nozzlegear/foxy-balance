@@ -27,25 +27,26 @@ let allRoutes : HttpHandler =
         
     choose [
         GET >=> choose [
-            route "/" >=> redirectTo false "/home"
+            route "/" >=> redirectTo false "/balance"
+            route "/home" >=> redirectTo false "/balance"
             route "/auth/logout" >=> Routes.Auth.logoutHandler
             route "/auth/login" >=> Routes.Auth.loginHandler
             route "/auth/register" >=> Routes.Auth.registerHandler
             authenticated [
-                route "/home/clear" >=> text "Not yet implemented"
-                route "/home/adjust-balance" >=> text "Not yet implemented"
-                route "/home/new" >=> Routes.Home.newTransactionHandler
-                route "/home" >=> Routes.Home.homePageHandler
-                routef "/home/%d" Routes.Home.editTransactionHandler
+                route "/balance/clear" >=> text "Not yet implemented"
+                route "/balance/adjust-balance" >=> text "Not yet implemented"
+                route "/balance/new" >=> Routes.Balance.newTransactionHandler
+                route "/balance" >=> Routes.Balance.homePageHandler
+                routef "/balance/%d" Routes.Balance.editTransactionHandler
             ]
         ]
         POST >=> choose [
             route "/auth/login" >=> Routes.Auth.loginPostHandler
             route "/auth/register" >=> Routes.Auth.registerPostHandler
             authenticated [
-                route "/home/new" >=> Routes.Home.newTransactionPostHandler
-                routef "/home/%d/delete" Routes.Home.deleteTransactionPostHandler
-                routef "/home/%d" Routes.Home.existingTransactionPostHandler
+                route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
+                routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
+                routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"

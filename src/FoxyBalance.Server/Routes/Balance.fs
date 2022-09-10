@@ -6,9 +6,9 @@ open FoxyBalance.Server
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Server.Models.ViewModels
-module Views = FoxyBalance.Server.Views.Home
+module Views = FoxyBalance.Server.Views.Balance
 
-module Home =
+module Balance =
     let homePageHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
             let limit = 35
@@ -95,7 +95,7 @@ module Home =
                         database.CreateAsync session.UserId partialTransaction
                         |> Task.Ignore 
                 
-                return! redirectTo false "/home" next ctx
+                return! redirectTo false "/balance" next ctx
         })
         
     let private deleteTransaction transactionId =
@@ -104,7 +104,7 @@ module Home =
             
             do! database.DeleteAsync session.UserId transactionId
             
-            return! redirectTo false "/home" next ctx 
+            return! redirectTo false "/balance" next ctx 
         })
         
     let newTransactionPostHandler : HttpHandler =

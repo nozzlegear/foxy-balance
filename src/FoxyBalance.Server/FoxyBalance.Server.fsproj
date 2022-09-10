@@ -19,7 +19,7 @@
     <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\Components\Form.fs" />
     <Compile Include="Views\Auth.fs" />
-    <Compile Include="Views\Home.fs" />
+    <Compile Include="Views\Balance.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
   </ItemGroup>
@@ -37,7 +37,7 @@
 
   <ItemGroup>
     <Compile Include="Routes\Auth.fs" />
-    <Compile Include="Routes\Home.fs" />
+    <Compile Include="Routes\Balance.fs" />
     <Compile Include="Program.fs" />
     <Content Include="appsettings.development.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

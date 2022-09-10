@@ -7,7 +7,7 @@ open Giraffe.ViewEngine
 module G = HtmlElements
 module A = Attributes
 
-module Home =
+module Balance =
     let homePage (model : HomePageViewModel) : XmlNode =
         let title = sprintf "Transactions - Page %i" model.Page
         let clearedStatusCell = function
@@ -42,7 +42,7 @@ module Home =
             let unselected status =
                 let url =
                     Shared.statusFilterQueryParam status
-                    |> sprintf "/home?status=%s" 
+                    |> sprintf "/balance?status=%s" 
                 a [_href url] [str (Shared.statusFilterText status)]
             let selected status =
                 strong [] [str (Shared.statusFilterText status)]
@@ -70,9 +70,9 @@ module Home =
             Shared.level [
                 Shared.LeftLevel statusControls
                 Shared.RightLevel [
-                    Shared.LevelItem.Element (a [_href "/home/clear"; _class "button is-light"] [str "Clear All"])
-                    Shared.LevelItem.Element (a [_href "/home/adjust-balance"; _class "button is-light"] [str "Adjust Balance"])
-                    Shared.LevelItem.Element (a [_href "/home/new"; _class "button is-success"] [str "New Transaction"])
+                    Shared.LevelItem.Element (a [_href "/balance/clear"; _class "button is-light"] [str "Clear All"])
+                    Shared.LevelItem.Element (a [_href "/balance/adjust-balance"; _class "button is-light"] [str "Adjust Balance"])
+                    Shared.LevelItem.Element (a [_href "/balance/new"; _class "button is-success"] [str "New Transaction"])
                 ]
             ]
             
@@ -92,7 +92,7 @@ module Home =
                             Shared.TableCell (index + 1 |> string |> str)
                             Shared.TableCell (Format.date transaction.DateCreated |> str)
                             Shared.TableCell (amountCell transaction.Type transaction.Amount)
-                            Shared.TableCell (a [_href (sprintf "/home/%i" transaction.Id)] [str transaction.Name])
+                            Shared.TableCell (a [_href (sprintf "/balance/%i" transaction.Id)] [str transaction.Name])
                             Shared.TableCell (typeCell transaction.Type)
                             Shared.TableCell (clearedStatusCell transaction.Status)
                         ]
@@ -108,7 +108,7 @@ module Home =
             | ExistingTransaction (id, _) ->
                 Form.Element.Button [
                     Form.ButtonText "Delete"
-                    Form.ButtonFormAction (sprintf "/home/%i/delete" id)
+                    Form.ButtonFormAction (sprintf "/balance/%i/delete" id)
                     Form.Color Form.ButtonColor.Danger
                     Form.OnClick "return confirm('Are you sure you want to delete this transaction? This action cannot be undone.')"
                     Form.Type Form.Submit ]
@@ -133,7 +133,7 @@ module Home =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                     G.a [A._href "/home"; A._class "button"] [
+                     G.a [A._href "/balance"; A._class "button"] [
                         G.str "Cancel" ]
                      |> Shared.LevelItem.Element
                 ]

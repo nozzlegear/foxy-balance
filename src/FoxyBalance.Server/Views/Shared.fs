@@ -103,8 +103,8 @@ module Shared =
             
             div [_id "navbar"; _class "navbar-menu"] [
                 div [_class "navbar-start"] [
-                    a [_class "navbar-item"; _href "/"] [
-                        str "Home"
+                    a [_class "navbar-item"; _href "/balance"] [
+                        str "Balance"
                     ]
 
                     a [_class "navbar-item"; _href "https://github.com/nozzlegear/foxy-balance"; _target "blank"] [
@@ -254,7 +254,7 @@ module Shared =
             let baseAttrs = [
                 _class "pagination-previous"
                 currentPage - 1
-                |> sprintf "/home?status=%s&page=%i" statusQueryParam
+                |> sprintf "/balance?status=%s&page=%i" statusQueryParam
                 |> _href 
             ]
             // Disable the previous page link if the user is on the first page
@@ -265,7 +265,7 @@ module Shared =
             let baseAttrs = [
                 _class "pagination-next"
                 currentPage + 1
-                |> sprintf "/home?status=%s&page=%i" statusQueryParam
+                |> sprintf "/balance?status=%s&page=%i" statusQueryParam
                 |> _href
             ]
             // Disable the next page link if the user is on the last page
@@ -280,7 +280,7 @@ module Shared =
                         [ _class "pagination-link is-current" ]
                     else
                         [ _class "pagination-link"
-                          _href (sprintf "/home?status=%s&page=%i" statusQueryParam page)
+                          _href (sprintf "/balance?status=%s&page=%i" statusQueryParam page)
                           _ariaLabel (sprintf "Go to page %i" page) ]
                     
                 li [] [

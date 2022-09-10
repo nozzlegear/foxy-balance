@@ -73,4 +73,4 @@ module Auth =
                     let! user = database.CreateAsync partialUser
                     
                     return! (RouteUtils.authenticateUser user
-                             >=> redirectTo false "/home") next ctx }
+                             >=> redirectTo false "/balance") next ctx }
