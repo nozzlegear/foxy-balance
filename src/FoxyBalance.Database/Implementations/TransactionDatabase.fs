@@ -1,56 +1,38 @@
 ﻿namespace FoxyBalance.Database
 
-open System
-open System.Data
-open System.Threading.Tasks
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
-open Dapper
+open DustyTables
 
 type TransactionDatabase(options : IDatabaseOptions) =
-    let tableName = "FoxyBalance_Transactions"
-    let connectionString = options.ConnectionString
+    let connection =
+        Sql.connect options.ConnectionString
+        |> Sql.timeout 90
     
-    /// Parses the Id column from the data reader.
-    let readIdColumn reader =
-        match readColumn "Id" reader with
-        | Error msg ->
-            failwith msg
-        | Ok x ->
-            downcast x : int64 
-    
-    let mapRowToStatus (reader : IDataReader) : TransactionStatus =
-        let statusCol = reader.GetOrdinal "Status"
-        let clearedDateCol = reader.GetOrdinal "DateCleared"
-        
-        match reader.GetString statusCol with
+    let mapRowToStatus (read : RowReader) : TransactionStatus =
+        match read.string "Status" with
         | "Pending" ->
             Pending
         | "Cleared" ->
-            reader.GetDateTime clearedDateCol 
-            |> DateTimeOffset
+            read.dateTimeOffset "DateCleared" 
             |> Cleared
         | x ->
-            failwithf """Unrecognized Status type "%s".""" x 
+            failwith $"""Unrecognized Status type "{x}"."""
         
-    let mapRowToDetails (reader : IDataReader) : TransactionType =
-        let typeCol = reader.GetOrdinal "Type"
-        let recurringCol = reader.GetOrdinal "Recurring"
-        let checkNumberCol = reader.GetOrdinal "CheckNumber"
-        
-        match reader.GetString typeCol with
+    let mapRowToDetails (read : RowReader) : TransactionType =
+        match read.string "Type" with
         | "Debit" ->
             Debit
         | "Credit" ->
             Credit 
         | "Bill" ->
-            { Recurring = reader.GetBoolean recurringCol }
+            { Recurring = read.bool "Recurring" }
             |> Bill
         | "Check" ->
-            { CheckNumber = reader.GetString checkNumberCol }
+            { CheckNumber = read.string "CheckNumber" }
             |> Check
         | x ->
-            failwithf """Unrecognized transaction type "%s".""" x 
+            failwith $"""Unrecognized transaction type "{x}"."""
         
     let statusFilter = function
         | AllTransactions ->
@@ -60,108 +42,104 @@ type TransactionDatabase(options : IDatabaseOptions) =
         | ClearedTransactions ->
             " AND [Status] = 'Cleared' "
                     
-    let mapRowToTransaction (reader : IDataReader) : Transaction =
-        let idCol = reader.GetOrdinal "Id"
-        let nameCol = reader.GetOrdinal "Name"
-        let amountCol = reader.GetOrdinal "Amount"
-        let dateCreatedCol = reader.GetOrdinal "DateCreated"
-        
-        { Id = reader.GetInt64 idCol
-          Name = reader.GetString nameCol
-          Amount = reader.GetDecimal amountCol
-          DateCreated = reader.GetDateTime dateCreatedCol |> DateTimeOffset
-          Status = mapRowToStatus reader
-          Type = mapRowToDetails reader }
-        
-    let mapRowsToTransactions (reader : IDataReader) : Transaction seq =
-        let output = [ while reader.Read() do yield mapRowToTransaction reader ]
-        List.toSeq output
+    let mapRowToTransaction (read : RowReader) : Transaction =
+        { Id = read.int64 "Id"
+          Name = read.string "Name"
+          Amount = read.decimal "Amount"
+          DateCreated = read.dateTimeOffset "DateCreated"
+          Status = mapRowToStatus read
+          Type = mapRowToDetails read }
     
     let mapDetailsToSqlParams details =
         match details with
         | Check check ->
-            {| typeStr = ParamValue.String "Check"
-               checkNumber = ParamValue.String check.CheckNumber
-               recurring = ParamValue.Bool false |}
+            {| typeStr = Sql.string "Check"
+               checkNumber = Sql.string check.CheckNumber
+               recurring = Sql.bool false |}
         | Bill bill ->
-            {| typeStr = ParamValue.String "Bill"
-               checkNumber = ParamValue.Null
-               recurring = ParamValue.Bool bill.Recurring |}
+            {| typeStr = Sql.string "Bill"
+               checkNumber = Sql.dbnull
+               recurring = Sql.bool bill.Recurring |}
         | Debit ->
-            {| typeStr = ParamValue.String "Debit"
-               checkNumber = ParamValue.Null
-               recurring = ParamValue.Bool false |}
+            {| typeStr = Sql.string "Debit"
+               checkNumber = Sql.dbnull
+               recurring = Sql.bool false |}
         | Credit ->
-            {| typeStr = ParamValue.String "Credit"
-               checkNumber = ParamValue.Null
-               recurring = ParamValue.Bool false |}
+            {| typeStr = Sql.string "Credit"
+               checkNumber = Sql.dbnull
+               recurring = Sql.bool false |}
                
     let mapStatusToSqlParams status =
         match status with
         | Pending ->
-            {| statusStr = ParamValue.String "Pending"
-               dateCleared = ParamValue.Null |}
+            {| statusStr = Sql.string "Pending"
+               dateCleared = Sql.dbnull |}
         | Cleared date -> 
-            {| statusStr = ParamValue.String "Cleared"
-               dateCleared = ParamValue.DateTimeOffset date |}
+            {| statusStr = Sql.string "Cleared"
+               dateCleared = Sql.dateTimeOffset date |}
                
     interface ITransactionDatabase with
-        member x.GetStatusAsync userId transactionId =
-            let sql =
-                sprintf """
+        member _.GetStatusAsync userId transactionId =
+            connection
+            |> Sql.query """
                 SELECT [Status], [DateCleared]
-                FROM %s
+                FROM [FoxyBalance_Transactions]
                 WHERE [UserId] = @userId AND [Id] = @id
-                """ tableName
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "id" => ParamValue.Long transactionId 
+            """ 
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "id", Sql.int64 transactionId 
             ]
-            
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql, data)
-                
-                if not <| reader.Read() then
-                    failwithf "No transaction with ID %i and User ID %i" transactionId userId 
-                
-                return mapRowToStatus reader
-            })
+            |> Sql.executeRowAsync mapRowToStatus
 
-        member x.GetAsync userId transactionId =
-            let sql =
-                sprintf """
-                SELECT * FROM %s WHERE [UserId] = @userId AND [Id] = @id
-                """ tableName
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "id" => ParamValue.Long transactionId 
+        member _.GetAsync userId transactionId =
+            connection
+            |> Sql.query """
+                SELECT *
+                FROM [FoxyBalance_Transactions]
+                WHERE [UserId] = @userId AND [Id] = @id
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "id", Sql.int64 transactionId 
             ]
+            |> Sql.executeAsync mapRowToTransaction
+            |> Sql.tryExactlyOne
             
-            withConnection connectionString (fun conn -> task {
-                let! result = conn.ExecuteReaderAsync(sql, data)
-                return mapRowsToTransactions result |> Seq.tryExactlyOne
-            })
-            
-        member x.ExistsAsync userId transactionId =
-            let sql =
-                sprintf """
+        member _.ExistsAsync userId transactionId =
+            connection
+            |> Sql.query """
                 SELECT CASE WHEN EXISTS (
-                    SELECT Id FROM %s WHERE [UserId] = @userId AND [Id] = @id
+                    SELECT Id FROM [FoxyBalance_Transactions]
+                    WHERE [UserId] = @userId AND [Id] = @id
                 )
                 THEN CAST(1 AS BIT)
                 ELSE CAST(0 AS BIT) END
-                """ tableName
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "id" => ParamValue.Long transactionId
+                """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "id", Sql.int64 transactionId
+            ]
+            |> Sql.executeRowAsync (fun read -> read.bool 0)
+            
+        member _.CreateAsync userId transaction =
+            let details = mapDetailsToSqlParams transaction.Type
+            let status = mapStatusToSqlParams transaction.Status
+            let data = [
+                "userId", Sql.int userId
+                "dateCreated", Sql.dateTimeOffset transaction.DateCreated
+                "name", Sql.string transaction.Name
+                "amount", Sql.decimal transaction.Amount
+                "type", details.typeStr
+                "checkNumber", details.checkNumber
+                "recurring", details.recurring
+                "status", status.statusStr
+                "dateCleared", status.dateCleared
             ]
             
-            withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<bool>(sql, data))
-            
-        member x.CreateAsync userId transaction =
-            let sql =
-                sprintf """
-                INSERT INTO %s (
+            connection
+            |> Sql.query """
+                INSERT INTO [FoxyBalance_Transactions] (
                     UserId,
                     DateCreated,
                     Name,
@@ -182,41 +160,36 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     @status,
                     @dateCleared
                 )
-                """ tableName
+            """
+            |> Sql.parameters data
+            |> Sql.executeRowAsync (fun read ->
+                {
+                    Id = read.int64 "Id"
+                    Name = transaction.Name
+                    Amount = transaction.Amount
+                    DateCreated = transaction.DateCreated
+                    Status = transaction.Status
+                    Type = transaction.Type
+                })
+            
+        member _.UpdateAsync userId transactionId transaction =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "dateCreated" => ParamValue.DateTimeOffset transaction.DateCreated
-                "name" => ParamValue.String transaction.Name
-                "amount" => ParamValue.Decimal transaction.Amount
-                "type" => details.typeStr
-                "checkNumber" => details.checkNumber
-                "recurring" => details.recurring
-                "status" => status.statusStr
-                "dateCleared" => status.dateCleared
+            let data = [
+                "userId", Sql.int userId
+                "id", Sql.int64 transactionId
+                "name", Sql.string transaction.Name
+                "amount", Sql.decimal transaction.Amount
+                "type", details.typeStr
+                "checkNumber", details.checkNumber
+                "recurring", details.recurring
+                "status", status.statusStr
+                "dateCleared", status.dateCleared
             ]
             
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql, data)
-                
-                if not (reader.Read()) then
-                    failwith "Output for transaction insert operation contained no data, cannot read new transaction ID."
-                    
-                let transaction : Transaction =
-                    { Id = readIdColumn reader
-                      Name = transaction.Name
-                      Amount = transaction.Amount
-                      DateCreated = transaction.DateCreated
-                      Status = transaction.Status
-                      Type = transaction.Type }
-                return transaction
-            })
-            
-        member x.UpdateAsync userId transactionId transaction =
-            let sql =
-                sprintf """
-                UPDATE %s
+            connection
+            |> Sql.query """
+                UPDATE [FoxyBalance_Transactions]
                 SET [Name] = @name,
                 [Amount] = @amount,
                 [Type] = @type,
@@ -226,44 +199,19 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 [DateCleared] = @dateCleared
                 OUTPUT INSERTED.DateCreated
                 WHERE [UserId] = @userId AND [Id] = @id
-                """ tableName
-            let details = mapDetailsToSqlParams transaction.Type
-            let status = mapStatusToSqlParams transaction.Status
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "id" => ParamValue.Long transactionId
-                "name" => ParamValue.String transaction.Name
-                "amount" => ParamValue.Decimal transaction.Amount
-                "type" => details.typeStr
-                "checkNumber" => details.checkNumber
-                "recurring" => details.recurring
-                "status" => status.statusStr
-                "dateCleared" => status.dateCleared
-            ]
+                """
+            |> Sql.parameters data
+            |> Sql.executeRowAsync (fun read ->
+                {
+                    Id = transactionId
+                    Name = transaction.Name
+                    Amount = transaction.Amount
+                    DateCreated = read.dateTimeOffset "DateCreated"
+                    Status = transaction.Status
+                    Type = transaction.Type
+                })
             
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql, data)
-                
-                if not (reader.Read()) then
-                    failwith "Output for transaction update operation contained no data, cannot read transaction's DateCreated."
-                
-                let transaction : Transaction =
-                    { Id = transactionId
-                      Name = transaction.Name
-                      Amount = transaction.Amount
-                      DateCreated =
-                            match readColumn "DateCreated" reader with
-                            | Error msg ->
-                                failwithf "Failed to read updated transaction's DateCreated column: %s" msg
-                            | Ok x ->
-                                (downcast x : DateTime)
-                                |> DateTimeOffset
-                      Status = transaction.Status
-                      Type = transaction.Type }
-                return transaction
-            })
-            
-        member x.ListAsync userId options =
+        member _.ListAsync userId options =
             let direction =
                 match options.Order with
                 | Ascending -> "ASC"
@@ -271,103 +219,78 @@ type TransactionDatabase(options : IDatabaseOptions) =
             let whereClause =
                 statusFilter options.Status
                 |> sprintf "[UserId] = @userId %s"
-            let sql =
-                sprintf """
-                SELECT * FROM %s
-                WHERE %s
-                ORDER BY [DateCreated] %s, [Id] %s
+                
+            connection
+            |> Sql.query $"""
+                SELECT * FROM [FoxyBalance_Transactions]
+                WHERE {whereClause}
+                ORDER BY [DateCreated] {direction}, [Id] {direction}
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
-                """ tableName whereClause direction direction
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "offset" => ParamValue.Int options.Offset
-                "limit" => ParamValue.Int options.Limit
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "offset", Sql.int options.Offset
+                "limit", Sql.int options.Limit
             ]
+            |> Sql.executeAsync mapRowToTransaction
+            |> Sql.map Seq.ofList
             
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql, data)
-                return mapRowsToTransactions reader 
-            })
-            
-        member x.DeleteAsync userId transactionId =
-            let sql =
-                sprintf """
-                DELETE FROM %s WHERE [UserId] = @userId AND [Id] = @id
-                """ tableName
-            let data = dict [
-                "userId" => ParamValue.Int userId
-                "id" => ParamValue.Long transactionId
+        member _.DeleteAsync userId transactionId =
+            connection
+            |> Sql.query "DELETE FROM [FoxyBalance_Transactions] WHERE [UserId] = @userId AND [Id] = @id" 
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "id", Sql.int64 transactionId
             ]
+            |> Sql.executeNonQueryAsync
+            |> Sql.ignore
             
-            withConnection connectionString (fun conn -> task {
-                let! _ = conn.ExecuteAsync(sql, data)
-                ()  
-            }) :> Task
+        member _.CountAsync userId status =
+            let whereClause =
+                statusFilter status
+                |> sprintf "[UserId] = @userId %s"
             
-        member x.CountAsync userId status =
-            let sql =
-                let whereClause =
-                    statusFilter status
-                    |> sprintf "[UserId] = @userId %s"
-                sprintf """
+            connection
+            |> Sql.query $"""
                 SELECT COUNT(Id)
-                FROM %s
-                WHERE %s
-                """ tableName whereClause
-            let data = dict [ "userId" => ParamValue.Int userId ]
+                FROM [FoxyBalance_Transactions]
+                WHERE {whereClause}
+            """
+            |> Sql.parameters [ "userId", Sql.int userId ]
+            |> Sql.executeRowAsync (fun read -> read.int 0)
             
-            withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<int>(sql, data))
-            
-        member x.SumAsync userId =
-            let sql =
-                sprintf """
+        member _.SumAsync userId =
+            connection
+            |> Sql.query """
                 SELECT
                     SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] <> 'Credit') THEN [Amount] ELSE 0 END) as ClearedDebit,
                     SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] =  'Credit') THEN [Amount] ELSE 0 END) as ClearedCredit,
                     SUM(CASE WHEN ([Type] <> 'Credit') THEN [Amount] ELSE 0 END) as TotalDebit,
                     SUM(CASE WHEN ([Type] =  'Credit') THEN [Amount] ELSE 0 END) as TotalCredit
-                FROM %s
+                FROM [FoxyBalance_Transactions]
                 WHERE [UserId] = @userId
-                """ tableName
-            let data = dict [ "userId" => ParamValue.Int userId ]
-            
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql, data)
+                """
+            |> Sql.parameters [ "userId", Sql.int userId ]
+            |> Sql.executeRowAsync (fun read ->
+                let toDecimal columnName =
+                    // A SQL Sum operation returns null if there are no records matched.
+                    // Default to 0 when that happens.
+                    read.decimalOrNone columnName
+                    |> Option.defaultValue 0.0M
+                            
+                let totalCredit = toDecimal "TotalCredit"
+                let totalDebit = toDecimal "TotalDebit"
+                let clearedDebit = toDecimal "ClearedDebit"
+                let clearedCredit = toDecimal "ClearedCredit"
+                let pendingDebit = totalDebit - clearedDebit
+                let pendingCredit = totalCredit - clearedCredit
                 
-                if not (reader.Read()) then
-                    failwith "Output for transaction sum operation contained no data, cannot read sums."
-                    
-                let output: TransactionSum =
-                    let readToDecimal columnName =
-                        match Utils.readColumn columnName reader with
-                        | Error msg ->
-                            failwithf "Unable to read sum column %s: %s" columnName msg
-                        | Ok x ->
-                            // A SQL Sum operation returns null if there are no records matched.
-                            // Default to 0 when that happens.
-                            match x with
-                            | :? System.DBNull ->
-                                0.0M
-                            | :? System.Decimal as x ->
-                                x
-                            | x ->
-                                failwithf "Unexpected sum column value type %s" (x.GetType().Name)
-                                
-                    let totalCredit = readToDecimal "TotalCredit"
-                    let totalDebit = readToDecimal "TotalDebit"
-                    let clearedDebit = readToDecimal "ClearedDebit"
-                    let clearedCredit = readToDecimal "ClearedCredit"
-                    let pendingDebit = totalDebit - clearedDebit
-                    let pendingCredit = totalCredit - clearedCredit
-                    
-                    { Sum = totalCredit - totalDebit
-                      PendingSum = pendingCredit - pendingDebit
-                      ClearedSum = clearedCredit - clearedDebit
-                      ClearedDebitSum = clearedDebit
-                      ClearedCreditSum = clearedCredit
-                      PendingDebitSum = pendingDebit
-                      PendingCreditSum = pendingCredit }
-                    
-                return output
-            })
+                { Sum = totalCredit - totalDebit
+                  PendingSum = pendingCredit - pendingDebit
+                  ClearedSum = clearedCredit - clearedDebit
+                  ClearedDebitSum = clearedDebit
+                  ClearedCreditSum = clearedCredit
+                  PendingDebitSum = pendingDebit
+                  PendingCreditSum = pendingCredit }
+            )

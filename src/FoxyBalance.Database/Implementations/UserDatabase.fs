@@ -2,32 +2,22 @@
 
 open System
 open System.Data
-open Dapper
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models
+open DustyTables
 
 type UserDatabase(options : IDatabaseOptions) =
-    let tableName = "FoxyBalance_Users"
-    let connectionString = options.ConnectionString
-    
-    /// Parses the Id column from the data reader.
-    let readIdColumn reader =
-        match readColumn "Id" reader with
-        | Error msg ->
-            failwithf "Could not read Id column: %s" msg
-        | Ok x ->
-            downcast x : int
-    
-    /// Converts a UserIdentifier to a string * obj tuple, where the string is the SQL column name and the obj is the value
-    let toSelector = function
-        | Id id -> "Id", ParamValue.Int id
-        | Email email -> "EmailAddress", ParamValue.String email
+    let connection =
+        Sql.connect options.ConnectionString
+        |> Sql.timeout 90
     
     interface IUserDatabase with
         member x.CreateAsync partialUser =
-            let sql =
-                sprintf """
-                INSERT INTO %s (
+            let dateCreated = DateTimeOffset.UtcNow
+            
+            connection
+            |> Sql.query """
+                INSERT INTO FoxyBalance_Users (
                     EmailAddress,
                     HashedPassword,
                     DateCreated
@@ -38,63 +28,56 @@ type UserDatabase(options : IDatabaseOptions) =
                     @hashedPassword,
                     @dateCreated
                 )
-                """
-            let dateCreated = DateTimeOffset.UtcNow
-            let data = dict [
-                "emailAddress" => ParamValue.String partialUser.EmailAddress
-                "hashedPassword" => ParamValue.String partialUser.HashedPassword
-                "dateCreated" => ParamValue.DateTimeOffset dateCreated 
+            """
+            |> Sql.parameters [
+                "emailAddress", Sql.string partialUser.EmailAddress
+                "hashedPassword", Sql.string partialUser.HashedPassword
+                "dateCreated", Sql.dateTimeOffset dateCreated 
             ]
-             
-            withConnection connectionString (fun conn -> task {
-                let! reader = conn.ExecuteReaderAsync(sql tableName, data)
-                
-                if not (reader.Read()) then
-                    failwith "Output for user insert operation contained no data, cannot read new user ID."
-                
-                let user : User =
-                    { DateCreated = dateCreated
-                      Id = readIdColumn reader
-                      EmailAddress = partialUser.EmailAddress
-                      HashedPassword = partialUser.HashedPassword }
-                    
-                return user 
-            })
+            |> Sql.executeRowAsync (fun read ->
+                {
+                    DateCreated = dateCreated
+                    Id = read.int "Id"
+                    EmailAddress = partialUser.EmailAddress
+                    HashedPassword = partialUser.HashedPassword
+                })
 
-        member x.GetAsync userId =
-            let read (reader : IDataReader) : User seq =
-                let col name = reader.GetOrdinal name 
-                seq {
-                    while reader.Read() do
-                        yield
-                            { Id = col "Id" |> reader.GetInt32
-                              EmailAddress = col "EmailAddress" |> reader.GetString
-                              DateCreated =
-                                  let dt = col "DateCreated" |> reader.GetDateTime
-                                  DateTimeOffset(dt)
-                              HashedPassword = col "HashedPassword" |> reader.GetString } }
-            let columnName, selector = toSelector userId
-            let sql =
-                sprintf """
-                SELECT * FROM %s WHERE [%s] = @selector
-                """ tableName columnName
-            let data = dict [ "selector" => selector ]
+        member _.GetAsync userId =
+            let sql, selector =
+                let format column = $"SELECT * FROM [FoxyBalance_Users] WHERE [{column}] = @selector"
+                match userId with
+                | Id id -> format "Id", Sql.int id
+                | Email email -> format "EmailAddress", Sql.string email
                 
-            withConnection connectionString (fun conn -> task {
-                use! reader = conn.ExecuteReaderAsync(sql, data)
-                return read reader |> Seq.tryExactlyOne
-            })
+            connection
+            |> Sql.query sql
+            |> Sql.parameters [
+                "selector", selector
+            ]
+            |> Sql.executeAsync (fun read ->
+                {
+                    Id = read.int "Id"
+                    EmailAddress = read.string "EmailAddress"
+                    DateCreated = read.dateTimeOffset "DateCreated"
+                    HashedPassword = read.string "HashedPassword"
+                })
+            |> Sql.tryExactlyOne
 
-        member x.ExistsAsync userId =
-            let columnName, selector = toSelector userId 
-            let sql =
-                sprintf """
-                SELECT CASE WHEN EXISTS (
-                    SELECT Id FROM %s WHERE [%s] = @selector
-                )
-                THEN CAST(1 AS BIT)
-                ELSE CAST(0 AS BIT) END
-                """ tableName columnName
-            let data = dict [ "selector" => selector ]
+        member _.ExistsAsync userId =
+            let sql, selector =
+                let format column = $"""
+                    SELECT CASE WHEN EXISTS (
+                        SELECT Id FROM FoxyBalance_Users WHERE [{column}] = @selector
+                    )
+                    THEN CAST(1 AS BIT)
+                    ELSE CAST(0 AS BIT)
+                    END
+                """
+                match userId with
+                | Id id -> format "Id", Sql.int id
+                | Email email -> format "EmailAddress", Sql.string email
             
-            withConnection connectionString (fun conn -> conn.ExecuteScalarAsync<bool>(sql, data))
+            connection
+            |> Sql.query sql
+            |> Sql.parameters [ "selector", selector ]
+            |> Sql.executeRowAsync (fun read -> read.bool 0)
