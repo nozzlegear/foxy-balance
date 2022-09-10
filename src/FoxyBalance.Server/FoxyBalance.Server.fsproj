@@ -7,6 +7,7 @@
     <OutputType>Exe</OutputType>
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
     <VersionPrefix>1.1.0</VersionPrefix>
+    <UserSecretsId>33ab6fc7-395b-4f96-b66d-8b31155cd925</UserSecretsId>
   </PropertyGroup>
 
 
