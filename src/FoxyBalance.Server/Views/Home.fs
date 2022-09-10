@@ -3,9 +3,9 @@
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
-open Giraffe.GiraffeViewEngine
-module G = Giraffe.GiraffeViewEngine
-module A = Giraffe.GiraffeViewEngine.Attributes
+open Giraffe.ViewEngine
+module G = HtmlElements
+module A = Attributes
 
 module Home =
     let homePage (model : HomePageViewModel) : XmlNode =

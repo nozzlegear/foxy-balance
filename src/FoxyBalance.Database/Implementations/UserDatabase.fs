@@ -3,7 +3,6 @@
 open System
 open System.Data
 open Dapper
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models
 

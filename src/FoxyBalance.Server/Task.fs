@@ -1,6 +1,4 @@
 ﻿module Task
-    open FSharp.Control.Tasks.V2.ContextInsensitive
-
     /// Maps the result of a task.
     let inline Map fn (computation : System.Threading.Tasks.Task<_>) =
         task {

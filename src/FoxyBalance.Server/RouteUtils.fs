@@ -7,7 +7,6 @@ open Microsoft.AspNetCore.Authentication
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Models
 open Microsoft.AspNetCore.Authentication.Cookies
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
 module RouteUtils =
     let authenticationScheme = CookieAuthenticationDefaults.AuthenticationScheme

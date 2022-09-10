@@ -1,6 +1,6 @@
 ﻿namespace FoxyBalance.Server.Views
 
-open Giraffe.GiraffeViewEngine
+open Giraffe.ViewEngine
 open FoxyBalance.Server.Views.Components
 open FoxyBalance.Server.Models.ViewModels
 

@@ -3,7 +3,6 @@ namespace FoxyBalance.Database
 open System.Data
 open System.Data.SqlClient
 open System.Threading.Tasks
-open FSharp.Control.Tasks.V2.ContextInsensitive
 
 [<AutoOpen>]
 module internal Utils =

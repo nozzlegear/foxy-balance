@@ -1,7 +1,7 @@
 ﻿namespace FoxyBalance.Server.Views
 
-open Giraffe.GiraffeViewEngine
-open Giraffe.GiraffeViewEngine.Accessibility
+open Giraffe.ViewEngine
+open Giraffe.ViewEngine.Accessibility
 open FoxyBalance.Database.Models
 
 module Shared =
@@ -180,7 +180,7 @@ module Shared =
     let evenlySpacedLevel levelItems =
         levelItems
         |> List.map levelItem
-        |> Giraffe.GiraffeViewEngine.nav [_class "level"]
+        |> HtmlElements.nav [_class "level"]
     
     type LevelSection =
         | LeftLevel of LevelItem list
@@ -197,7 +197,7 @@ module Shared =
              
             Seq.fold folder ([], []) items 
                 
-        Giraffe.GiraffeViewEngine.nav [_class "level"] [
+        HtmlElements.nav [_class "level"] [
             left
             |> List.map levelItem
             |> div [_class "level-left"]
@@ -312,7 +312,7 @@ module Shared =
                     | _ ->
                         () ]
             
-        Giraffe.GiraffeViewEngine.nav [_class "pagination is-centered"; _roleNavigation; _ariaLabel "pagination"] [
+        HtmlElements.nav [_class "pagination is-centered"; _roleNavigation; _ariaLabel "pagination"] [
             a previousPageAttrs [str "Previous"]
             a nextPageAttrs [str "Next"]
             ul [_class "pagination-list"] pageLinks

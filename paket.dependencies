@@ -7,7 +7,7 @@ nuget Microsoft.NET.Test.Sdk
 nuget Microsoft.AspNetCore.TestHost
 nuget xunit
 nuget xunit.runner.visualstudio
-nuget taskbuilder.fs
 nuget dapper
 nuget system.data.sqlclient
 nuget simple.migrations
+nuget fsharp.core

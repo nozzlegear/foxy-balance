@@ -2,8 +2,8 @@
 
 module Form =
     module S = FoxyBalance.Server.Views.Shared
-    module G = Giraffe.GiraffeViewEngine
-    module A = G.Attributes
+    module G = Giraffe.ViewEngine.HtmlElements
+    module A = Giraffe.ViewEngine.Attributes
     
     type ControlOption =
         | Value of string

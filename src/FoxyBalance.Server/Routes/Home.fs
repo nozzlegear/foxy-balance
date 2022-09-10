@@ -1,6 +1,5 @@
 ﻿namespace FoxyBalance.Server.Routes
 
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open FoxyBalance.Database.Interfaces
 open Giraffe
 open FoxyBalance.Server
