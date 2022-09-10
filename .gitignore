@@ -360,3 +360,4 @@ Paket.Restore.targets
 .gitsecret/keys/random_seed
 !*.secret
 .env
+env.fish
