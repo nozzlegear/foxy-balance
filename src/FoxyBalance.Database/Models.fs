@@ -1,7 +1,6 @@
 namespace FoxyBalance.Database.Models
 
 open System
-open System
 
 type IDatabaseOptions =
     abstract member ConnectionString : string with get
@@ -9,6 +8,7 @@ type IDatabaseOptions =
 type EmailAddress = string
 type UserId = int
 type TransactionId = int64
+type IncomeId = int64
 
 type UserIdentifier =
     | Id of UserId
@@ -63,6 +63,32 @@ type TransactionSum =
       ClearedDebitSum : decimal
       PendingCreditSum : decimal
       ClearedCreditSum : decimal }
+    
+type TaxYear = {
+    Id : int
+    TaxYear : int
+    TaxRate : decimal
+}
+
+type IncomeSource =
+    | Gumroad of gumroadId : string
+    | Shopify of shopifyId : string
+    | Paypal of paypalId : string
+    | Stripe of stripeId : string
+    | ManualTransaction of description : string
+
+type IncomeRecord =
+    { Id : IncomeId
+      Source: IncomeSource
+      SaleDate : DateTimeOffset
+      SaleAmount : decimal
+      PlatformFee : decimal
+      ProcessingFee : decimal
+      NetShare : decimal
+      EstimatedTax : decimal
+      // Indicates that the income record is ignored and not counted as income when estimating taxes. Useful for cases where the app
+      // syncs income from external sources that were eventually refunded or were otherwise not applicable for tax purposes.
+      Ignored : bool }
 
 type Order =
     | Ascending

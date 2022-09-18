@@ -7,6 +7,8 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Migrations\Migration_01.fs" />
     <Compile Include="Migrations\Migration_02.fs" />
+    <Compile Include="Migrations\Migration_03.fs" />
+    <Compile Include="Migrations\Migration_04.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
