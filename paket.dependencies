@@ -11,3 +11,4 @@ nuget system.data.sqlclient
 nuget simple.migrations
 nuget fsharp.core
 nuget dustytables
+nuget commandlineparser
