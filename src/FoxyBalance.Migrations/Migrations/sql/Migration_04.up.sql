@@ -5,7 +5,7 @@ CREATE TABLE [FoxyBalance_IncomeRecords] (
     [SaleDate] DATETIMEOFFSET NOT NULL,
     [SourceType] NVARCHAR(18) NOT NULL,
     [SourceTransactionId] NVARCHAR(255) NULL,
-    [ManualTransactionDescription] NVARCHAR(1000) NULL,
+    [SourceTransactionDescription] NVARCHAR(1000) NULL,
     [SaleAmount] INT NOT NULL,
     [PlatformFee] INT NOT NULL,
     [ProcessingFee] INT NOT NULL,
