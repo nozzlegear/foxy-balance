@@ -15,6 +15,3 @@ type Migration_04() =
         override x.Down () =
             Utils.readSqlFileBatches "Migration_04.down.sql"
             |> Seq.iter x.Run
-
-
-

@@ -43,4 +43,3 @@ type Migration_01() =
             create index idx_userid on FoxyBalance_Transactions(UserId);
             END
             """
-
