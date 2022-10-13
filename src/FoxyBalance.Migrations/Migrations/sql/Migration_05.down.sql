@@ -1,0 +1,1 @@
+DROP VIEW FoxyBalance_IncomeRecordsView;
