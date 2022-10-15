@@ -93,6 +93,7 @@ let configureServices (services : IServiceCollection) =
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
+    add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
 
 let configureLogging (builder : ILoggingBuilder) =
