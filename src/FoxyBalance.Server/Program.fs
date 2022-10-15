@@ -41,6 +41,9 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionHandler
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
+                
+                route "/income" >=> Routes.Income.homePageHandler
+                route "/income/sync" >=> Routes.Income.syncHandler
             ]
         ]
         POST >=> choose [
@@ -50,6 +53,7 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
                 routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
+                route "/income/sync" >=> Routes.Income.executeSyncHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"

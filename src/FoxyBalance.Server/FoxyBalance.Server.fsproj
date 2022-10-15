@@ -40,6 +40,7 @@
   <ItemGroup>
     <Compile Include="Routes\Auth.fs" />
     <Compile Include="Routes\Balance.fs" />
+    <Compile Include="Routes\Income.fs" />
     <Compile Include="Program.fs" />
     <Content Include="appsettings.development.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
