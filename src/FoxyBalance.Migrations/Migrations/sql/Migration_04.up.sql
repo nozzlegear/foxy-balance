@@ -4,7 +4,7 @@ CREATE TABLE [FoxyBalance_IncomeRecords] (
     [TaxYearId] INT NOT NULL CONSTRAINT [FK_IncomeRecords_TaxYearId] FOREIGN KEY REFERENCES FoxyBalance_TaxYears(Id),
     [SaleDate] DATETIMEOFFSET NOT NULL,
     [SourceType] NVARCHAR(18) NOT NULL,
-    [SourceTransactionId] NVARCHAR(255) NULL INDEX [IDX_IncomeRecords_SourceTransactionId],
+    [SourceTransactionId] NVARCHAR(510) NULL INDEX [IDX_IncomeRecords_SourceTransactionId],
     [SourceTransactionDescription] NVARCHAR(1000) NULL,
     [SaleAmount] INT NOT NULL,
     [PlatformFee] INT NOT NULL,

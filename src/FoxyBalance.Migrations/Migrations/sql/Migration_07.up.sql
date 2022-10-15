@@ -2,7 +2,7 @@ CREATE TYPE dbo.tp_PartialIncomeRecord AS TABLE
 (
     [SaleDate] DATETIMEOFFSET NOT NULL,
     [SourceType] NVARCHAR(18) NOT NULL,
-    [SourceTransactionId] NVARCHAR(255) NULL,
+    [SourceTransactionId] NVARCHAR(510) NULL,
     [SourceTransactionDescription] NVARCHAR(1000) NULL,
     [SaleAmount] INT NOT NULL,
     [PlatformFee] INT NOT NULL,
