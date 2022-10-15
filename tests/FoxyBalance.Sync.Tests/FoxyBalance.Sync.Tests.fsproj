@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>true</GenerateProgramFile>
+    <UserSecretsId>33ab6fc7-395b-4f96-b66d-8b31155cd925</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Configuration.fs" />
+    <Compile Include="HttpQueryTests.fs" />
+    <Compile Include="GumroadClientTests.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
