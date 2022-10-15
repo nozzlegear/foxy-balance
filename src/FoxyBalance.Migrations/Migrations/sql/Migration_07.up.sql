@@ -42,39 +42,52 @@ BEGIN
     SELECT @userId, [Year], @defaultTaxRate FROM @taxYears
     
     -- Create a table to hold all of the newly inserted income record ids
-    declare @recordIds TABLE (Id BIGINT);
-    
+    declare @mergedRecords TABLE (Id BIGINT, Action nvarchar(255));
+
     BEGIN TRANSACTION
-        INSERT INTO [FoxyBalance_IncomeRecords] (
-            UserId, 
-            TaxYearId, 
-            SaleDate,
-            SourceType, 
-            SourceTransactionId, 
-            SourceTransactionDescription, 
-            SaleAmount, 
-            PlatformFee, 
-            ProcessingFee, 
-            NetShare, 
-            Ignored
-        ) 
-        OUTPUT 
-            INSERTED.Id INTO @recordIds
-        SELECT 
-            @userId,
-            (SELECT TOP 1 [Id] FROM [FoxyBalance_TaxYears] WHERE [UserId] = @userId AND [TaxYear] = YEAR(P.SaleDate)),
-            P.SaleDate,
-            P.SourceType,
-            P.SourceTransactionId,
-            P.SourceTransactionDescription,
-            P.SaleAmount,
-            P.PlatformFee,
-            P.ProcessingFee,
-            P.NetShare,
-            0
-        FROM
-             @partialIncomeRecords AS P
         
+        -- Use a SQL MERGE command to insert or update income records in one query
+        MERGE [FoxyBalance_IncomeRecords] Target
+        USING @partialIncomeRecords Source
+        ON Target.SourceTransactionId = Source.SourceTransactionId AND Target.UserId = @userId
+        WHEN MATCHED THEN
+        UPDATE SET
+            SourceType = Source.SourceType,
+            SourceTransactionDescription = Source.SourceTransactionDescription,
+            SaleDate = Source.SaleDate,
+            SaleAmount = Source.SaleAmount,
+            PlatformFee = Source.PlatformFee,
+            ProcessingFee = Source.ProcessingFee,
+            NetShare = Source.NetShare
+        WHEN NOT MATCHED BY TARGET THEN
+        INSERT (
+            UserId,
+            TaxYearId,
+            SaleDate,
+            SourceType,
+            SourceTransactionId,
+            SourceTransactionDescription,
+            SaleAmount,
+            PlatformFee,
+            ProcessingFee,
+            NetShare,
+            Ignored
+        )
+        VALUES (
+            @userId,
+            (SELECT TOP 1 [Id] FROM [FoxyBalance_TaxYears] WHERE [UserId] = @userId AND [TaxYear] = YEAR(Source.SaleDate)),
+            Source.SaleDate,
+            Source.SourceType,
+            Source.SourceTransactionId,
+            Source.SourceTransactionDescription,
+            Source.SaleAmount,
+            Source.PlatformFee,
+            Source.ProcessingFee,
+            Source.NetShare,
+            0
+        )
+        OUTPUT inserted.Id, $action AS [Action] INTO @mergedRecords;
+
     COMMIT
             
     -- Create a summary of what was just imported
@@ -89,17 +102,19 @@ BEGIN
         @totalNetShareImported = SUM(V.NetShare),
         @totalEstimatedTaxesImported = SUM(V.EstimatedTax)
     FROM 
-        @recordIds AS R
+        @mergedRecords AS R
     INNER JOIN
         FoxyBalance_IncomeRecordsView AS V
     ON
         R.Id = V.Id
+    WHERE
+        R.Action = 'INSERT'
     
     -- Return the summary
     SELECT
-        (SELECT COUNT(Id) FROM @recordIds) AS TotalNewRecordsImported,
-        @totalSalesImported AS TotalSalesImported,
-        @totalFeesImported AS TotalFeesImported,
-        @totalNetShareImported AS TotalNetShareImported,
-        @totalEstimatedTaxesImported AS TotalEstimatedTaxesImported
+        (SELECT COUNT(Id) FROM @mergedRecords WHERE [Action] = 'INSERT') AS TotalNewRecordsImported,
+        COALESCE(@totalSalesImported, 0) AS TotalSalesImported,
+        COALESCE(@totalFeesImported, 0) AS TotalFeesImported,
+        COALESCE(@totalNetShareImported, 0) AS TotalNetShareImported,
+        COALESCE(@totalEstimatedTaxesImported, 0) AS TotalEstimatedTaxesImported
 END
