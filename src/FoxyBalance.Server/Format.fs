@@ -14,6 +14,12 @@ module Format
     let amountWithNegativeSign (d : decimal) =
         amount d
         |> sprintf "-%s"
+            
+    let percentage (d : decimal) =
+       $"%.0f{d * 100M}%%"
+       
+    let toDecimal (amountInPennies : int) =
+        decimal amountInPennies / 100M
         
     let amountWithDollarSign (d : decimal) =
         amount d
@@ -25,3 +31,27 @@ module Format
             "credit"
         | _ ->
             "debit"
+            
+    let incomeSourceType = function
+        | Shopify _ ->
+            "Shopify"
+        | Gumroad _ ->
+            "Gumroad"
+        | Stripe _ ->
+            "Stripe"
+        | Paypal _ ->
+            "Paypal Invoice"
+        | ManualTransaction _ ->
+            "Manual"
+            
+    let incomeSourceDescription = function
+        | Shopify x ->
+            x.Description
+        | Gumroad x ->
+            x.Description
+        | Stripe x ->
+            x.Description
+        | Paypal x ->
+            x.Description
+        | ManualTransaction x ->
+            x.Description

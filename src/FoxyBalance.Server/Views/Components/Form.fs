@@ -11,9 +11,10 @@ module Form =
         | LabelText of string
         | Placeholder of string
         | HelpText of string
+        | Accept of string
         | Min of decimal
         | Max of decimal
-        | Step of decimal 
+        | Step of decimal
         | Required
         with
         static member Defaults (options : ControlOption list) =
@@ -24,6 +25,7 @@ module Form =
                Label = find "" (function | LabelText str -> Some str | _ -> None)
                Placeholder = find "" (function | Placeholder str -> Some str | _ -> None)
                HelpText = find None (function | HelpText str -> Some (Some str) | _ -> None)
+               Accept = find None (function | Accept str -> Some (Some str) | _ -> None)
                Required = find false (function | Required -> Some true | _ -> None)
                Min = find None (function | Min x -> Some (Some x) | _ -> None)
                Max = find None (function | Max x -> Some (Some x) | _ -> None)
@@ -172,6 +174,7 @@ module Form =
         
     type Element =
         | TextInput of ControlOption list
+        | FileInput of ControlOption list
         | PasswordInput of ControlOption list 
         | DateInput of ControlOption list
         | NumberInput of ControlOption list
@@ -221,6 +224,12 @@ module Form =
               if defaults.Required then
                   yield A._required
                   
+              match defaults.Accept with
+              | Some x ->
+                  yield A._accept (string x)
+              | None ->
+                  ()
+                  
               match defaults.Max with
               | Some x ->
                   yield A._max (string x)
@@ -248,6 +257,8 @@ module Form =
         ]
         
     let private textInput = inputControl "text"
+    
+    let private fileInput = inputControl "file"
     
     let private passwordInput = inputControl "password"
     
@@ -296,6 +307,7 @@ module Form =
         control [
             G.label [A._class "checkbox"] [
                 G.input inputProps
+                G.str " "
                 G.str defaults.Label
             ]
         ]
@@ -378,7 +390,10 @@ module Form =
                     current
                 | TextInput options :: rest ->
                     [textInput options]
-                    |> next rest 
+                    |> next rest
+                | FileInput options :: rest ->
+                    [fileInput options]
+                    |> next rest
                 | PasswordInput options :: rest ->
                     [passwordInput options]
                     |> next rest

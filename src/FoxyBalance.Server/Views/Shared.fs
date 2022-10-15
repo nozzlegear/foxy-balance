@@ -107,6 +107,10 @@ module Shared =
                         str "Balance"
                     ]
 
+                    a [_class "navbar-item"; _href "/income"] [
+                        str "Income"
+                    ]
+
                     a [_class "navbar-item"; _href "https://github.com/nozzlegear/foxy-balance"; _target "blank"] [
                         str "Open Source"
                     ]

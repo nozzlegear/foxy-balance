@@ -20,6 +20,7 @@
     <Compile Include="Views\Components\Form.fs" />
     <Compile Include="Views\Auth.fs" />
     <Compile Include="Views\Balance.fs" />
+    <Compile Include="Views\Income.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
   </ItemGroup>

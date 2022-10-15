@@ -130,6 +130,14 @@ module ViewModels =
           TotalTransactions : int
           Status : StatusFilter }
     
+    type IncomeViewModel =
+        { IncomeRecords : IncomeRecord seq
+          Summary : IncomeSummary
+          TaxYear : int
+          Page : int
+          TotalPages : int
+          TotalRecordsForYear : int }
+    
     type EditTransactionViewModel =
         { Error : string option
           Type : string
@@ -185,3 +193,15 @@ module ViewModels =
     type TransactionViewModel =
         | NewTransaction of EditTransactionViewModel
         | ExistingTransaction of int64 * EditTransactionViewModel
+        
+    type SyncShopifySalesViewModel =
+        { Error : string option
+          SyncGumroadIncome : bool
+          SyncPayPalInvoices : bool
+          ShopifyFileWasReset : bool }
+        with
+        static member Default =
+            { Error = None
+              SyncGumroadIncome = true
+              SyncPayPalInvoices = true
+              ShopifyFileWasReset = false }
