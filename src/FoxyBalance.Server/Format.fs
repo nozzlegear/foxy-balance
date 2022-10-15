@@ -5,7 +5,7 @@ module Format
         d.ToString "yyyy-MM-dd"
         
     let amount (d : decimal) =
-        sprintf "%.2M" d
+        $"%.2F{d}"
         
     let amountWithPositiveSign (d : decimal) =
         amount d
