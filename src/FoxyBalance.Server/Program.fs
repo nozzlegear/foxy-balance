@@ -4,6 +4,7 @@ open FoxyBalance.Database
 open FoxyBalance.Database.Interfaces
 open System
 open System.IO
+open System.Net.Http
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
@@ -15,6 +16,8 @@ open Microsoft.AspNetCore
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
+open FoxyBalance.Sync
+open FoxyBalance.Sync.Models
 module Migrator = FoxyBalance.Migrations.Migrator
 
 let allRoutes : HttpHandler =
@@ -84,17 +87,22 @@ let cookieAuth (options : CookieAuthenticationOptions) =
     options.LoginPath <- PathString "/auth/login"
     options.LogoutPath <- PathString "/auth/logout"
 
-let configureServices (services : IServiceCollection) =
+let configureServices (app : WebHostBuilderContext) (services : IServiceCollection) =
     let add (fn : unit -> _) = fn () |> ignore
     
     add (fun _ -> services.AddCors())
     add (fun _ -> services.AddGiraffe())
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
+    add (fun _ -> services.AddSingleton<ShopifyPayoutParser>())
+    add (fun _ -> services.AddSingleton<GumroadClient>())
+    add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
+
+    services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)
