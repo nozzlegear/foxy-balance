@@ -10,6 +10,7 @@
     <Compile Include="Http.fs" />
     <Compile Include="GumroadClient.fs" />
     <Compile Include="ShopifyPayoutParser.fs" />
+    <Compile Include="PaypalTransactionParser.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -40,3 +40,15 @@ type GumroadSaleList = {
     PreviousPageUrl: string option
     Sales: GumroadSale seq
 }
+
+type PaypalInvoice = {
+    Id: string
+    DateCreated: DateTimeOffset
+    Customer: string
+    Gross: int
+    Discount: int
+    Fee: int
+    Net: int
+    InvoiceNumber: string
+    Description: string
+}
