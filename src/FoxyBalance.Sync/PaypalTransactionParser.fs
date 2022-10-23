@@ -26,7 +26,7 @@ type PaypalTransactionParser() =
     let invoiceTransactionType = "T0007"
 
     let isInvoice (row: PaypalTransactions.Row): bool = 
-        row.``Transaction Type`` = invoiceTransactionType
+        row.``Transaction Event Code`` = invoiceTransactionType
         && row.Gross > 0M
         && row.``Invoice Number``.HasValue
     
