@@ -99,6 +99,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
     add (fun _ -> services.AddSingleton<ShopifyPayoutParser>())
+    add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
     add (fun _ -> services.AddSingleton<GumroadClient>())
     add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())

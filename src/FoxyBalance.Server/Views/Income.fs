@@ -137,20 +137,22 @@ module Income =
                     Form.CheckboxOption.HtmlName "syncGumroad"
                     Form.CheckboxOption.CheckboxText "Sync Gumroad income" ]
                 
-                Form.Element.CheckboxInput [
-                    Form.Checked model.SyncPayPalInvoices
-                    Form.CheckboxOption.HtmlName "syncPaypalInvoices"
-                    Form.CheckboxOption.CheckboxText "Sync PayPal invoices" ]
+                Form.Element.FileInput [
+                    Form.LabelText "Paypal transactions CSV file"
+                    Form.HelpText "Upload your Paypal transactions CSV file here, and invoice income will be parsed by Foxy Balance to be sorted into the appropriate tax year."
+                    Form.Accept ".csv"
+                    Form.HtmlName "paypalCsvFile"
+                    Form.Required ]
                 
                 Form.Element.FileInput [
                     Form.LabelText "Shopify earnings CSV file"
                     Form.HelpText "Upload your Shopify earnings CSV file here, and the earnings will be parsed by Foxy Balance and sorted by the appropriate tax year."
                     Form.Accept ".csv"
-                    Form.HtmlName "csvFile"
+                    Form.HtmlName "shopifyCsvFile"
                     Form.Required ]
-                
+
                 Form.Element.MaybeError model.Error
-                
+
                 // Group the buttons together
                 Form.Element.Group [
                     // Use an empty div so we still have two columns

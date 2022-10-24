@@ -2,9 +2,12 @@ namespace FoxyBalance.Server.Routes
 
 open Giraffe
 open System
+open System.Threading.Tasks
+open Microsoft.AspNetCore.Http
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Sync
 open FoxyBalance.Server
+open FoxyBalance.Server.Models
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Models.ViewModels
 module Views = FoxyBalance.Server.Views.Income
@@ -45,51 +48,83 @@ module Income =
         SyncShopifySalesViewModel.Default
         |> Views.Income.syncShopifySalesPage
         |> htmlView
+
+    let private importShopifyTransactions (ctx: HttpContext) (file: IFormFile) (session: Session) = task {
+        let database = ctx.GetService<IIncomeDatabase>()
+        let shopifyParser = ctx.GetService<ShopifyPayoutParser>()
+
+        return!
+            file.OpenReadStream()
+            |> shopifyParser.FromCsv
+            |> Seq.map (fun sale ->
+                {
+                    Source = Shopify { TransactionId = sale.Id; Description = sale.Description }
+                    SaleDate = sale.SaleDate
+                    SaleAmount = sale.SaleAmount
+                    PlatformFee = sale.ShopifyFee
+                    ProcessingFee = sale.ProcessingFee
+                    NetShare = sale.PartnerShare
+                })
+            |> database.ImportAsync session.UserId
+    }
+
+    let private importPaypalTransactions (ctx: HttpContext) (file: IFormFile) (session: Session)  = task {
+        let database = ctx.GetService<IIncomeDatabase>()
+        let paypalParser = ctx.GetService<PaypalTransactionParser>()
+
+        return!
+            file.OpenReadStream()
+            |> paypalParser.FromCsv
+            |> Seq.map (fun sale ->
+                {
+                    Source = Paypal { TransactionId = sale.Id; Description = sale.Description }
+                    SaleDate = sale.DateCreated;
+                    SaleAmount = sale.Gross
+                    PlatformFee = sale.Fee
+                    ProcessingFee = 0
+                    NetShare = sale.Net
+                })
+            |> database.ImportAsync session.UserId
+    }
+
+    let private importGumroadTransactions (ctx: HttpContext) (session: Session) = task {
+        let database = ctx.GetService<IIncomeDatabase>()
+        let gumroad = ctx.GetService<GumroadClient>()
+        // TODO: determine which tax year to sync
+        let! gumroadSales = gumroad.ListAllAsync(DateTimeOffset.Parse "2022-01-01")
+
+        return!
+            gumroadSales
+            |> Seq.map (fun sale ->
+                {
+                    Source = Gumroad { TransactionId = sale.Id; Description = sale.Description }
+                    SaleDate = sale.CreatedAt
+                    SaleAmount = sale.Price
+                    PlatformFee = sale.GumroadFee
+                    ProcessingFee = 0
+                    NetShare = sale.Price - sale.GumroadFee 
+                })
+            |> database.ImportAsync session.UserId
+    }
         
     let executeSyncHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let file = ctx.Request.Form.Files.GetFile "csvFile"
-            
-            if isNull file then
-                let html =
-                    { SyncShopifySalesViewModel.Default with Error = Some "Shopify earnings CSV file is required." }
-                    |> Views.Income.syncShopifySalesPage
-                    |> htmlView
-                
-                return! html next ctx
-            else
-                let database = ctx.GetService<IIncomeDatabase>()
-                let gumroad = ctx.GetService<GumroadClient>()
-                let parser = ctx.GetService<ShopifyPayoutParser>()
-                let! importResult =
-                    file.OpenReadStream()
-                    |> parser.FromCsv
-                    |> Seq.map (fun sale ->
-                        {
-                            Source = Shopify { TransactionId = sale.Id; Description = sale.Description }
-                            SaleDate = sale.SaleDate
-                            SaleAmount = sale.SaleAmount
-                            PlatformFee = sale.ShopifyFee
-                            ProcessingFee = sale.ProcessingFee
-                            NetShare = sale.PartnerShare
-                        })
-                    |> database.ImportAsync session.UserId
+            let shopifyFile = ctx.Request.Form.Files.GetFile "shopifyCsvFile"
+            let paypalFile = ctx.Request.Form.Files.GetFile "paypalCsvFile"
+            let syncGumroad = ctx.Request.Form.ContainsKey "syncGumroad"
 
-                // TODO: determine which tax year to sync
-                let! gumroadSales = gumroad.ListAllAsync(DateTimeOffset.Parse "2022-01-01")
-                let! gumroadImportResult = 
-                    gumroadSales
-                    |> Seq.map (fun sale ->
-                        {
-                            Source = Gumroad { TransactionId = sale.Id; Description = sale.Description }
-                            SaleDate = sale.CreatedAt
-                            SaleAmount = sale.Price
-                            PlatformFee = sale.GumroadFee
-                            ProcessingFee = 0
-                            NetShare = sale.Price - sale.GumroadFee 
-                        })
-                    |> database.ImportAsync session.UserId
-                let totalNewRecords = importResult.TotalNewRecordsImported + gumroadImportResult.TotalNewRecordsImported
+            // Import gumroad transactions and each file where available
+            let! tasks = Task.WhenAll [
+                if not (isNull shopifyFile) then 
+                    importShopifyTransactions ctx shopifyFile session
 
-                return! redirectTo false $"/income?totalImported={totalNewRecords}" next ctx
+                if not (isNull paypalFile) then
+                    importPaypalTransactions ctx paypalFile session
+
+                if syncGumroad then
+                    importGumroadTransactions ctx session
+            ]
+            let totalNewRecords = Seq.sumBy (fun t -> t.TotalNewRecordsImported) tasks
+
+            return! redirectTo false $"/income?totalImported={totalNewRecords}" next ctx
         })
