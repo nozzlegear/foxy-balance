@@ -114,7 +114,12 @@ module Income =
                 ]
             ]
             
-            Shared.pagination StatusFilter.AllTransactions model.Page model.TotalPages
+            Shared.pagination {
+                StatusFilter = AllTransactions
+                CurrentPage = model.Page
+                MaxPages = model.TotalPages
+                RouteType = Income
+            }
         ]
         
     let syncShopifySalesPage (model : SyncShopifySalesViewModel) =

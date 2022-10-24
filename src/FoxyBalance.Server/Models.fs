@@ -113,7 +113,17 @@ module RequestModels =
             |> Result.bind validateType
             |> Result.bind validateStatus 
     
-module ViewModels = 
+module ViewModels =
+    type RouteType =
+        | Balance
+        | Income
+    
+    type PaginationOptions =
+        { StatusFilter: StatusFilter
+          CurrentPage: int
+          MaxPages: int
+          RouteType: RouteType }
+    
     type LoginViewModel =
         { Error : string option
           Username : string option }

@@ -99,9 +99,14 @@ module Balance =
                 ]
             ]
             
-            Shared.pagination model.Status model.Page model.TotalPages
+            Shared.pagination {
+                StatusFilter = model.Status
+                CurrentPage = model.Page
+                MaxPages = model.TotalPages
+                RouteType = Balance
+            }
         ]
-        
+
     let createOrEditTransactionPage (model : TransactionViewModel) : XmlNode =
         let deleteButton =
             match model with

@@ -1,5 +1,6 @@
 ﻿namespace FoxyBalance.Server.Views
 
+open FoxyBalance.Server.Models.ViewModels
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Accessibility
 open FoxyBalance.Database.Models
@@ -109,6 +110,10 @@ module Shared =
 
                     a [_class "navbar-item"; _href "/income"] [
                         str "Income"
+                    ]
+
+                    a [_class "navbar-item"; _href "/expenses"] [
+                        str "Expenses"
                     ]
 
                     a [_class "navbar-item"; _href "https://github.com/nozzlegear/foxy-balance"; _target "blank"] [
@@ -251,45 +256,49 @@ module Shared =
             tbody [] tableRows
         ]
         
-    let pagination statusFilter currentPage maxPages =
+    let pagination (options: PaginationOptions) =
         let statusQueryParam =
-            statusFilterQueryParam statusFilter 
+            statusFilterQueryParam options.StatusFilter
+        let route =
+            match options.RouteType with
+            | Balance -> "balance"
+            | Income -> "income"
         let previousPageAttrs =
             let baseAttrs = [
                 _class "pagination-previous"
-                currentPage - 1
+                options.CurrentPage - 1
                 |> sprintf "/balance?status=%s&page=%i" statusQueryParam
                 |> _href 
             ]
             // Disable the previous page link if the user is on the first page
-            match currentPage <= 1 with
+            match options.CurrentPage <= 1 with
             | true -> baseAttrs@[_disabled]
             | false -> baseAttrs
         let nextPageAttrs =
             let baseAttrs = [
                 _class "pagination-next"
-                currentPage + 1
-                |> sprintf "/balance?status=%s&page=%i" statusQueryParam
+                options.CurrentPage + 1
+                |> sprintf "/%s?status=%s&page=%i" route statusQueryParam
                 |> _href
             ]
             // Disable the next page link if the user is on the last page
-            match currentPage + 1 > maxPages with
+            match options.CurrentPage + 1 > options.MaxPages with
             | true -> baseAttrs@[_disabled]
             | false -> baseAttrs
         let pageLinks =
             let link page =
                 let attrs =
-                    if page = currentPage then
+                    if page = options.CurrentPage then
                         // Do not add a link to the current page
                         [ _class "pagination-link is-current" ]
                     else
                         [ _class "pagination-link"
-                          _href (sprintf "/balance?status=%s&page=%i" statusQueryParam page)
+                          _href (sprintf "/%s?status=%s&page=%i" route statusQueryParam page)
                           _ariaLabel (sprintf "Go to page %i" page) ]
                     
                 li [] [
                     a attrs [
-                        sprintf "%i" page |> str
+                        str $"{page}"
                     ] 
                 ]
             let ellipsis =
@@ -297,21 +306,21 @@ module Shared =
                     span [_class "pagination-ellipsis"] [str "…"]
                 ]
 
-            [ for page in [1..maxPages] do
-                if maxPages <= 5 then
+            [ for page in [1..options.MaxPages] do
+                if options.MaxPages <= 5 then
                     // Show all pages as a link
                     yield link page
                 else 
                     match page with
                     | 1 ->
                         yield link page 
-                    | x when x = currentPage ->
+                    | x when x = options.CurrentPage ->
                         yield link page 
-                    | x when x = maxPages ->
+                    | x when x = options.MaxPages ->
                         yield link page
-                    | x when x + 1 = currentPage || x - 1 = currentPage ->
+                    | x when x + 1 = options.CurrentPage || x - 1 = options.CurrentPage ->
                         yield link page 
-                    | x when x + 2 = currentPage || x - 2 = currentPage ->
+                    | x when x + 2 = options.CurrentPage || x - 2 = options.CurrentPage ->
                         yield ellipsis
                     | _ ->
                         () ]
