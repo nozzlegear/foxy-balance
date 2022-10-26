@@ -31,8 +31,7 @@ module Income =
             let! summary = database.SummarizeAsync session.UserId taxYear
             let summary = Option.defaultValue IncomeSummary.Default summary
                 
-            //let! count = database.CountAsync session.UserId status
-            let count = Seq.length records
+            let count = summary.TotalRecords
             let model : IncomeViewModel =
                 { IncomeRecords = records
                   Summary = summary //{ summary with TotalEstimatedTax = summary.TotalNetShare * summary.TaxYear.TaxRate / 100 }

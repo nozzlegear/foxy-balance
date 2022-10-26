@@ -107,6 +107,7 @@ type PartialIncomeRecord =
 
 type IncomeSummary =
     { TaxYear : TaxYear
+      TotalRecords : int
       TotalSales : int
       TotalFees : int
       TotalNetShare : int
@@ -117,6 +118,7 @@ type IncomeSummary =
             { Id = 0
               TaxYear = DateTimeOffset.UtcNow.Year
               TaxRate = 33 }
+          TotalRecords = 0
           TotalSales = 0
           TotalFees = 0
           TotalNetShare = 0

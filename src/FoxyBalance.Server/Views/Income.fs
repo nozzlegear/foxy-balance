@@ -68,13 +68,11 @@ module Income =
                 Shared.LevelItem.HeadingAndTitle ("Tax Rate", model.Summary.TaxYear.TaxRate |> (Format.toDecimal >> Format.percentage))
             ]
             
-            Shared.level [
-                Shared.RightLevel [
-                    Shared.LevelItem.Element (
-                        small [] [
-                            str "Last synced: 3 hours ago"
-                        ]
-                    )
+            p [] [
+                small [] [
+                    str $"Total records: {model.Summary.TotalRecords}"
+                    br []
+                    str "Last synced: 3 hours ago"
                 ]
             ]
             

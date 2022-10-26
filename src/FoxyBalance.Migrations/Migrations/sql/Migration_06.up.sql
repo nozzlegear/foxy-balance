@@ -5,6 +5,7 @@ SELECT
     V.TaxYearId,
     FBTY.TaxYear,
     FBTY.TaxRate,
+    COUNT(V.Id) AS TotalRecords,
     SUM(V.SaleAmount) AS TotalSales,
     SUM(V.PlatformFee + V.ProcessingFee) AS TotalFees,
     SUM(V.NetShare) AS TotalNetShare,

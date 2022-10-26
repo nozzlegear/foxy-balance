@@ -127,6 +127,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync (fun read ->
                 {
                     TaxYear = taxYearFromSql read
+                    TotalRecords = read.int "TotalRecords"
                     TotalSales = read.int "TotalSales"
                     TotalFees = read.int "TotalFees"
                     TotalNetShare = read.int "TotalNetShare"
