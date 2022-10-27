@@ -57,7 +57,12 @@ module Income =
             |> shopifyParser.FromCsv
             |> Seq.map (fun sale ->
                 {
-                    Source = Shopify { TransactionId = sale.Id; Description = sale.Description }
+                    Source = Shopify 
+                        {
+                            TransactionId = sale.Id
+                            Description = sale.Description
+                            CustomerDescription = sale.CustomerDescription
+                        }
                     SaleDate = sale.SaleDate
                     SaleAmount = sale.SaleAmount
                     PlatformFee = sale.ShopifyFee
@@ -76,7 +81,12 @@ module Income =
             |> paypalParser.FromCsv
             |> Seq.map (fun sale ->
                 {
-                    Source = Paypal { TransactionId = sale.Id; Description = sale.Description }
+                    Source = Paypal 
+                        { 
+                            TransactionId = sale.Id
+                            Description = sale.Description
+                            CustomerDescription = sale.CustomerDescription
+                        }
                     SaleDate = sale.DateCreated;
                     SaleAmount = sale.Gross
                     PlatformFee = sale.Fee
@@ -96,7 +106,12 @@ module Income =
             gumroadSales
             |> Seq.map (fun sale ->
                 {
-                    Source = Gumroad { TransactionId = sale.Id; Description = sale.Description }
+                    Source = Gumroad 
+                        { 
+                            TransactionId = sale.Id; 
+                            Description = sale.Description 
+                            CustomerDescription = sale.CustomerDescription
+                        }
                     SaleDate = sale.CreatedAt
                     SaleAmount = sale.Price
                     PlatformFee = sale.GumroadFee

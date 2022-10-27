@@ -44,6 +44,9 @@ type GumroadClient(options : IOptions<GumroadClientOptions>, httpClientFactory :
                     $"(Partial Refund) {description}"
                 else
                     description
+            CustomerDescription =
+                read.stringOrNone "purchase_email"
+                |> Option.defaultValue "(unknown)"
         }
     
     let readSalesList (read: ElementReader): GumroadSaleList = 

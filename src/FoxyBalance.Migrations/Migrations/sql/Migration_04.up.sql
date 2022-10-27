@@ -6,6 +6,7 @@ CREATE TABLE [FoxyBalance_IncomeRecords] (
     [SourceType] NVARCHAR(18) NOT NULL,
     [SourceTransactionId] NVARCHAR(510) NULL INDEX [IDX_IncomeRecords_SourceTransactionId],
     [SourceTransactionDescription] NVARCHAR(1000) NULL,
+    [SourceTransactionCustomerDescription] NVARCHAR(510) NULL,
     [SaleAmount] INT NOT NULL,
     [PlatformFee] INT NOT NULL,
     [ProcessingFee] INT NOT NULL,

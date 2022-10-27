@@ -72,10 +72,12 @@ type TaxYear =
     
 type IncomeSourceDescription =
     { TransactionId : string
+      CustomerDescription : string
       Description : string }
     
 type ManualIncomeSourceDescription =
-    { Description : string }
+    { Description : string
+      CustomerDescription : string option }
 
 type IncomeSource =
     | Gumroad of IncomeSourceDescription

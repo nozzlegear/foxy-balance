@@ -46,7 +46,8 @@ type PaypalTransactionParser() =
                 Fee = (parsePaypalAmount row.Fee) * -1
                 Net = parsePaypalAmount row.Net
                 InvoiceNumber = string invoice
-                Description = $"Invoice {invoice} to {customer}"
+                Description = $"Invoice {invoice}"
+                CustomerDescription = customer
             })
 
     member _.FromCsv (fileText: string) =

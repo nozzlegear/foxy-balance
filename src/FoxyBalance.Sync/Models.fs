@@ -17,6 +17,7 @@ type ShopifySale = {
     PartnerShare : int
     AppTitle : string
     Description : string
+    CustomerDescription : string
 }
 
 type GumroadSale = {
@@ -33,6 +34,7 @@ type GumroadSale = {
     OrderId: int64
     CustomerEmail: string
     Description: string
+    CustomerDescription: string
 }
 
 type GumroadSaleList = {
@@ -51,4 +53,5 @@ type PaypalInvoice = {
     Net: int
     InvoiceNumber: string
     Description: string
+    CustomerDescription: string
 }

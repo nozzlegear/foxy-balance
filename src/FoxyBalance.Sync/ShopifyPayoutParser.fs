@@ -38,6 +38,7 @@ type ShopifyPayoutParser() =
             PartnerShare = parseShopifyAmount row.``Partner Share``
             AppTitle = row.``App Title``
             Description = row.``Charge Type``
+            CustomerDescription = if String.IsNullOrWhiteSpace row.Shop then "REDACTED" else row.Shop
         })
 
     member _.FromCsv (fileText: string) =

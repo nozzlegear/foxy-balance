@@ -9,6 +9,7 @@ SELECT
     FBIR.SourceType,
     FBIR.SourceTransactionId,
     FBIR.SourceTransactionDescription,
+    FBIR.SourceTransactionCustomerDescription,
     FBIR.SaleAmount,
     FBIR.PlatformFee,
     FBIR.ProcessingFee,

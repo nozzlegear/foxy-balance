@@ -11,17 +11,23 @@ type IncomeDatabase(options : IDatabaseOptions) =
         |> Sql.timeout 90
         
     let incomeSourceToSql = function
-        | Paypal  x -> {| SourceType = "paypal"; TransactionId = Some x.TransactionId; Description = x.Description |}
-        | Stripe  x -> {| SourceType = "stripe"; TransactionId = Some x.TransactionId; Description = x.Description |}
-        | Gumroad x -> {| SourceType = "gumroad"; TransactionId = Some x.TransactionId; Description = x.Description |}
-        | Shopify x -> {| SourceType = "shopify"; TransactionId = Some x.TransactionId; Description = x.Description |}
-        | ManualTransaction x -> {| SourceType = "manual-transaction"; TransactionId = None; Description = x.Description |}
+        | Paypal  x -> {| SourceType = "paypal"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
+        | Stripe  x -> {| SourceType = "stripe"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
+        | Gumroad x -> {| SourceType = "gumroad"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
+        | Shopify x -> {| SourceType = "shopify"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
+        | ManualTransaction x -> {| SourceType = "manual-transaction"; TransactionId = None; Description = x.Description; Customer = x.CustomerDescription |}
         
     let incomeSourceFromSql (read : RowReader) =
         let readSourceDescription (sourceType : IncomeSourceDescription -> IncomeSource) =
             sourceType {
                 TransactionId = read.string "SourceTransactionId"
                 Description = read.string "SourceTransactionDescription"
+                CustomerDescription = read.string "SourceTransactionCustomerDescription"
+            }
+        let readManualSourceDescription (sourceType : ManualIncomeSourceDescription -> IncomeSource) =
+            sourceType {
+                Description = read.string "SourceTransactionDescription"
+                CustomerDescription = read.stringOrNone "SourceTransactionCustomerDescription"
             }
         
         match read.string "SourceType" with
@@ -29,7 +35,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
         | "stripe"  -> readSourceDescription Stripe
         | "gumroad" -> readSourceDescription Gumroad
         | "shopify" -> readSourceDescription Shopify
-        | "manual-transaction" -> ManualTransaction { Description = read.string "ManualTransactionDescription" }
+        | "manual-transaction" -> readManualSourceDescription ManualTransaction
         | x -> invalidArg "SourceType" $"Unhandled income SourceType value \"{x}\", cannot map to IncomeSource"
         
     let taxYearFromSql (read : RowReader) =
@@ -45,6 +51,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
         dataTable.Columns.Add "SourceType" |> ignore
         dataTable.Columns.Add "SourceTransactionId" |> ignore
         dataTable.Columns.Add "SourceTransactionDescription" |> ignore
+        dataTable.Columns.Add "SourceTransactionCustomerDescription" |> ignore
         dataTable.Columns.Add "SaleAmount" |> ignore
         dataTable.Columns.Add "PlatformFee" |> ignore
         dataTable.Columns.Add "ProcessingFee" |> ignore
@@ -58,6 +65,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
                 box <| source.SourceType
                 box <| Option.defaultValue null source.TransactionId
                 box <| source.Description
+                box <| Option.defaultValue null source.Customer
                 box <| record.SaleAmount
                 box <| record.PlatformFee
                 box <| record.ProcessingFee
