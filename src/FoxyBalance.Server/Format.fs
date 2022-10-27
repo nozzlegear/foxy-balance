@@ -55,3 +55,13 @@ module Format
             x.Description
         | ManualTransaction x ->
             x.Description
+
+    let incomeSourceCustomerDescription = function
+        | Shopify x
+        | Gumroad x
+        | Stripe  x
+        | Paypal  x ->
+            x.CustomerDescription
+        | ManualTransaction x ->
+            x.CustomerDescription
+            |> Option.defaultValue "(No customer)"

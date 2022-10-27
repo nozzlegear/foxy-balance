@@ -10,33 +10,12 @@ module A = Attributes
 module Income =
     let homePage (model : IncomeViewModel) : XmlNode =
         let title = $"Income - Page {model.Page}"
-        let clearedStatusCell = function
-            | TransactionStatus.Pending ->
-                str "Pending"
-            | TransactionStatus.Cleared date ->
-                Format.date date
-                |> str
-        let typeCell = function
-            | TransactionType.Check details ->
-                str $"Check {details.CheckNumber}"
-            | TransactionType.Bill _ ->
-                str "Bill"
-            | TransactionType.Credit ->
-                str "Credit"
-            | TransactionType.Debit ->
-                str "Debit"
-        let amountCell transactionType amount =
-            match transactionType with
-            | TransactionType.Credit ->
-                span [_class "amount credit"] [
-                    Format.amountWithPositiveSign amount
-                    |> str
-                ]
-            | _ ->
-                span [_class "amount debit"] [
-                    Format.amountWithNegativeSign amount
-                    |> str
-                ]
+        
+        let RecordLink (record: IncomeRecord) =
+            a [_href $"/income/{record.Id}"; _title (Format.incomeSourceCustomerDescription record.Source)] [
+                str (Format.incomeSourceDescription record.Source)
+            ]
+        
         let yearSelector =
             let unselected year =
                 a [_href $"/income?year={year}"] [str year]
@@ -103,7 +82,7 @@ module Income =
                             Shared.TableCell (index + 1 |> string |> str)
                             Shared.TableCell (Format.date record.SaleDate |> str)
                             Shared.TableCell (record.Source |> Format.incomeSourceType |> str)
-                            Shared.TableCell (a [_href $"/income/{record.Id}"] [record.Source |> Format.incomeSourceDescription |> str])
+                            Shared.TableCell (RecordLink record)
                             Shared.TableCell (record.SaleAmount |> Format.toDecimal |> Format.amountWithDollarSign |> str)
                             Shared.TableCell (record.PlatformFee + record.ProcessingFee |> Format.toDecimal |> Format.amountWithDollarSign |> str)
                             Shared.TableCell (record.NetShare |> Format.toDecimal |> Format.amountWithDollarSign |> str)
