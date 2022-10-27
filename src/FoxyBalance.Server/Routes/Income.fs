@@ -28,15 +28,17 @@ module Income =
                 |> Option.defaultValue System.DateTimeOffset.UtcNow.Year
             let database = ctx.GetService<IIncomeDatabase>()
             let! records = database.ListAsync session.UserId taxYear
+            let! taxYears = database.ListTaxYearsAsync session.UserId
             let! summary = database.SummarizeAsync session.UserId taxYear
             let summary = Option.defaultValue IncomeSummary.Default summary
                 
             let count = summary.TotalRecords
             let model : IncomeViewModel =
                 { IncomeRecords = records
-                  Summary = summary //{ summary with TotalEstimatedTax = summary.TotalNetShare * summary.TaxYear.TaxRate / 100 }
+                  Summary = summary
                   Page = page
                   TaxYear = taxYear
+                  TaxYears = taxYears
                   TotalPages = if count % limit > 0 then (count / limit) + 1 else count / limit
                   TotalRecordsForYear = count }
             

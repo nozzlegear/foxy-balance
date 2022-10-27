@@ -17,25 +17,23 @@ module Income =
             ]
         
         let yearSelector =
-            let unselected year =
-                a [_href $"/income?year={year}"] [str year]
-            let selected year =
-                strong [] [str year]
-            let control year =
+            let unselected (year: int) =
+                a [_href $"/income?year={year}"] [str (string year)]
+            let selected (year: int) =
+                strong [] [str (string year)]
+            let control (year: int) =
                 let el = 
-                    if year = "2022" then
+                    if year = model.TaxYear then
                         selected year
                     else
                         unselected year
                 Shared.LevelItem.Element el
-            
-            // TODO: get these tax years dynamically from the database
-            [ "2022"
-              "2021"
-              "2020" ]    
-            |> List.map control
+
+            model.TaxYears
+            |> List.ofSeq
+            |> List.map (fun year -> control year.TaxYear)
             |> List.append [ Shared.LevelItem.Element (str "Tax Year") ]
-        
+
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             
             // Balances

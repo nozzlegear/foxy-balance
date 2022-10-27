@@ -10,3 +10,4 @@ type IIncomeDatabase =
     abstract member IgnoreAsync : UserId -> IncomeId -> Task
     abstract member UnignoreAsync : UserId -> IncomeId -> Task
     abstract member DeleteAsync : UserId -> IncomeId -> Task
+    abstract member ListTaxYearsAsync : UserId -> Task<TaxYear seq>

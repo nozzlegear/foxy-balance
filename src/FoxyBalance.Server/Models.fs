@@ -144,6 +144,7 @@ module ViewModels =
         { IncomeRecords : IncomeRecord seq
           Summary : IncomeSummary
           TaxYear : int
+          TaxYears : TaxYear seq
           Page : int
           TotalPages : int
           TotalRecordsForYear : int }

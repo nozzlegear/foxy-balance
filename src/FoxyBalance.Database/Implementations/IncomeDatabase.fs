@@ -151,3 +151,19 @@ type IncomeDatabase(options : IDatabaseOptions) =
             
         member _.DeleteAsync userId incomeId =
             failwith "not implemented"
+
+        member _.ListTaxYearsAsync userId =
+            connection
+            |> Sql.query """
+                SELECT
+                    TaxYearId,
+                    TaxYear,
+                    TaxRate
+                FROM [FoxyBalance_TaxYearSummaryView]
+                WHERE [UserId] = @userId
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+            ]
+            |> Sql.executeAsync taxYearFromSql
+            |> Sql.map Seq.ofList
