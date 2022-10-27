@@ -45,13 +45,10 @@ module Format
             "Manual"
             
     let incomeSourceDescription = function
-        | Shopify x ->
-            x.Description
-        | Gumroad x ->
-            x.Description
-        | Stripe x ->
-            x.Description
-        | Paypal x ->
+        | Shopify x
+        | Gumroad x
+        | Stripe  x
+        | Paypal  x ->
             x.Description
         | ManualTransaction x ->
             x.Description
