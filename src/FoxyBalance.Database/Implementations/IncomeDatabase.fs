@@ -44,6 +44,29 @@ type IncomeDatabase(options : IDatabaseOptions) =
             TaxYear = read.int "TaxYear"
             TaxRate = read.int "TaxRate"
         }
+        
+    let incomeRecordFromSql (read: RowReader) =
+        {
+            Id = read.int64 "Id"
+            Source = incomeSourceFromSql read
+            SaleDate = read.dateTimeOffset "SaleDate"
+            SaleAmount = read.int "SaleAmount"
+            PlatformFee = read.int "PlatformFee"
+            ProcessingFee = read.int "ProcessingFee"
+            NetShare = read.int "NetShare"
+            EstimatedTax = read.int "EstimatedTax"
+            Ignored = read.bool "Ignored"
+        }
+        
+    let incomeSummaryFromSql (read: RowReader) =
+        {
+            TaxYear = taxYearFromSql read
+            TotalRecords = read.int "TotalRecords"
+            TotalSales = read.int "TotalSales"
+            TotalFees = read.int "TotalFees"
+            TotalNetShare = read.int "TotalNetShare"
+            TotalEstimatedTax = int (read.decimal "TotalEstimatedTax")
+        }
 
     let partialRecords (records : PartialIncomeRecord seq) =
         let dataTable = new DataTable()
@@ -106,18 +129,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
                 "userId", Sql.int userId
                 "taxYear", Sql.int taxYear
             ]
-            |> Sql.executeAsync (fun read ->
-                {
-                    Id = read.int64 "Id"
-                    Source = incomeSourceFromSql read
-                    SaleDate = read.dateTimeOffset "SaleDate"
-                    SaleAmount = read.int "SaleAmount"
-                    PlatformFee = read.int "PlatformFee"
-                    ProcessingFee = read.int "ProcessingFee"
-                    NetShare = read.int "NetShare"
-                    EstimatedTax = read.int "EstimatedTax"
-                    Ignored = read.bool "Ignored"
-                })
+            |> Sql.executeAsync incomeRecordFromSql
             |> Sql.map Seq.ofList
             
         member _.SummarizeAsync userId taxYear =
@@ -132,15 +144,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
                 "userId", Sql.int userId
                 "taxYear", Sql.int taxYear
             ]
-            |> Sql.executeAsync (fun read ->
-                {
-                    TaxYear = taxYearFromSql read
-                    TotalRecords = read.int "TotalRecords"
-                    TotalSales = read.int "TotalSales"
-                    TotalFees = read.int "TotalFees"
-                    TotalNetShare = read.int "TotalNetShare"
-                    TotalEstimatedTax = int (read.decimal "TotalEstimatedTax")
-                })
+            |> Sql.executeAsync incomeSummaryFromSql
             |> Sql.map Seq.tryHead
             
         member _.IgnoreAsync userId incomeId =

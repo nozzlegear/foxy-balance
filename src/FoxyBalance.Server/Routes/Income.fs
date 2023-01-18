@@ -8,8 +8,9 @@ open FoxyBalance.Database.Interfaces
 open FoxyBalance.Sync
 open FoxyBalance.Server
 open FoxyBalance.Server.Models
-open FoxyBalance.Database.Models
+open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Server.Models.ViewModels
+open FoxyBalance.Database.Models
 module Views = FoxyBalance.Server.Views.Income
 
 module Income =
@@ -143,4 +144,27 @@ module Income =
             let totalNewRecords = Seq.sumBy (fun t -> t.TotalNewRecordsImported) tasks
 
             return! redirectTo false $"/income?totalImported={totalNewRecords}" next ctx
+        })
+
+    let newRecordHandler : HttpHandler =
+        NewIncomeRecordViewModel.Empty
+        |> Views.createRecordPage
+        |> htmlView
+
+    let executeNewRecordHandler : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let! model = ctx.BindFormAsync<NewIncomeRecordRequest>()
+
+            match NewIncomeRecordRequest.Validate model with
+            | Result.Error err ->
+                let view =
+                    NewIncomeRecordViewModel.FromBadRequest model err
+                    |> Views.createRecordPage
+                    |> htmlView
+                return! view next ctx
+            | Result.Ok partialRecord ->
+                let database = ctx.GetService<IIncomeDatabase>()
+                let! _ = database.ImportAsync session.UserId [partialRecord]
+
+                return! redirectTo false $"/income?totalImported=1" next ctx
         })

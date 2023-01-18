@@ -112,6 +112,84 @@ module RequestModels =
             |> Result.bind validateDateCreated
             |> Result.bind validateType
             |> Result.bind validateStatus 
+
+    [<CLIMutable>]
+    type NewIncomeRecordRequest =
+        {
+            SaleDate : string
+            Description : string
+            CustomerDescription : string
+            SaleAmount : string
+            PlatformFee : string
+            ProcessingFee : string
+            Ignored : bool
+        }
+        with
+        static member Validate model : Result<PartialIncomeRecord, string> =
+            let tryParseToInt (value : string): int option =
+                match System.Decimal.TryParse value with
+                | false, _ -> None
+                | true, dec -> Some (System.Convert.ToInt32(dec * 100M))
+
+            let validateAmount (output : PartialIncomeRecord) =
+                match tryParseToInt model.SaleAmount with
+                | None -> Result.Error "Sale Amount must be a valid decimal (parse failure)."
+                | Some amount when amount < 1 -> Result.Error "Sale Amount must be greater than 0."
+                | Some amount -> Result.Ok { output with SaleAmount = amount }
+
+            let validateProcessingFee (output : PartialIncomeRecord) =
+                match tryParseToInt model.ProcessingFee with
+                | None -> Result.Error "Processing Fee must be a valid decimal (parse failure)."
+                | Some amount when amount < 0 -> Result.Error "Processing Fee cannot be less than 0."
+                | Some amount -> Result.Ok { output with ProcessingFee = amount }
+
+            let validatePlatformFee (output : PartialIncomeRecord) =
+                match tryParseToInt model.PlatformFee with
+                | None -> Result.Error "Platform Fee must be a valid decimal (parse failure)."
+                | Some amount when amount < 0 -> Result.Error "Platform Fee cannot be less than 0."
+                | Some amount -> Result.Ok { output with PlatformFee = amount }
+
+            let validateNetShare (output : PartialIncomeRecord) =
+                let netShare = output.SaleAmount - (output.PlatformFee + output.ProcessingFee)
+
+                if netShare < 1 then
+                    Result.Error "Net amount must be greater than 0 (sale amount - (platform fee + processing fee))."
+                else
+                    Result.Ok { output with NetShare = netShare }
+
+            let validateSource (output : PartialIncomeRecord) =
+                match model.Description, model.CustomerDescription with
+                | String.EmptyOrWhitespace, _ -> 
+                    Result.Error "Description cannot be empty."
+                | desc, String.EmptyOrWhitespace -> 
+                    { output with Source = ManualTransaction { Description = desc; CustomerDescription = None }}
+                    |> Result.Ok
+                | desc, custDesc -> 
+                    { output with Source = ManualTransaction { Description = desc; CustomerDescription = Some custDesc }}
+                    |> Result.Ok
+
+            let validateSaleDate (output : PartialIncomeRecord) =
+                match System.DateTimeOffset.TryParse model.SaleDate with
+                | false, _ -> 
+                    Result.Error "Sale Date must be a valid date (parse failure)."
+                | true, saleDate ->
+                    Result.Ok { output with SaleDate = saleDate }
+
+            { 
+                Source = ManualTransaction { Description = ""; CustomerDescription = None }
+                SaleDate = System.DateTimeOffset.Now
+                SaleAmount = 0
+                PlatformFee = 0
+                ProcessingFee = 0
+                NetShare = 0 
+            }
+            |> Result.Ok
+            |> Result.bind validateSource
+            |> Result.bind validateSaleDate
+            |> Result.bind validateAmount
+            |> Result.bind validatePlatformFee
+            |> Result.bind validateProcessingFee
+            |> Result.bind validateNetShare
     
 module ViewModels =
     type RouteType =
@@ -148,7 +226,46 @@ module ViewModels =
           Page : int
           TotalPages : int
           TotalRecordsForYear : int }
-    
+
+    type NewIncomeRecordViewModel =
+        { Error : string option
+          Description : string
+          CustomerDescription : string
+          SaleDate : string 
+          SaleAmount : string
+          PlatformFee : string
+          ProcessingFee : string
+          Ignored : bool }
+    with
+        static member FromBadRequest (r: RequestModels.NewIncomeRecordRequest) msg =
+            let s = String.defaultValue System.String.Empty
+            {
+                Error = Some msg
+                Description = s r.Description
+                CustomerDescription = s r.CustomerDescription
+                SaleDate = s r.SaleDate
+                SaleAmount = s r.SaleAmount
+                PlatformFee = s r.PlatformFee
+                ProcessingFee = s r.ProcessingFee
+                Ignored = r.Ignored
+            }
+        static member Empty =
+            { 
+                Error = None
+                Description = ""
+                CustomerDescription = ""
+                SaleDate = ""
+                SaleAmount = ""
+                PlatformFee = ""
+                ProcessingFee = ""
+                Ignored = false
+            }
+
+    type IncomeRecordViewModel =
+        {
+            IncomeRecord: IncomeRecord
+        }
+
     type EditTransactionViewModel =
         { Error : string option
           Type : string

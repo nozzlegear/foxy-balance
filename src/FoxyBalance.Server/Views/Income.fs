@@ -57,7 +57,7 @@ module Income =
             Shared.level [
                 Shared.LeftLevel yearSelector
                 Shared.RightLevel [
-                    Shared.LevelItem.Element (a [_href "/income/manual-transaction"; _class "button is-light"] [str "Manual Transaction"])
+                    Shared.LevelItem.Element (a [_href "/income/new"; _class "button is-light"] [str "Manual Transaction"])
                     Shared.LevelItem.Element (a [_href "/income/sync"; _class "button is-success"] [str "Sync Income"])
                 ]
             ]
@@ -138,6 +138,101 @@ module Income =
                     
                     Form.Element.Button [
                         Form.ButtonText "Sync"
+                        Form.Alignment Form.ButtonAlignment.Right 
+                        Form.Color Form.ButtonColor.Success
+                        Form.Type Form.Submit ]
+                ]
+            ]
+        ]
+
+    let createRecordPage (model: NewIncomeRecordViewModel): XmlNode =
+        let title = "Create Income Record"
+        let placeholderDate = Format.date System.DateTimeOffset.Now
+        
+        Shared.pageContainer "New " Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     G.a [A._href "/income"; A._class "button"] [
+                        G.str "Cancel" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
+            
+            Form.create [Form.Method Form.Post; Form.AutoComplete false] [
+                Form.Group [
+                    Form.Element.DateInput [
+                        Form.Placeholder placeholderDate
+                        Form.LabelText "Date"
+                        Form.Value model.SaleDate
+                        Form.HtmlName "saleDate"
+                        Form.Required ]
+
+                    Form.Element.SelectBox [
+                        Form.SelectOption.LabelText "Income Source"
+                        Form.SelectOption.HtmlName "source"
+                        Form.SelectOption.Options [ {| Label = "Manual Transaction"; Value = "manual"; Selected = true |} ]
+                        Form.SelectOption.Value "manual" ]
+                ]
+                
+                Form.Element.TextInput [
+                    Form.Placeholder "Custom cash to local business"
+                    Form.LabelText "Sale Description"
+                    Form.HtmlName "description"
+                    Form.Required
+                    Form.Value model.Description
+                ]
+                
+                Form.Element.TextInput [
+                    Form.Placeholder "Tomorrow Corporation"
+                    Form.LabelText "Customer"
+                    Form.HtmlName "customerDescription"
+                    Form.Required
+                    Form.Value model.CustomerDescription
+                ]
+                
+                Form.Element.NumberInput [
+                    Form.Placeholder "0.00"
+                    Form.LabelText "Sale Amount"
+                    Form.HtmlName "saleAmount"
+                    Form.Min 0.01M
+                    // By setting the step to 0.01, the user cannot enter more than two decimal places
+                    Form.Step 0.01M
+                    Form.Required
+                    Form.Value model.SaleAmount ]
+                
+                Form.Element.NumberInput [
+                    Form.Placeholder "0.00"
+                    Form.LabelText "Platform Fee"
+                    Form.HelpText "The Platform Fee refers to fees applied by the platform, e.g. Gumroad or Shopify fees. These are generally not transfer fees."
+                    Form.HtmlName "platformFee"
+                    Form.Min 0.00M
+                    // By setting the step to 0.01, the user cannot enter more than two decimal places
+                    Form.Step 0.01M
+                    Form.Required
+                    Form.Value model.PlatformFee ]
+                
+                Form.Element.NumberInput [
+                    Form.Placeholder "0.00"
+                    Form.LabelText "Processing Fee"
+                    Form.HelpText "The Processing Fee refers to fees applied for processing a transaction, e.g. for transfers between the platform and a bank account."
+                    Form.HtmlName "processingFee"
+                    Form.Min 0.00M
+                    // By setting the step to 0.01, the user cannot enter more than two decimal places
+                    Form.Step 0.01M
+                    Form.Required
+                    Form.Value model.ProcessingFee ]
+                
+                Form.Element.MaybeError model.Error
+                
+                // Group the buttons together
+                Form.Element.Group [
+                    Form.EmptyDiv
+                    
+                    Form.Element.Button [
+                        Form.ButtonText "Save Record"
                         Form.Alignment Form.ButtonAlignment.Right 
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
