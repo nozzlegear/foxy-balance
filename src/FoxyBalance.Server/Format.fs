@@ -1,5 +1,9 @@
 module Format
     open FoxyBalance.Database.Models
+    
+    let truncateStr (str: string, max: int) =
+        if (str.Length <= max) then str
+        else str.Substring(0, max) + "..."
 
     let date (d : System.DateTimeOffset) =
         d.ToString "yyyy-MM-dd"
@@ -42,7 +46,7 @@ module Format
         | Paypal _ ->
             "Paypal Invoice"
         | ManualTransaction _ ->
-            "Manual"
+            "Manually Recorded Transaction"
             
     let incomeSourceDescription = function
         | Shopify x

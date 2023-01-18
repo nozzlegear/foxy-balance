@@ -168,3 +168,18 @@ module Income =
 
                 return! redirectTo false $"/income?totalImported=1" next ctx
         })
+
+    let recordDetailsHandler (recordId: int64) : HttpHandler =
+        RouteUtils.withSession(fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+
+            match! database.GetAsync session.UserId recordId with
+            | Some record ->
+                let view = 
+                    { IncomeRecord = record }
+                    |> Views.recordDetailsPage
+                    |> htmlView
+                return! view next ctx
+            | None ->
+                return! (setStatusCode 404 >=> text "Not Found") next ctx 
+        })

@@ -161,7 +161,9 @@ module Shared =
 
     let title x = h1 [_class "title"] [str x]
     
-    let subtitle x = h2 [_class "subtitle"] [str x]
+    let subtitleFromList els = h2 [_class "subtitle"] els
+    
+    let subtitle x = subtitleFromList [str x]
     
     let error text =
         p [_class "error has-text-danger"] [str text]

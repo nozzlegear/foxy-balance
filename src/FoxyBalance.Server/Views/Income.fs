@@ -84,7 +84,7 @@ module Income =
                             Shared.TableCell (record.SaleAmount |> Format.toDecimal |> Format.amountWithDollarSign |> str)
                             Shared.TableCell (record.PlatformFee + record.ProcessingFee |> Format.toDecimal |> Format.amountWithDollarSign |> str)
                             Shared.TableCell (record.NetShare |> Format.toDecimal |> Format.amountWithDollarSign |> str)
-                            Shared.TableCell (record.EstimatedTax |> Format.toDecimal |> Format.amountWithDollarSign |> str)
+                            Shared.TableCell (span [_class "has-text-right"] [record.EstimatedTax |> Format.toDecimal |> Format.amountWithDollarSign |> str])
                         ]
                 ]
             ]
@@ -236,6 +236,138 @@ module Income =
                         Form.Alignment Form.ButtonAlignment.Right 
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
+                ]
+            ]
+        ]
+        
+    let recordDetailsPage (model: IncomeRecordViewModel): XmlNode =
+        let record =
+            model.IncomeRecord
+        let title =
+            match record.Source with
+            | ManualTransaction _ -> $"Manually recorded transaction #{record.Id}"
+            | x -> $"{Format.incomeSourceType x} transaction #{record.Id}"
+        let subtitle =
+            match record.Source with
+            | Paypal x
+            | Gumroad x
+            | Shopify x
+            | Stripe x -> Some x.TransactionId
+            | _ -> None
+            
+        let actionButton =
+            let actionProps =
+                // Manual transactions can be deleted. All other transactions can only be ignored.
+                match record.Source with
+                | ManualTransaction _ ->
+                    [ Form.ButtonText "Delete"
+                      Form.ButtonFormAction $"/income/{id}/delete"
+                      Form.OnClick "return confirm('Are you sure you want to delete this income record? This action cannot be undone.')" ]
+                | _ ->
+                    [ Form.ButtonText "Ignore"
+                      Form.ButtonFormAction $"/income/{id}/ignore" ]
+
+            Form.Element.Button [
+                yield! actionProps
+                Form.Color Form.ButtonColor.Danger
+                Form.Type Form.Submit ]
+        
+        Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     Shared.LevelItem.Element (Form.create [] [actionButton])
+                     
+                     G.a [A._href "/income"; A._class "button"] [
+                        G.str "Cancel" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
+            
+            hr []
+            
+            div [_class "columns"] [
+                div [_class "column is-two-thirds"] [
+                    Shared.subtitle (Format.incomeSourceDescription record.Source)
+                    Shared.subtitle ("Customer: " + Format.incomeSourceCustomerDescription record.Source)
+                    Shared.subtitle ("Sale date: " + Format.date record.SaleDate)
+                    
+                    subtitle
+                    |> Option.map (fun sub ->
+                        Shared.subtitleFromList [
+                            str "Source transaction ID: "
+                            abbr [_title sub] [str (Format.truncateStr(sub, 30))]
+                        ]    
+                    )
+                    |> Shared.maybeEl
+                ]
+
+                div [_class "column is-one-third box"] [
+                    Shared.level [
+                        Shared.LeftLevel [
+                            $"Sale on {Format.date record.SaleDate}"
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                        Shared.RightLevel [
+                            Format.toDecimal record.SaleAmount
+                            |> Format.amountWithDollarSign
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                    ]
+                    Shared.level [
+                        Shared.LeftLevel [
+                            str "Platform fee"
+                            |> Shared.LevelItem.Element
+                        ]
+                        Shared.RightLevel [
+                            Format.toDecimal record.PlatformFee
+                            |> Format.amountWithNegativeSign
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                    ]
+                    Shared.level [
+                        Shared.LeftLevel [
+                            str "Processing fee"
+                            |> Shared.LevelItem.Element
+                        ]
+                        Shared.RightLevel [
+                            Format.toDecimal record.ProcessingFee
+                            |> Format.amountWithNegativeSign
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                    ]
+                    hr []
+                    Shared.level [
+                        Shared.LeftLevel [
+                            str "Net share"
+                            |> Shared.LevelItem.Element
+                        ]
+                        Shared.RightLevel [
+                            Format.toDecimal record.NetShare
+                            |> fun share -> (if share > 0M then Format.amountWithPositiveSign share else Format.amountWithNegativeSign share)
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                    ]
+                    hr []
+                    Shared.level [
+                        Shared.LeftLevel [
+                            str "Estimated taxes"
+                            |> Shared.LevelItem.Element
+                        ]
+                        Shared.RightLevel [
+                            Format.toDecimal record.EstimatedTax
+                            |> Format.amountWithDollarSign
+                            |> str
+                            |> Shared.LevelItem.Element
+                        ]
+                    ]
                 ]
             ]
         ]

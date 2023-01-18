@@ -171,3 +171,18 @@ type IncomeDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.ofList
+
+        member _.GetAsync userId incomeId =
+            connection
+            |> Sql.query """
+                SELECT *
+                FROM [FoxyBalance_IncomeRecordsView]
+                WHERE [UserId] = @userId
+                AND [Id] = @incomeId
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "incomeId", Sql.int64 incomeId
+            ]
+            |> Sql.executeAsync incomeRecordFromSql
+            |> Sql.map Seq.tryHead

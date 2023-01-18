@@ -45,6 +45,7 @@ let allRoutes : HttpHandler =
                 route "/income" >=> Routes.Income.homePageHandler
                 route "/income/sync" >=> Routes.Income.syncHandler
                 route "/income/new" >=> Routes.Income.newRecordHandler
+                routef "/income/%d" Routes.Income.recordDetailsHandler
             ]
         ]
         POST >=> choose [
