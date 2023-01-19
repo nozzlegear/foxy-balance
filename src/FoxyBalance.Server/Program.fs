@@ -18,6 +18,8 @@ open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
+open Microsoft.Extensions.Configuration
+
 module Migrator = FoxyBalance.Migrations.Migrator
 
 let allRoutes : HttpHandler =
@@ -127,8 +129,10 @@ let main _ =
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
     let host =
         WebHost.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(fun hostingContext configuration ->
+                configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
+            )
             .UseUrls([|"http://+:3000"|])
-    //        .UseContentRoot(contentRoot)
             .UseWebRoot(webRoot)
             .Configure(Action<IApplicationBuilder> configureApp)
             .ConfigureServices(configureServices)
