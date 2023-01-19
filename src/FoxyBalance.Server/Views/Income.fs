@@ -58,8 +58,6 @@ module Income =
             p [] [
                 small [] [
                     str $"Total records: {model.Summary.TotalRecords}"
-                    br []
-                    str "Last synced: 3 hours ago"
                 ]
             ]
             
