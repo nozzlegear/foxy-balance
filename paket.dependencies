@@ -5,9 +5,22 @@ source https://api.nuget.org/v3/index.json
 nuget Giraffe
 nuget Microsoft.NET.Test.Sdk
 nuget Microsoft.AspNetCore.TestHost
-nuget xunit
-nuget xunit.runner.visualstudio
 nuget system.data.sqlclient
 nuget simple.migrations
 nuget fsharp.core
+nuget fsharp.data
 nuget dustytables
+nuget shopifysharp
+nuget jsonsharp
+nuget commandlineparser
+nuget system.text.json
+
+group Tests
+    source https://api.nuget.org/v3/index.json
+
+    nuget xunit
+    nuget xunit.runner.visualstudio
+    nuget Microsoft.NET.Test.Sdk
+    nuget coverlet.collector
+    nuget microsoft.extensions.configuration.usersecrets
+    nuget microsoft.extensions.configuration.environmentvariables

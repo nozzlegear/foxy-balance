@@ -1,7 +1,6 @@
 namespace FoxyBalance.Database.Models
 
 open System
-open System
 
 type IDatabaseOptions =
     abstract member ConnectionString : string with get
@@ -9,6 +8,7 @@ type IDatabaseOptions =
 type EmailAddress = string
 type UserId = int
 type TransactionId = int64
+type IncomeId = int64
 
 type UserIdentifier =
     | Id of UserId
@@ -63,6 +63,83 @@ type TransactionSum =
       ClearedDebitSum : decimal
       PendingCreditSum : decimal
       ClearedCreditSum : decimal }
+    
+type TaxYear =
+    { TaxYear : int
+      TaxRate : int }
+    
+type IncomeSourceDescription =
+    { TransactionId : string
+      CustomerDescription : string
+      Description : string }
+    
+type ManualIncomeSourceDescription =
+    { Description : string
+      CustomerDescription : string option }
+
+type IncomeSource =
+    | Gumroad of IncomeSourceDescription
+    | Shopify of IncomeSourceDescription
+    | Paypal of IncomeSourceDescription
+    | Stripe of IncomeSourceDescription
+    | ManualTransaction of ManualIncomeSourceDescription
+
+type IncomeRecord =
+    { Id : IncomeId
+      Source: IncomeSource
+      SaleDate : DateTimeOffset
+      SaleAmount : int
+      PlatformFee : int
+      ProcessingFee : int
+      NetShare : int
+      EstimatedTax : int
+      // Indicates that the income record is ignored and not counted as income when estimating taxes. Useful for cases where the app
+      // syncs income from external sources that were eventually refunded or were otherwise not applicable for tax purposes.
+      Ignored : bool }
+with
+    static member Default =
+        { Id = 0
+          Source = ManualTransaction { Description = ""; CustomerDescription = None }
+          SaleDate = DateTimeOffset.UtcNow
+          SaleAmount = 0
+          PlatformFee = 0
+          ProcessingFee = 0
+          NetShare = 0
+          EstimatedTax =0
+          Ignored = false }
+    
+type PartialIncomeRecord =
+    { Source : IncomeSource
+      SaleDate : DateTimeOffset
+      SaleAmount : int
+      PlatformFee : int
+      ProcessingFee : int
+      NetShare : int }
+
+type IncomeSummary =
+    { TaxYear : TaxYear
+      TotalRecords : int
+      TotalSales : int
+      TotalFees : int
+      TotalNetShare : int
+      TotalEstimatedTax : int }
+    with
+    static member Default =
+        { TaxYear =
+            { TaxYear = DateTimeOffset.UtcNow.Year
+              TaxRate = 33 }
+          TotalRecords = 0
+          TotalSales = 0
+          TotalFees = 0
+          TotalNetShare = 0
+          TotalEstimatedTax = 0 }
+    
+type IncomeImportSummary =
+    { TotalNewRecordsImported : int
+      TotalSalesImported : int
+      TotalFeesImported : int
+      TotalNetShareImported : int
+      TotalEstimatedTaxesImported : decimal }
 
 type Order =
     | Ascending

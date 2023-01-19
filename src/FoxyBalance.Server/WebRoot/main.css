@@ -10,6 +10,21 @@
     color: red;
 }
 
+p.estimated-tax {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+p.estimated-tax .ignored {
+    color: red;
+    font-weight: 500;
+}
+
+td span.ignored {
+    color: red;
+}
+
 /*Disable clicks on anchor links with the disabled attribute.
   If you don't turn off pointer events, users will still be able to click on them and follow the link. */
 a[disabled] {

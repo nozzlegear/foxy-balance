@@ -58,7 +58,7 @@ type UserDatabase(options : IDatabaseOptions) =
                 {
                     Id = read.int "Id"
                     EmailAddress = read.string "EmailAddress"
-                    DateCreated = read.dateTimeOffset "DateCreated"
+                    DateCreated = read.dateTime "DateCreated" |> DateTimeOffset
                     HashedPassword = read.string "HashedPassword"
                 })
             |> Sql.tryExactlyOne

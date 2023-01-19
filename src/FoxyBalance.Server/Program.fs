@@ -4,6 +4,7 @@ open FoxyBalance.Database
 open FoxyBalance.Database.Interfaces
 open System
 open System.IO
+open System.Net.Http
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
@@ -15,6 +16,10 @@ open Microsoft.AspNetCore
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
+open FoxyBalance.Sync
+open FoxyBalance.Sync.Models
+open Microsoft.Extensions.Configuration
+
 module Migrator = FoxyBalance.Migrations.Migrator
 
 let allRoutes : HttpHandler =
@@ -38,6 +43,12 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionHandler
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
+                
+                route "/income" >=> Routes.Income.homePageHandler
+                route "/income/sync" >=> Routes.Income.syncHandler
+                route "/income/new" >=> Routes.Income.newRecordHandler
+                routef "/income/%d" Routes.Income.recordDetailsHandler
+                routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
             ]
         ]
         POST >=> choose [
@@ -47,6 +58,11 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
                 routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
+                route "/income/sync" >=> Routes.Income.executeSyncHandler
+                route "/income/new" >=> Routes.Income.executeNewRecordHandler
+                routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
+                routef "/income/%d/delete" Routes.Income.executeDeleteHandler
+                routef "/income/tax-rate/%i" Routes.Income.executeTaxRateHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"
@@ -84,16 +100,23 @@ let cookieAuth (options : CookieAuthenticationOptions) =
     options.LoginPath <- PathString "/auth/login"
     options.LogoutPath <- PathString "/auth/logout"
 
-let configureServices (services : IServiceCollection) =
+let configureServices (app : WebHostBuilderContext) (services : IServiceCollection) =
     let add (fn : unit -> _) = fn () |> ignore
     
     add (fun _ -> services.AddCors())
     add (fun _ -> services.AddGiraffe())
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
+    add (fun _ -> services.AddSingleton<ShopifyPayoutParser>())
+    add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
+    add (fun _ -> services.AddSingleton<GumroadClient>())
+    add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
+    add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
+
+    services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)
@@ -106,8 +129,10 @@ let main _ =
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
     let host =
         WebHost.CreateDefaultBuilder()
+            .ConfigureAppConfiguration(fun hostingContext configuration ->
+                configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
+            )
             .UseUrls([|"http://+:3000"|])
-    //        .UseContentRoot(contentRoot)
             .UseWebRoot(webRoot)
             .Configure(Action<IApplicationBuilder> configureApp)
             .ConfigureServices(configureServices)
