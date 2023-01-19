@@ -1,0 +1,72 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  BUILD_IMAGE_NAME: "${{ secrets.ACR_REGISTRY }}/foxy-balance:${{ github.run_number }}"
+  LATEST_IMAGE_NAME: "${{ secrets.ACR_REGISTRY }}/foxy-balance:latest"
+
+jobs:
+  build:
+    name: "Build and push"
+    runs-on: ubuntu-20.04
+    environment: "Build Environment"
+
+    steps:
+    - name: Log in to Azure Container Registry
+      env:
+        ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+        ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+        ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      run: echo "$ACR_PASSWORD" | docker login --password-stdin --username "$ACR_USERNAME" "$ACR_REGISTRY"
+
+    - name: Checkout branch
+      uses: actions/checkout@v3
+
+    - name: Build container image
+      run: docker build -t "$BUILD_IMAGE_NAME" -t "$LATEST_IMAGE_NAME" .
+
+    - name: Push container image
+      run: docker push "$BUILD_IMAGE_NAME" && docker push "$LATEST_IMAGE_NAME"
+
+  deploy:
+    name: "Deploy to Cryptum"
+    runs-on: ubuntu-20.04
+    environment: "Cryptum Deployment Environment"
+    # Do not run this job until the build job completes
+    needs: build
+
+    steps:
+    - name: Checkout branch
+      uses: actions/checkout@master
+
+    - name: Copy deployment script to Cryptum
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.CRYPTUM_HOST }}
+        port: 22
+        username: ${{ secrets.CRYPTUM_USERNAME }}
+        key: ${{ secrets.CRYPTUM_PRIVATE_KEY }}
+        passphrase: ${{ secrets.CRYPTUM_SSH_PASSPHRASE }}
+        # Use a host fingerprint to ensure we always connect to the same server
+        #fingerprint: ${{ secrets.CRYPTUM_HOST_FINGERPRINT }}
+        source: ".github/scripts/deploy.fish"
+        target: "~/deployments"
+        # Strip the first two folder names from the deployed file (e.g. remove `.github/scripts`)
+        strip_components: 2
+        overwrite: true
+
+    - name: Execute deployment script via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.CRYPTUM_HOST }}
+        port: 22
+        username: ${{ secrets.CRYPTUM_USERNAME }}
+        key: ${{ secrets.CRYPTUM_PRIVATE_KEY }}
+        passphrase: ${{ secrets.CRYPTUM_SSH_PASSPHRASE }}
+        #fingerprint: ${{ secrets.CRYPTUM_HOST_FINGERPRINT }}
+        # Stop on errors
+        script_stop: true
+        script: ./deployments/deploy.fish "${{ env.BUILD_IMAGE_NAME }}"
