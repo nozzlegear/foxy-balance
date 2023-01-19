@@ -175,6 +175,7 @@ module Shared =
 
     type LevelItem =
         | HeadingAndTitle of string * string
+        | HeadingAndTitleLink of {| heading: string; title: string; url: string |}
         | Element of XmlNode 
     
     let private levelItem = function
@@ -183,6 +184,17 @@ module Shared =
                 div [] [
                     p [_class "heading"] [str heading]
                     p [_class "title"] [str title]
+                ]
+            ]
+        | HeadingAndTitleLink options ->
+            div [_class "level-item has-text-centered"] [
+                div [] [
+                    p [_class "heading"] [str options.heading]
+                    p [_class "title"] [
+                        a [_href options.url; _title options.title] [
+                            str options.title
+                        ]
+                    ]
                 ]
             ]
         | Element el ->

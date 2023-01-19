@@ -9,7 +9,6 @@ type EmailAddress = string
 type UserId = int
 type TransactionId = int64
 type IncomeId = int64
-type TaxYearId = int
 
 type UserIdentifier =
     | Id of UserId
@@ -66,8 +65,7 @@ type TransactionSum =
       ClearedCreditSum : decimal }
     
 type TaxYear =
-    { Id : TaxYearId
-      TaxYear : int
+    { TaxYear : int
       TaxRate : int }
     
 type IncomeSourceDescription =
@@ -128,8 +126,7 @@ type IncomeSummary =
     with
     static member Default =
         { TaxYear =
-            { Id = 0
-              TaxYear = DateTimeOffset.UtcNow.Year
+            { TaxYear = DateTimeOffset.UtcNow.Year
               TaxRate = 33 }
           TotalRecords = 0
           TotalSales = 0

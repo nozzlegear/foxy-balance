@@ -46,7 +46,13 @@ module Income =
                 Shared.LevelItem.HeadingAndTitle ("Total Fees", model.Summary.TotalFees |> (Format.toDecimal >> Format.amountWithDollarSign))
                 Shared.LevelItem.HeadingAndTitle ("Total Net", model.Summary.TotalNetShare |> (Format.toDecimal >> Format.amountWithDollarSign))
                 Shared.LevelItem.HeadingAndTitle ("Estimated Taxes", model.Summary.TotalEstimatedTax |> (Format.toDecimal >> Format.amountWithDollarSign))
-                Shared.LevelItem.HeadingAndTitle ("Tax Rate", model.Summary.TaxYear.TaxRate |> (Format.toDecimal >> Format.percentage))
+                Shared.LevelItem.HeadingAndTitleLink {|
+                    heading = "Tax Rate"
+                    title = model.Summary.TaxYear.TaxRate
+                            |> Format.toDecimal
+                            |> Format.percentage
+                    url = $"/income/tax-rate/{model.Summary.TaxYear.TaxYear}"
+                |}
             ]
             
             p [] [
@@ -379,6 +385,53 @@ module Income =
                             ]
                             |> Shared.LevelItem.Element
                         ]
+                    ]
+                ]
+            ]
+        ]
+
+    let taxRatePage (model: TaxRateViewModel): XmlNode =
+        let title =
+            $"Tax Rate for {model.TaxYear.TaxYear}"
+        
+        Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     G.a [A._href $"/income?year={model.TaxYear.TaxYear}"; A._class "button"] [
+                        G.str "Back" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
+            
+            hr []
+            
+            div [A._class "notification"] [
+                str $"The tax rate for the year {model.TaxYear.TaxYear} is set to {model.TaxYear.TaxRate}%%. This means that after all fees, {model.TaxYear.TaxRate}%% of remaining income will be deducted as estimated tax to be paid to the Federal and State governments.
+                Updating the tax rate with the form below will retroactively change the estimated tax for all income recorded in {model.TaxYear.TaxYear}."
+            ]
+            
+            Form.create [Form.Method Form.Post; Form.AutoComplete false] [
+                Form.NumberInput [
+                    Form.Value (string model.Rate)
+                    Form.LabelText "New tax rate"
+                    Form.Placeholder (string model.TaxYear.TaxRate)
+                    Form.HtmlName "newTaxRate"
+                    Form.Required
+                ]
+                
+                Form.MaybeError model.Error
+                
+                Form.Group [
+                    Form.EmptyDiv
+                    
+                    Form.Element.Button [
+                        Form.Color Form.ButtonColor.Success
+                        Form.Type Form.Submit
+                        Form.Alignment Form.ButtonAlignment.Right 
+                        Form.ButtonText "Update Rate"
                     ]
                 ]
             ]

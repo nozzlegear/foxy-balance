@@ -216,3 +216,42 @@ module Income =
             | None ->
                 return! (setStatusCode 404 >=> text "Not Found") next ctx
         })
+
+    let taxRateHandler (taxYear: int) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+            
+            match! database.GetTaxYearAsync session.UserId taxYear with
+            | Some record ->
+                let view =
+                    { Error = None
+                      Rate = record.TaxRate
+                      TaxYear = record }
+                    |> Views.taxRatePage
+                    |> htmlView
+                return! view next ctx
+            | None ->
+                return! (setStatusCode 404 >=> text $"Tax year {taxYear} not found.") next ctx
+        })
+        
+    let executeTaxRateHandler (taxYear: int) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+            let! request = ctx.BindFormAsync<NewTaxRateRequest>()
+            let! record = database.GetTaxYearAsync session.UserId taxYear
+            
+            match record, NewTaxRateRequest.Validate request with
+            | Some record, Error err ->
+                let view =
+                    { Error = Some err
+                      Rate = request.NewTaxRate
+                      TaxYear = record }
+                    |> Views.taxRatePage
+                    |> htmlView
+                return! view next ctx 
+            | Some record, Ok request ->
+                do! database.SetTaxYearRateAsync session.UserId record.TaxYear request.NewTaxRate
+                return! (redirectTo false $"/income?year={record.TaxYear}") next ctx
+            | None, _ ->
+                return! (setStatusCode 404 >=> text $"Tax year {taxYear} not found.") next ctx
+        })

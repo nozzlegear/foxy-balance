@@ -46,6 +46,7 @@ let allRoutes : HttpHandler =
                 route "/income/sync" >=> Routes.Income.syncHandler
                 route "/income/new" >=> Routes.Income.newRecordHandler
                 routef "/income/%d" Routes.Income.recordDetailsHandler
+                routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
             ]
         ]
         POST >=> choose [
@@ -59,6 +60,7 @@ let allRoutes : HttpHandler =
                 route "/income/new" >=> Routes.Income.executeNewRecordHandler
                 routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
                 routef "/income/%d/delete" Routes.Income.executeDeleteHandler
+                routef "/income/tax-rate/%i" Routes.Income.executeTaxRateHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"

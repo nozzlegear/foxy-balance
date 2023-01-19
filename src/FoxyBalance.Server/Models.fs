@@ -191,6 +191,17 @@ module RequestModels =
             |> Result.bind validateProcessingFee
             |> Result.bind validateNetShare
     
+    [<CLIMutable>]
+    type NewTaxRateRequest = {
+        NewTaxRate: int
+    }
+    with
+    static member Validate (model : NewTaxRateRequest) =
+        if model.NewTaxRate > 99 || model.NewTaxRate < 1 then
+            Result.Error "Tax rate must be between 1 and 99."
+        else
+            Result.Ok model
+
 module ViewModels =
     type RouteType =
         | Balance
@@ -333,3 +344,8 @@ module ViewModels =
               SyncGumroadIncome = true
               SyncPayPalInvoices = true
               ShopifyFileWasReset = false }
+
+    type TaxRateViewModel =
+        { Error : string option
+          Rate : int
+          TaxYear : TaxYear }

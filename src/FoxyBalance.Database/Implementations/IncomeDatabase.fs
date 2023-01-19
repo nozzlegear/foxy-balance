@@ -40,7 +40,6 @@ type IncomeDatabase(options : IDatabaseOptions) =
         
     let taxYearFromSql (read : RowReader) =
         {
-            Id = read.int "TaxYearId"
             TaxYear = read.int "TaxYear"
             TaxRate = read.int "TaxRate"
         }
@@ -181,7 +180,6 @@ type IncomeDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 SELECT
-                    TaxYearId,
                     TaxYear,
                     TaxRate
                 FROM [FoxyBalance_TaxYearSummaryView]
@@ -192,6 +190,39 @@ type IncomeDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.ofList
+            
+        member _.GetTaxYearAsync userId taxYear =
+            connection
+            |> Sql.query """
+                SELECT TOP 1
+                    TaxYear,
+                    TaxRate
+                FROM [FoxyBalance_TaxYearSummaryView]
+                WHERE [UserId] = @userId
+                AND [TaxYear] = @taxYear
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "taxYear", Sql.int taxYear
+            ]
+            |> Sql.executeAsync taxYearFromSql
+            |> Sql.map Seq.tryHead
+            
+        member _.SetTaxYearRateAsync userId taxYear rate =
+            connection
+            |> Sql.query """
+                UPDATE [FoxyBalance_TaxYears]
+                SET [TaxRate] = @taxRate
+                WHERE [UserId] = @userId
+                AND [TaxYear] = @taxYear
+            """
+            |> Sql.parameters [
+                "taxRate", Sql.int rate
+                "userId", Sql.int userId
+                "taxYear", Sql.int taxYear
+            ]
+            |> Sql.executeNonQueryAsync
+            |> Sql.ignore
 
         member _.GetAsync userId incomeId =
             connection
