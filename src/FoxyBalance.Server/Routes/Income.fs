@@ -183,3 +183,36 @@ module Income =
             | None ->
                 return! (setStatusCode 404 >=> text "Not Found") next ctx 
         })
+
+    let executeToggleIgnoreHandler (recordId: int64) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+            
+            match! database.GetAsync session.UserId recordId with
+            | Some record ->
+                match record.Source with
+                | ManualTransaction _ ->
+                    return! (setStatusCode 422 >=> text $"Manual transaction income records cannot be ignored, they can only be deleted.") next ctx
+                | _ ->
+                    do! database.SetIgnoreAsync session.UserId recordId (not record.Ignored)
+                    return! (redirectTo false $"/income/{recordId}") next ctx
+            | None ->
+                return! (setStatusCode 404 >=> text "Not Found") next ctx
+        })
+        
+    let executeDeleteHandler (recordId: int64) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+            
+            match! database.GetAsync session.UserId recordId with
+            | Some record ->
+                match record.Source with
+                | ManualTransaction _ ->
+                    do! database.DeleteAsync session.UserId recordId
+                    return! (redirectTo false $"/income?year={record.SaleDate.Year}") next ctx
+                | source ->
+                    let formattedSource = Format.incomeSourceType source
+                    return! (setStatusCode 422 >=> text $"{formattedSource} income records cannot be deleted, they can only be ignored.") next ctx
+            | None ->
+                return! (setStatusCode 404 >=> text "Not Found") next ctx
+        })

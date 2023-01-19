@@ -9,7 +9,11 @@ module A = Attributes
 
 module Income =
     let homePage (model : IncomeViewModel) : XmlNode =
-        let title = $"Income - Page {model.Page}"
+        let title =
+            $"Income - Page {model.Page}"
+        
+        let hasIgnoredRecords =
+            Seq.exists (fun (r: IncomeRecord) -> r.Ignored) model.IncomeRecords
         
         let RecordLink (record: IncomeRecord) =
             a [_href $"/income/{record.Id}"; _title (Format.incomeSourceCustomerDescription record.Source)] [
@@ -66,6 +70,7 @@ module Income =
             Shared.table [
                 Shared.TableHead [
                     Shared.TableCell (str "#")
+                    if hasIgnoredRecords then Shared.TableCell (str "Ignored")
                     Shared.TableCell (str "Date")
                     Shared.TableCell (str "Source")
                     Shared.TableCell (str "Description")
@@ -78,6 +83,8 @@ module Income =
                     for (index, record) in Seq.indexed model.IncomeRecords do
                         yield Shared.TableRow [
                             Shared.TableCell (index + 1 |> string |> str)
+                            if hasIgnoredRecords then
+                                Shared.TableCell (if record.Ignored then span [_class "ignored"] [str "Ignored"] else str "")
                             Shared.TableCell (Format.date record.SaleDate |> str)
                             Shared.TableCell (record.Source |> Format.incomeSourceType |> str)
                             Shared.TableCell (RecordLink record)
@@ -261,11 +268,11 @@ module Income =
                 match record.Source with
                 | ManualTransaction _ ->
                     [ Form.ButtonText "Delete"
-                      Form.ButtonFormAction $"/income/{id}/delete"
+                      Form.ButtonFormAction $"/income/{record.Id}/delete"
                       Form.OnClick "return confirm('Are you sure you want to delete this income record? This action cannot be undone.')" ]
                 | _ ->
-                    [ Form.ButtonText "Ignore"
-                      Form.ButtonFormAction $"/income/{id}/ignore" ]
+                    [ Form.ButtonText (if record.Ignored then "Unignore" else "Ignore")
+                      Form.ButtonFormAction $"/income/{record.Id}/ignore" ]
 
             Form.Element.Button [
                 yield! actionProps
@@ -278,7 +285,7 @@ module Income =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                     Shared.LevelItem.Element (Form.create [] [actionButton])
+                     Shared.LevelItem.Element (Form.create [Form.Method Form.Post] [actionButton])
                      
                      G.a [A._href "/income"; A._class "button"] [
                         G.str "Cancel" ]
@@ -362,9 +369,14 @@ module Income =
                             |> Shared.LevelItem.Element
                         ]
                         Shared.RightLevel [
-                            Format.toDecimal record.EstimatedTax
-                            |> Format.amountWithDollarSign
-                            |> str
+                            p [_class "estimated-tax"] [
+                                Format.toDecimal record.EstimatedTax
+                                |> Format.amountWithDollarSign
+                                |> str
+                                
+                                if record.Ignored then
+                                    span [_class "ignored"] [ str "(Ignored)" ]
+                            ]
                             |> Shared.LevelItem.Element
                         ]
                     ]

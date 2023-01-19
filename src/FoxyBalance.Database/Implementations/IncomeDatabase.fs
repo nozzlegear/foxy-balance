@@ -147,14 +147,35 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync incomeSummaryFromSql
             |> Sql.map Seq.tryHead
             
-        member _.IgnoreAsync userId incomeId =
-            failwith "not implemented"
-            
-        member _.UnignoreAsync userId incomeId =
-            failwith "not implemented"
+        member _.SetIgnoreAsync userId incomeId shouldIgnore =
+            connection
+            |> Sql.query """
+                UPDATE [FoxyBalance_IncomeRecords]
+                SET [Ignored] = @ignored
+                WHERE [UserId] = @userId
+                AND [Id] = @recordId
+            """
+            |> Sql.parameters [
+                "ignored", Sql.bool shouldIgnore
+                "userId", Sql.int userId
+                "recordId", Sql.int64 incomeId
+            ]
+            |> Sql.executeNonQueryAsync
+            |> Sql.ignore
             
         member _.DeleteAsync userId incomeId =
-            failwith "not implemented"
+            connection
+            |> Sql.query """
+                DELETE FROM [FoxyBalance_IncomeRecords]
+                WHERE [UserId] = @userId
+                AND [Id] = @recordId
+            """
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "recordId", Sql.int64 incomeId
+            ]
+            |> Sql.executeNonQueryAsync
+            |> Sql.ignore
 
         member _.ListTaxYearsAsync userId =
             connection

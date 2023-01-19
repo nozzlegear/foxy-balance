@@ -57,6 +57,8 @@ let allRoutes : HttpHandler =
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
                 route "/income/sync" >=> Routes.Income.executeSyncHandler
                 route "/income/new" >=> Routes.Income.executeNewRecordHandler
+                routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
+                routef "/income/%d/delete" Routes.Income.executeDeleteHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"
