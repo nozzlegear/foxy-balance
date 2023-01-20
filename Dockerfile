@@ -1,13 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0-focal
 WORKDIR /app
 
-# Add paket global tool for restoring packages
-RUN dotnet tool install -g paket
-ENV PATH="/root/.dotnet/tools:${PATH}"
-
 # Restore dotnet packages
+COPY ./.config ./.config
 COPY paket.lock paket.dependencies ./
-RUN paket restore
+RUN dotnet tool restore
+RUN dotnet paket restore
 
 # Get the build ID from --build-arg BUILD=xyz
 ARG BUILD=DEV
