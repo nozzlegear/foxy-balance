@@ -15,7 +15,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
         | "Pending" ->
             Pending
         | "Cleared" ->
-            read.dateTimeOffset "DateCleared" 
+            // TODO: create a migration to convert the database column to DateTimeOffset
+            DateTimeOffset (read.dateTime "DateCleared")
             |> Cleared
         | x ->
             failwith $"""Unrecognized Status type "{x}"."""
