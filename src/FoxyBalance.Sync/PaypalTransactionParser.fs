@@ -10,7 +10,7 @@ type PaypalTransactions = CsvProvider<"../../assets/paypal-transaction-activity.
 
 type PaypalTransactionParser() =
     // Timezones seem to be either PST or PDT
-    let tz = TimeZoneInfo.FindSystemTimeZoneById "America/Los_Angeles"
+    let tz = TimeZoneConverter.TZConvert.GetTimeZoneInfo "America/Los_Angeles"
 
     let parsePaypalDate (row: PaypalTransactions.Row) =
         let date = $"{row.Date} {row.Time}"
