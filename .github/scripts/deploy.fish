@@ -19,7 +19,7 @@ end
 # A function to format a list of secrets into `podman run` args
 function formatSecrets 
     for secret in $argv
-        echo "--secret=$secret"
+        echo "--secret=$secret,type=env"
     end
 end
 
