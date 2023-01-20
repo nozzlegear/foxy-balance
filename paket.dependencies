@@ -1,5 +1,5 @@
 storage: none
-framework: netstandard2.1, net6.0
+framework: net6.0
 source https://api.nuget.org/v3/index.json
 
 #nuget Microsoft.AspNetCore.App
@@ -18,7 +18,7 @@ nuget system.text.json
 
 group Tests
     source https://api.nuget.org/v3/index.json
-    framework: netstandard2.1, net6.0
+    framework: net6.0
     storage: none
 
     nuget xunit
