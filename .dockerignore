@@ -3,3 +3,5 @@ packages
 obj
 bin
 .git
+appsettings.json
+appsettings.development.json
