@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1
+FROM mcr.microsoft.com/dotnet/sdk:6.0-focal
 WORKDIR /app
 
 # Add paket global tool for restoring packages
@@ -18,7 +18,7 @@ COPY . .
 RUN dotnet publish -c Release -o published -r linux-musl-x64 --version-suffix $BUILD
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 WORKDIR /app
 
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
