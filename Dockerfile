@@ -18,7 +18,8 @@ RUN dotnet publish \
     -o published \
     -r linux-musl-x64 \
     --version-suffix $BUILD \
-    --self-contained true
+    --self-contained true \
+    src/FoxyBalance.Server
 
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine as runlayer
