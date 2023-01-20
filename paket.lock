@@ -128,7 +128,7 @@ NUGET
     runtime.win-arm64.runtime.native.System.Data.SqlClient.sni (4.4)
     runtime.win-x64.runtime.native.System.Data.SqlClient.sni (4.4)
     runtime.win-x86.runtime.native.System.Data.SqlClient.sni (4.4)
-    ShopifySharp (5.19)
+    ShopifySharp (5.19.1)
       Microsoft.Extensions.Http (>= 2.1)
       Newtonsoft.Json (>= 13.0.2)
     Simple.Migrations (0.9.21)
