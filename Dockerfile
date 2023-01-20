@@ -33,7 +33,7 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 COPY --from=0 /app/published ./published
 RUN du -sh -- *
 
-# Change to /app/published so the program has the right ContentDirectoryRoot (i.e. it can load the App_Data files, appsettings.json files, etc.)
+# Change to /app/published so the program has the right ContentDirectoryRoot (i.e. it can load the App_Data files, etc.)
 WORKDIR "/app/published"
 EXPOSE 3000
-CMD ["dotnet", "./foxy_balance.dll"]
+CMD ["./foxy_balance"]
