@@ -1,5 +1,6 @@
 ﻿namespace FoxyBalance.Database
 
+open System
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
 open DustyTables
@@ -46,7 +47,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
         { Id = read.int64 "Id"
           Name = read.string "Name"
           Amount = read.decimal "Amount"
-          DateCreated = read.dateTimeOffset "DateCreated"
+          // TODO: create a migration to convert the database column to DateTimeOffset
+          DateCreated = DateTimeOffset (read.dateTime "DateCreated")
           Status = mapRowToStatus read
           Type = mapRowToDetails read }
     
