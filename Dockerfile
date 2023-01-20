@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0-focal
+FROM mcr.microsoft.com/dotnet/sdk:6.0-focal as buildlayer
 WORKDIR /app
 
 # Restore dotnet packages
@@ -18,10 +18,10 @@ RUN dotnet publish \
     -o published \
     -r linux-musl-x64 \
     --version-suffix $BUILD \
-    --self-contained
+    --self-contained true
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine as runlayer
 WORKDIR /app
 
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
