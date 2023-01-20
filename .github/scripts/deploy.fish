@@ -24,8 +24,7 @@ function formatSecrets
 end
 
 # Secrets used by the container. These secret names should match the names of the environment variables needed by the app. Double underscores correspond to a new section in dotnet config sections.
-set CONTAINER_SECRETS_LIST 
-    "FoxyBalance_HashingKey" \
+set CONTAINER_SECRETS_LIST "FoxyBalance_HashingKey" \
     "FoxyBalance_ConnectionStrings__SqlDatabase" \
     "FoxyBalance_Gumroad__ApplicationSecret" \
     "FoxyBalance_Gumroad__ApplicationId" \
