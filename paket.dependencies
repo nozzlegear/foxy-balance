@@ -15,7 +15,6 @@ nuget shopifysharp
 nuget jsonsharp
 nuget commandlineparser
 nuget system.text.json
-nuget TimeZoneConverter
 
 group Tests
     source https://api.nuget.org/v3/index.json
