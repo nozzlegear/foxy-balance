@@ -25,6 +25,9 @@ RUN dotnet publish \
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine as runlayer
 WORKDIR /app
 
+# Add timezone database for timezone lookups
+# https://www.stevejgordon.co.uk/timezonenotfoundexception-in-alpine-based-docker-images
+RUN apk add tzdata
 # Fix SqlClient invariant errors when dotnet core runs in an alpine container
 # https://github.com/dotnet/SqlClient/issues/220
 RUN apk add icu-libs
