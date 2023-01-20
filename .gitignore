@@ -362,3 +362,6 @@ Paket.Restore.targets
 !*.secret
 .env
 env.fish
+
+# MIsc
+published
