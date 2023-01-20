@@ -13,7 +13,12 @@ ARG BUILD=DEV
 # Copy everything and build for musl (alpine) systems
 COPY . .
 # Use the build ID as the app's version suffix
-RUN dotnet publish -c Release -o published -r linux-musl-x64 --version-suffix $BUILD
+RUN dotnet publish \
+    -c Release \
+    -o published \
+    -r linux-musl-x64 \
+    --version-suffix $BUILD \
+    --self-contained
 
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
