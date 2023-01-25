@@ -209,7 +209,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Id = transactionId
                     Name = transaction.Name
                     Amount = transaction.Amount
-                    DateCreated = read.dateTimeOffset "DateCreated"
+                    DateCreated = DateTimeOffset (read.dateTime "DateCreated")
                     Status = transaction.Status
                     Type = transaction.Type
                 })
