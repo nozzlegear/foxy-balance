@@ -35,6 +35,7 @@ module Income =
 
             model.TaxYears
             |> List.ofSeq
+            |> List.sortDescending
             |> List.map (fun year -> control year.TaxYear)
             |> List.append [ Shared.LevelItem.Element (str "Tax Year") ]
 
