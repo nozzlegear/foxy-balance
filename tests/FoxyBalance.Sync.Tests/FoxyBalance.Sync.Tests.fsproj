@@ -10,6 +10,7 @@
     <Compile Include="Configuration.fs" />
     <Compile Include="HttpQueryTests.fs" />
     <Compile Include="GumroadClientTests.fs" />
+    <Compile Include="ShopifyPartnerClientTests.fs" />
     <Compile Include="PaypalTransactionParserTests.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -32,3 +32,10 @@ let configureGumroadOptions() =
     options.ApplicationId <- section.Item "ApplicationId"
     options.ApplicationSecret <- section.Item "ApplicationSecret"
     Options.Create(options)
+
+let configureShopifyPartnerOptions() =
+    let section = config.GetRequiredSection("Shopify")
+    let options = ShopifyPartnerClientOptions()
+    options.AccessToken <- section.Item "AccessToken"
+    options.OrganizationId <- section.Item "OrganizationId"
+    Options.Create(options)

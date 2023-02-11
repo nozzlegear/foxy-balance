@@ -127,18 +127,17 @@ module Income =
                     Form.Checked model.SyncGumroadIncome
                     Form.CheckboxOption.HtmlName "syncGumroad"
                     Form.CheckboxOption.CheckboxText "Sync Gumroad income" ]
+
+                Form.Element.CheckboxInput [
+                    Form.Checked model.SyncGumroadIncome
+                    Form.CheckboxOption.HtmlName "syncGumroad"
+                    Form.CheckboxOption.CheckboxText "Sync Shopify income" ]
                 
                 Form.Element.FileInput [
                     Form.LabelText "Paypal transactions CSV file"
                     Form.HelpText "Upload your Paypal transactions CSV file here, and invoice income will be parsed by Foxy Balance to be sorted into the appropriate tax year."
                     Form.Accept ".csv"
                     Form.HtmlName "paypalCsvFile" ]
-                
-                Form.Element.FileInput [
-                    Form.LabelText "Shopify earnings CSV file"
-                    Form.HelpText "Upload your Shopify earnings CSV file here, and the earnings will be parsed by Foxy Balance and sorted by the appropriate tax year."
-                    Form.Accept ".csv"
-                    Form.HtmlName "shopifyCsvFile" ]
 
                 Form.Element.MaybeError model.Error
 

@@ -1,5 +1,6 @@
 namespace FoxyBalance.Server.Routes
 
+open FoxyBalance.Sync.Models
 open Giraffe
 open System
 open System.Threading.Tasks
@@ -51,28 +52,47 @@ module Income =
         |> Views.Income.syncShopifySalesPage
         |> htmlView
 
-    let private importShopifyTransactions (ctx: HttpContext) (file: IFormFile) (session: Session) = task {
+    let private importShopifyTransactions (ctx: HttpContext) (session: Session) =
         let database = ctx.GetService<IIncomeDatabase>()
-        let shopifyParser = ctx.GetService<ShopifyPayoutParser>()
+        let partnerClient = ctx.GetService<ShopifyPartnerClient>()
+        
+        let rec complete output (request: Task<ShopifyTransactionListResult>) = task {
+            let! result = request
+            // Combine this result's transactions with all other result's sales
+            let output = Seq.append result.Transactions output
+            
+            match result.NextPageCursor with
+            | Some cursor ->
+                return!
+                    Some cursor
+                    |> partnerClient.ListTransactionsAsync
+                    |> complete output 
+            | None ->
+                return output
+        }
+        
+        task {
+            let! transactions =
+                partnerClient.ListTransactionsAsync None
+                |> complete []
 
-        return!
-            file.OpenReadStream()
-            |> shopifyParser.FromCsv
-            |> Seq.map (fun sale ->
-                {
-                    Source = Shopify 
-                        {
-                            TransactionId = sale.Id
-                            Description = sale.Description
-                            CustomerDescription = sale.CustomerDescription
-                        }
-                    SaleDate = sale.SaleDate
-                    SaleAmount = sale.SaleAmount
-                    PlatformFee = sale.ShopifyFee
-                    ProcessingFee = sale.ProcessingFee
-                    NetShare = sale.PartnerShare
-                })
-            |> database.ImportAsync session.UserId
+            return!
+                transactions
+                |> Seq.map (fun sale ->
+                    {
+                        Source = Shopify 
+                            {
+                                TransactionId = sale.Id
+                                Description = sale.Description
+                                CustomerDescription = sale.CustomerDescription
+                            }
+                        SaleDate = sale.TransactionDate
+                        SaleAmount = sale.GrossAmount
+                        PlatformFee = sale.ShopifyFee
+                        ProcessingFee = sale.ProcessingFee
+                        NetShare = sale.NetAmount
+                    })
+                |> database.ImportAsync session.UserId
     }
 
     let private importPaypalTransactions (ctx: HttpContext) (file: IFormFile) (session: Session)  = task {
@@ -126,20 +146,20 @@ module Income =
         
     let executeSyncHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let shopifyFile = ctx.Request.Form.Files.GetFile "shopifyCsvFile"
             let paypalFile = ctx.Request.Form.Files.GetFile "paypalCsvFile"
             let syncGumroad = ctx.Request.Form.ContainsKey "syncGumroad"
+            let syncShopify = ctx.Request.Form.ContainsKey "syncShopify"
 
-            // Import gumroad transactions and each file where available
+            // Import Shopify, Gumroad and Paypal transactions
             let! tasks = Task.WhenAll [
-                if not (isNull shopifyFile) then 
-                    importShopifyTransactions ctx shopifyFile session
-
                 if not (isNull paypalFile) then
                     importPaypalTransactions ctx paypalFile session
 
                 if syncGumroad then
                     importGumroadTransactions ctx session
+                    
+                if syncShopify then
+                    importShopifyTransactions ctx session
             ]
             let totalNewRecords = Seq.sumBy (fun t -> t.TotalNewRecordsImported) tasks
 

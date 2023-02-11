@@ -107,7 +107,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddGiraffe())
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
-    add (fun _ -> services.AddSingleton<ShopifyPayoutParser>())
+    add (fun _ -> services.AddSingleton<ShopifyPartnerClient>())
     add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
     add (fun _ -> services.AddSingleton<GumroadClient>())
     add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
@@ -117,6 +117,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
 
     services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
+    services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify") |> ignore
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l.Equals LogLevel.Error)
