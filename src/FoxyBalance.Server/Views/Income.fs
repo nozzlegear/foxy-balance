@@ -130,7 +130,7 @@ module Income =
 
                 Form.Element.CheckboxInput [
                     Form.Checked model.SyncGumroadIncome
-                    Form.CheckboxOption.HtmlName "syncGumroad"
+                    Form.CheckboxOption.HtmlName "syncShopify"
                     Form.CheckboxOption.CheckboxText "Sync Shopify income" ]
                 
                 Form.Element.FileInput [
