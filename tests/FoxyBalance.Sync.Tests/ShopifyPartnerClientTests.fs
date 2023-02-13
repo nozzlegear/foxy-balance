@@ -9,7 +9,7 @@ let makeClient () =
     let options = Configuration.configureShopifyPartnerOptions()
     ShopifyPartnerClient(options)
 
-[<Fact()>]
+[<Fact(Skip = "Should only be run manually.")>]
 let ``Should list transactions`` () =
     let client = makeClient()
     
@@ -63,7 +63,7 @@ let ``Should list transactions`` () =
         Assert.Equal(sum, subscriptions + adjustments + credits)
     }
     
-[<Fact>]
+[<Fact(Skip = "Should only be run manually.")>]
 let ``Should get a transaction`` () =
     let client = makeClient()
     let transactionId = "gid://partners/AppSubscriptionSale/194047357"
@@ -85,7 +85,7 @@ let ``Should get a transaction`` () =
         Assert.True(Option.isSome transaction.App)
     }
     
-[<Fact>]
+[<Fact(Skip = "Should only be run manually.")>]
 let ``Should get a transaction that does not exist`` () =
     let client = makeClient()
     let transactionId = "gid://partners/AppSubscriptionSale/1234"
