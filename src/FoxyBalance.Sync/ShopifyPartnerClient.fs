@@ -18,11 +18,20 @@ type private PartnerTransactionEdge = {
     Node: ShopifyTransaction
 }
 
-type private TransactionQueryParams = {
+type private TransactionListParams = {
     query: string
     transactionTypes: string seq
     cursor: string option
 }
+
+type private TransactionGetParams = {
+    query: string
+    transactionId: string
+}
+
+type private TransactionQueryParams =
+    | TransactionListParams of TransactionListParams
+    | TransactionGetParams of TransactionGetParams
 
 type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
     inherit GraphService("example.myshopify.com", options.Value.AccessToken)
@@ -33,6 +42,41 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
     do (
         base.SetExecutionPolicy(policy)
     )
+    
+    let [<Literal>] TransactionProperties = """
+        app {
+            id
+            name
+        }
+        shop {
+            name
+            myshopifyDomain
+        }
+        grossAmount {
+            amount
+        }
+        shopifyFee {
+            amount
+        }
+        netAmount {
+            amount
+        }
+    """
+    
+    let TransactionTypesQuery = $"""
+        __typename
+        id
+        createdAt
+        ... on AppSubscriptionSale {{
+            {TransactionProperties}
+        }}
+        ... on AppSaleAdjustment {{
+            {TransactionProperties}
+        }}
+        ... on AppSaleCredit {{
+            {TransactionProperties}
+        }}
+    """
     
     /// Reads a decimal and converts it to an integer amount
     let readToAmount (reader: ElementReader) (key: string): int =
@@ -61,41 +105,44 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             |> Option.defaultValue "[Unknown App]"
 
         match transaction.Type with
-        | AppSubscriptionSale -> $"{appPrefix} subscription"
-        | AppSaleAdjustment -> $"{appPrefix} adjustment"
-        | AppSaleCredit -> $"{appPrefix} credit"
+        | AppSubscriptionSale -> $"Subscription to {appPrefix}"
+        | AppSaleAdjustment -> $"Adjustment to {appPrefix} subscription"
+        | AppSaleCredit -> $"Credit for {appPrefix} subscription"
+
+    let mapTransaction (node: ElementReader): ShopifyTransaction =
+        let shop = node.get("shop")
+        let shopName = shop.string "name"
+        let toAmount = readToAmount node
+        let grossAmount = toAmount "grossAmount"
+        let shopifyFee = toAmount "shopifyFee"
+        let netAmount = toAmount "netAmount"
+        // Shopify does not directly include the processing fee, but it can be determined by subtracting the
+        // net amount from gross amount and shopify fee.
+        let processingFee = grossAmount - shopifyFee - netAmount
+   
+        let transaction: ShopifyTransaction = {
+            Id = node.string "id"
+            TransactionDate = DateTimeOffset.Parse(node.string "createdAt")
+            CustomerDescription = if String.IsNullOrWhiteSpace shopName then "REDACTED" else shopName
+            GrossAmount = grossAmount
+            ShopifyFee = shopifyFee
+            ProcessingFee = processingFee
+            NetAmount = netAmount
+            App = readToApp node
+            Type =
+                match node.string "__typename" with
+                | "AppSaleAdjustment" -> AppSaleAdjustment
+                | "AppSaleCredit" -> AppSaleCredit
+                | "AppSubscriptionSale" -> AppSubscriptionSale
+                | x -> raise (ArgumentOutOfRangeException($"Unhandled Shopify transaction type \"{x}\"", nameof x))
+            // The description will be filled by the describe function after the rest of the node has been parsed
+            Description = String.Empty
+        }
+
+        { transaction with Description = describe transaction }
 
     let mapTransactionEdge (edge: ElementReader): PartnerTransactionEdge = 
-        let sale = edge.object("node", fun node ->
-            let shop = node.get("shop")
-            let shopName = shop.string "name"
-            let toAmount = readToAmount node
-            let grossAmount = toAmount "grossAmount"
-            let shopifyFee = toAmount "shopifyFee"
-            let netAmount = toAmount "netAmount"
-            // Shopify does not directly include the processing fee, but it can be determined by subtracting the
-            // net amount from gross amount and shopify fee.
-            let processingFee = grossAmount - shopifyFee - netAmount
-       
-            {
-                Id = node.string "id"
-                TransactionDate = DateTimeOffset.Parse(node.string "createdAt")
-                CustomerDescription = if String.IsNullOrWhiteSpace shopName then "REDACTED" else shopName
-                GrossAmount = grossAmount
-                ShopifyFee = shopifyFee
-                ProcessingFee = processingFee
-                NetAmount = netAmount
-                App = readToApp node
-                Type =
-                    match node.string "__typename" with
-                    | "AppSaleAdjustment" -> AppSaleAdjustment
-                    | "AppSaleCredit" -> AppSaleCredit
-                    | "AppSubscriptionSale" -> AppSubscriptionSale
-                    | x -> raise (ArgumentOutOfRangeException($"Unhandled Shopify transaction type \"{x}\"", nameof x))
-                // The description will be filled by the describe function after the rest of the node has been parsed
-                Description = String.Empty
-            }     
-        )
+        let sale = edge.object("node", mapTransaction)
         
         {
             Cursor = edge.string "cursor"
@@ -104,19 +151,34 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
 
     /// Serializes the variables for a transaction query into a json string
     let serializeQuery (queryParams: TransactionQueryParams) =
-        let variables = Map [
-            // While enums are not strings in the graphql spec, they can be encoded as strings in the json request
-            "types", box queryParams.transactionTypes
-        ]
-        let variables =
-            match queryParams.cursor with
-            | Some cursor -> Map.add "after" (box cursor) variables
-            | _ -> variables
-        
-        let data = Map [
-            "query", box queryParams.query
-            "variables", box variables
-        ]
+        let data: Map<string, obj> =
+            match queryParams with
+            | TransactionListParams queryParams ->
+                let variables = Map [
+                    // While enums are not strings in the graphql spec, they can be encoded as strings in the json request
+                    // Must match the name of the variable used in the graph query
+                    "types", box queryParams.transactionTypes
+                ]
+                let variables =
+                    // Must match the name of the variable used in the graph query
+                    match queryParams.cursor with
+                    | Some cursor -> Map.add "after" (box cursor) variables
+                    | _ -> variables
+                
+                Map [
+                    "query", box queryParams.query
+                    "variables", box variables
+                ]
+            | TransactionGetParams queryParams ->
+                let variables = Map [
+                    // Must match the name of the variable used in the graph query
+                    "transactionId", queryParams.transactionId
+                ]
+                
+                Map [
+                    "query", box queryParams.query
+                    "variables", box variables
+                ]
         
         JsonSerializer.Serialize(data)
     
@@ -129,8 +191,6 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
         )
 
         RequestUri(ub.Uri)
-        
-    
     
     override x.PostAsync(body: string, graphqlQueryCost: Nullable<int>, cancellationToken: CancellationToken):Task<JToken> =
         let request = prepareRequest()
@@ -143,86 +203,29 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
 
     member x.ListTransactionsAsync (page: string option, ?cancellationToken): Task<ShopifyTransactionListResult> = task {
         let token = defaultArg cancellationToken CancellationToken.None
-        let query = """ query listTransactions($types: [TransactionType!]!, $after: String) {
-            transactions(types: $types, after: $after) {
-                pageInfo {
-                    hasNextPage
-                    hasPreviousPage
-                }
-                edges {
-                    cursor
-                    node {
-                        __typename
-                        id
-                        createdAt
-                        ... on AppSubscriptionSale {
-                            app {
-                                id
-                                name
-                            }
-                            shop {
-                                name
-                                myshopifyDomain
-                            }
-                            grossAmount {
-                                amount
-                            }
-                            shopifyFee {
-                                amount
-                            }
-                            netAmount {
-                                amount
-                            }
-                        }
-                        ... on AppSaleAdjustment {
-                            app {
-                                id
-                                name
-                            }
-                            shop {
-                                name
-                                myshopifyDomain
-                            }
-                            grossAmount {
-                                amount
-                            }
-                            shopifyFee {
-                                amount
-                            }
-                            netAmount {
-                                amount
-                            }
-                        }
-                        ... on AppSaleCredit {
-                            app {
-                                id
-                                name
-                            }
-                            shop {
-                                name
-                                myshopifyDomain
-                            }
-                            grossAmount {
-                                amount
-                            }
-                            shopifyFee {
-                                amount
-                            }
-                            netAmount {
-                                amount
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        let query = $"""
+            query listTransactions($types: [TransactionType!]!, $after: String) {{
+                transactions(types: $types, after: $after) {{
+                    pageInfo {{
+                        hasNextPage
+                        hasPreviousPage
+                    }}
+                    edges {{
+                        cursor
+                        node {{
+                            {TransactionTypesQuery}
+                        }}
+                    }}
+                }}
+            }}
         """
         
-        let queryJson = serializeQuery {
-            query = query
-            transactionTypes = ["APP_SALE_ADJUSTMENT"; "APP_SALE_CREDIT"; "APP_SUBSCRIPTION_SALE"]
-            cursor = page
-        }
+        let queryJson =
+            { query = query
+              transactionTypes = ["APP_SALE_ADJUSTMENT"; "APP_SALE_CREDIT"; "APP_SUBSCRIPTION_SALE"]
+              cursor = page }
+            |> TransactionListParams
+            |> serializeQuery
         let! result = x.PostAsync(queryJson, Nullable<int>(), token)
         
         // Parse the result into an ElementReader
@@ -249,4 +252,26 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             PreviousPageCursor = getCursor previousPageCursor
             Transactions = edges |> Seq.map (fun e -> e.Node)
         }
+    }
+    
+    member x.GetTransaction (transactionId: string, ?cancellationToken): Task<ShopifyTransaction option> = task {
+        let token = defaultArg cancellationToken CancellationToken.None
+        let query = $"""
+            query getTransaction($transactionId: ID!) {{
+                transaction(id: $transactionId) {{
+                    {TransactionTypesQuery}
+                }}
+            }}
+        """
+        let queryJson =
+            { query = query
+              transactionId = transactionId }
+            |> TransactionGetParams
+            |> serializeQuery
+        let! result = x.PostAsync(queryJson, Nullable<int>(), token)
+        
+        // Parse the result into an ElementReader
+        let document = ElementReader.parse(result.ToString())
+        
+        return document.objectOrNone("transaction", mapTransaction)
     }

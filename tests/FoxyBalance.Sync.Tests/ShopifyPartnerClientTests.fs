@@ -9,7 +9,7 @@ let makeClient () =
     let options = Configuration.configureShopifyPartnerOptions()
     ShopifyPartnerClient(options)
 
-[<Fact(Skip = "Should only be run manually.")>]
+[<Fact()>]
 let ``Should list transactions`` () =
     let client = makeClient()
     
@@ -56,6 +56,42 @@ let ``Should list transactions`` () =
                 | AppSaleCredit -> Some sale.NetAmount
                 | _ -> None)
             |> Seq.sum
+        let negative =
+            sales
+            |> Seq.filter (fun s -> s.GrossAmount < 0 && s.Type = AppSubscriptionSale)
         
         Assert.Equal(sum, subscriptions + adjustments + credits)
+    }
+    
+[<Fact>]
+let ``Should get a transaction`` () =
+    let client = makeClient()
+    let transactionId = "gid://partners/AppSubscriptionSale/194047357"
+    
+    task {
+        let! transaction = client.GetTransaction(transactionId)
+        
+        Assert.True(Option.isSome transaction)
+        
+        let transaction = Option.get transaction
+        
+        Assert.True(transaction.Id = transactionId)
+        Assert.True(transaction.GrossAmount > 0)
+        Assert.True(transaction.ProcessingFee > 0)
+        Assert.True(transaction.NetAmount > 0)
+        Assert.True(transaction.ShopifyFee = 0)
+        Assert.True(transaction.Type = AppSubscriptionSale)
+        Assert.True(transaction.Description = "Subscription to Stages")
+        Assert.True(Option.isSome transaction.App)
+    }
+    
+[<Fact>]
+let ``Should get a transaction that does not exist`` () =
+    let client = makeClient()
+    let transactionId = "gid://partners/AppSubscriptionSale/1234"
+    
+    task {
+        let! transaction = client.GetTransaction(transactionId)
+        
+        Assert.True(Option.isNone transaction)
     }
