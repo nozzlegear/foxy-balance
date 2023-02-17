@@ -112,10 +112,22 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
     let mapTransaction (node: ElementReader): ShopifyTransaction =
         let shop = node.get("shop")
         let shopName = shop.string "name"
+        let transactionType =
+            match node.string "__typename" with
+            | "AppSaleAdjustment" -> AppSaleAdjustment
+            | "AppSaleCredit" -> AppSaleCredit
+            | "AppSubscriptionSale" -> AppSubscriptionSale
+            | x -> raise (ArgumentOutOfRangeException($"Unhandled Shopify transaction type \"{x}\"", nameof x))
         let toAmount = readToAmount node
         let grossAmount = toAmount "grossAmount"
         let shopifyFee = toAmount "shopifyFee"
         let netAmount = toAmount "netAmount"
+        // Shopify only started recording the grossAmount at a certain point in time, before which the grossAmount is always zero.
+        // If this is the case, the grossAmount should copy its value from the netAmount -- but only if this is an AppSubscriptionSale
+        let grossAmount =
+            match grossAmount, transactionType with
+            | 0, AppSubscriptionSale -> netAmount
+            | x, _ -> x
         // Shopify does not directly include the processing fee, but it can be determined by subtracting the
         // net amount from gross amount and shopify fee.
         let processingFee = grossAmount - shopifyFee - netAmount
@@ -124,17 +136,12 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             Id = node.string "id"
             TransactionDate = DateTimeOffset.Parse(node.string "createdAt")
             CustomerDescription = if String.IsNullOrWhiteSpace shopName then "REDACTED" else shopName
+            Type = transactionType
             GrossAmount = grossAmount
             ShopifyFee = shopifyFee
             ProcessingFee = processingFee
             NetAmount = netAmount
             App = readToApp node
-            Type =
-                match node.string "__typename" with
-                | "AppSaleAdjustment" -> AppSaleAdjustment
-                | "AppSaleCredit" -> AppSaleCredit
-                | "AppSubscriptionSale" -> AppSubscriptionSale
-                | x -> raise (ArgumentOutOfRangeException($"Unhandled Shopify transaction type \"{x}\"", nameof x))
             // The description will be filled by the describe function after the rest of the node has been parsed
             Description = String.Empty
         }
