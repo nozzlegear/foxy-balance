@@ -19,6 +19,7 @@ open Microsoft.Extensions.Hosting
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
 open Microsoft.Extensions.Configuration
+open Newtonsoft.Json
 
 module Migrator = FoxyBalance.Migrations.Migrator
 
@@ -48,6 +49,7 @@ let allRoutes : HttpHandler =
                 route "/income/sync" >=> Routes.Income.syncHandler
                 route "/income/new" >=> Routes.Income.newRecordHandler
                 routef "/income/%d" Routes.Income.recordDetailsHandler
+                routef "/income/%d/shopify-details.json" Routes.Income.rawShopifyTransactionHandler
                 routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
             ]
         ]
@@ -100,6 +102,11 @@ let cookieAuth (options : CookieAuthenticationOptions) =
     options.LoginPath <- PathString "/auth/login"
     options.LogoutPath <- PathString "/auth/logout"
 
+let jsonSerializer () =
+    let defaultSettings = NewtonsoftJson.Serializer.DefaultSettings
+    defaultSettings.Formatting <- Formatting.Indented
+    NewtonsoftJson.Serializer(defaultSettings)
+
 let configureServices (app : WebHostBuilderContext) (services : IServiceCollection) =
     let add (fn : unit -> _) = fn () |> ignore
     
@@ -111,6 +118,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
     add (fun _ -> services.AddSingleton<GumroadClient>())
     add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
+    add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
