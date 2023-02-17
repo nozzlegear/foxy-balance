@@ -25,6 +25,16 @@ td span.ignored {
     color: red;
 }
 
+iframe.shopify-data-frame {
+    display: none;
+    width: 100%;
+    min-height: 500px;
+}
+
+iframe.shopify-data-frame.loaded {
+    display: block;
+}
+
 /*Disable clicks on anchor links with the disabled attribute.
   If you don't turn off pointer events, users will still be able to click on them and follow the link. */
 a[disabled] {

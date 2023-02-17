@@ -258,14 +258,12 @@ module Income =
             match record.Source with
             | ManualTransaction _ -> $"Manually recorded transaction #{record.Id}"
             | x -> $"{Format.incomeSourceType x} transaction #{record.Id}"
-        let subtitle =
-            match record.Source with
-            | Paypal x
-            | Gumroad x
-            | Shopify x
-            | Stripe x -> Some x.TransactionId
-            | _ -> None
-            
+        let transactionIdSubtitle additionalElements =
+            Shared.subtitleFromList [
+                str "Source transaction ID: "
+                yield! additionalElements
+            ]
+
         let actionButton =
             let actionProps =
                 // Manual transactions can be deleted. All other transactions can only be ignored.
@@ -305,14 +303,32 @@ module Income =
                     Shared.subtitle ("Customer: " + Format.incomeSourceCustomerDescription record.Source)
                     Shared.subtitle ("Sale date: " + Format.date record.SaleDate)
                     
-                    subtitle
-                    |> Option.map (fun sub ->
-                        Shared.subtitleFromList [
-                            str "Source transaction ID: "
-                            abbr [_title sub] [str (Format.truncateStr(sub, 30))]
-                        ]    
-                    )
-                    |> Shared.maybeEl
+                    match record.Source with
+                    | IncomeSource.Paypal source
+                    | IncomeSource.Gumroad source
+                    | IncomeSource.Stripe source ->
+                        transactionIdSubtitle [
+                            abbr [_title source.TransactionId] [str source.TransactionId]
+                        ]
+                    | IncomeSource.Shopify source ->
+                        transactionIdSubtitle [
+                            a [
+                                _target "shopify-data-frame"
+                                _onclick "document.getElementById(this.target).classList.add('loaded')"
+                                _href $"/income/{record.Id}/shopify-details.json"
+                                _title "Click to load transaction JSON"
+                            ] [
+                                str source.TransactionId
+                            ]
+                        ]
+                        // An iframe which can load the Shopify transaction's json data when the source transaction id is clicked
+                        iframe [
+                            _class "notification shopify-data-frame"
+                            _id "shopify-data-frame"
+                            _name "shopify-data-frame"
+                        ] []
+                    | IncomeSource.ManualTransaction _ ->
+                        ()
                 ]
 
                 div [_class "column is-one-third box"] [

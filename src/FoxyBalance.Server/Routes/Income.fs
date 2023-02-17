@@ -203,6 +203,29 @@ module Income =
             | None ->
                 return! (setStatusCode 404 >=> text "Not Found") next ctx 
         })
+        
+    let rawShopifyTransactionHandler (recordId: int64) : HttpHandler =
+        let notFound msg = setStatusCode 404 >=> text msg
+        let error statusCode (msg: string) = setStatusCode statusCode >=> json {| ok = false; message = msg; recordId = recordId |}
+        
+        RouteUtils.withSession(fun session next ctx -> task {
+            let database = ctx.GetService<IIncomeDatabase>()
+            let client = ctx.GetService<ShopifyPartnerClient>()
+            
+            match! database.GetAsync session.UserId recordId with
+            | Some record ->
+                match record.Source with
+                | Shopify shopify ->
+                    match! client.GetTransaction(shopify.TransactionId) with
+                    | Some shopifyTransaction ->
+                        return! json {| transaction = shopifyTransaction; databaseRecord = record |} next ctx
+                    | None ->
+                        return! error 404 $"Shopify transaction could with id \"{shopify.TransactionId}\" could could not be found." next ctx
+                | x ->
+                    return! (HttpStatusCodeHandlers.RequestErrors.unprocessableEntity (text $"Record {recordId} is not a Shopify transaction, it is a {x.GetType().Name} transaction.")) next ctx
+            | None ->
+                return! notFound $"Database record with id {recordId} not found" next ctx
+        })
 
     let executeToggleIgnoreHandler (recordId: int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
