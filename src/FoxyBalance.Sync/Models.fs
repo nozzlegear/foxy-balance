@@ -7,17 +7,31 @@ type GumroadClientOptions() =
     member val ApplicationId: string = "" with get, set
     member val ApplicationSecret: string = "" with get, set
     
-type ShopifySale = {
-    Id : string
-    SaleDate : DateTimeOffset
-    PayoutDate : DateTimeOffset
-    SaleAmount : int
-    ShopifyFee : int
-    ProcessingFee : int
-    PartnerShare : int
-    AppTitle : string
-    Description : string
-    CustomerDescription : string
+type ShopifyPartnerClientOptions() =
+    member val AccessToken: string = "" with get, set
+    member val OrganizationId: string = "" with get, set
+    
+type ShopifyAppDetails = {
+    Id: string
+    Title: string
+}
+
+type ShopifyTransactionType =
+    | AppSubscriptionSale
+    | AppSaleAdjustment
+    | AppSaleCredit
+
+type ShopifyTransaction = {
+    Id: string
+    Type: ShopifyTransactionType
+    TransactionDate: DateTimeOffset
+    CustomerDescription: string
+    Description: string
+    GrossAmount: int
+    ShopifyFee: int
+    ProcessingFee: int
+    NetAmount: int
+    App: ShopifyAppDetails option
 }
 
 type GumroadSale = {
@@ -54,4 +68,10 @@ type PaypalInvoice = {
     InvoiceNumber: string
     Description: string
     CustomerDescription: string
+}
+
+type ShopifyTransactionListResult = {
+    NextPageCursor: string option
+    PreviousPageCursor: string option
+    Transactions: ShopifyTransaction seq
 }

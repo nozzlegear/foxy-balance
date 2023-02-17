@@ -4,6 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{44CD8DE0-D05E-4D5E-89CD-581B4835A934}"
+	ProjectSection(SolutionItems) = preProject
+		partner.fish = partner.fish
+		temp.graph = temp.graph
+	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FoxyBalance.Server", "src\FoxyBalance.Server\FoxyBalance.Server.fsproj", "{CD189A9D-C2C5-458A-AA58-5872B1BF717B}"
 EndProject

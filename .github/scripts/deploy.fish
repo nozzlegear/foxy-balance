@@ -28,7 +28,9 @@ set CONTAINER_SECRETS_LIST "FoxyBalance_HashingKey" \
     "FoxyBalance_ConnectionStrings__SqlDatabase" \
     "FoxyBalance_Gumroad__ApplicationSecret" \
     "FoxyBalance_Gumroad__ApplicationId" \
-    "FoxyBalance_Gumroad__AccessToken"
+    "FoxyBalance_Gumroad__AccessToken" \
+    "FoxyBalance_Shopify__OrganizationId" \
+    "FoxyBalance_Shopify__AccessToken"
 
 set CONTAINER_IMAGE "$argv[1]"
 set CONTAINER_NAME "foxy_balance"

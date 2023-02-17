@@ -35,6 +35,7 @@ module Income =
 
             model.TaxYears
             |> List.ofSeq
+            |> List.sortDescending
             |> List.map (fun year -> control year.TaxYear)
             |> List.append [ Shared.LevelItem.Element (str "Tax Year") ]
 
@@ -127,18 +128,17 @@ module Income =
                     Form.Checked model.SyncGumroadIncome
                     Form.CheckboxOption.HtmlName "syncGumroad"
                     Form.CheckboxOption.CheckboxText "Sync Gumroad income" ]
+
+                Form.Element.CheckboxInput [
+                    Form.Checked model.SyncGumroadIncome
+                    Form.CheckboxOption.HtmlName "syncShopify"
+                    Form.CheckboxOption.CheckboxText "Sync Shopify income" ]
                 
                 Form.Element.FileInput [
                     Form.LabelText "Paypal transactions CSV file"
                     Form.HelpText "Upload your Paypal transactions CSV file here, and invoice income will be parsed by Foxy Balance to be sorted into the appropriate tax year."
                     Form.Accept ".csv"
                     Form.HtmlName "paypalCsvFile" ]
-                
-                Form.Element.FileInput [
-                    Form.LabelText "Shopify earnings CSV file"
-                    Form.HelpText "Upload your Shopify earnings CSV file here, and the earnings will be parsed by Foxy Balance and sorted by the appropriate tax year."
-                    Form.Accept ".csv"
-                    Form.HtmlName "shopifyCsvFile" ]
 
                 Form.Element.MaybeError model.Error
 
@@ -258,14 +258,12 @@ module Income =
             match record.Source with
             | ManualTransaction _ -> $"Manually recorded transaction #{record.Id}"
             | x -> $"{Format.incomeSourceType x} transaction #{record.Id}"
-        let subtitle =
-            match record.Source with
-            | Paypal x
-            | Gumroad x
-            | Shopify x
-            | Stripe x -> Some x.TransactionId
-            | _ -> None
-            
+        let transactionIdSubtitle additionalElements =
+            Shared.subtitleFromList [
+                str "Source transaction ID: "
+                yield! additionalElements
+            ]
+
         let actionButton =
             let actionProps =
                 // Manual transactions can be deleted. All other transactions can only be ignored.
@@ -305,14 +303,32 @@ module Income =
                     Shared.subtitle ("Customer: " + Format.incomeSourceCustomerDescription record.Source)
                     Shared.subtitle ("Sale date: " + Format.date record.SaleDate)
                     
-                    subtitle
-                    |> Option.map (fun sub ->
-                        Shared.subtitleFromList [
-                            str "Source transaction ID: "
-                            abbr [_title sub] [str (Format.truncateStr(sub, 30))]
-                        ]    
-                    )
-                    |> Shared.maybeEl
+                    match record.Source with
+                    | IncomeSource.Paypal source
+                    | IncomeSource.Gumroad source
+                    | IncomeSource.Stripe source ->
+                        transactionIdSubtitle [
+                            abbr [_title source.TransactionId] [str source.TransactionId]
+                        ]
+                    | IncomeSource.Shopify source ->
+                        transactionIdSubtitle [
+                            a [
+                                _target "shopify-data-frame"
+                                _onclick "document.getElementById(this.target).classList.add('loaded')"
+                                _href $"/income/{record.Id}/shopify-details.json"
+                                _title "Click to load transaction JSON"
+                            ] [
+                                str source.TransactionId
+                            ]
+                        ]
+                        // An iframe which can load the Shopify transaction's json data when the source transaction id is clicked
+                        iframe [
+                            _class "notification shopify-data-frame"
+                            _id "shopify-data-frame"
+                            _name "shopify-data-frame"
+                        ] []
+                    | IncomeSource.ManualTransaction _ ->
+                        ()
                 ]
 
                 div [_class "column is-one-third box"] [
