@@ -33,15 +33,33 @@ type private TransactionQueryParams =
     | TransactionListParams of TransactionListParams
     | TransactionGetParams of TransactionGetParams
 
+/// A ShopifySharp execution policy which retries requests after 750ms. The Shopify Partner API is hard limited to
+/// four requests per second and does not conform to the GraphQL cost limits or REST leaky bucket limits.
+type private RetryExecutionPolicy () =
+    let DELAY = TimeSpan.FromMilliseconds 750
+
+    let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken) = task {
+        try
+            return! execute.Invoke requestMessage
+        with
+        :? ShopifyRateLimitException ->
+            // Delay execution and then retry
+            do! Task.Delay(DELAY, cancellationToken)
+            return! run (requestMessage.Clone(), execute, cancellationToken)
+    }
+
+    interface IRequestExecutionPolicy with
+        member this.Run(requestMessage, executeRequestAsync, cancellationToken, _) =
+            run(requestMessage, executeRequestAsync, cancellationToken)
+    end
+
 type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
     inherit GraphService("example.myshopify.com", options.Value.AccessToken)
     
     let options = options.Value
-    let policy = LeakyBucketExecutionPolicy()
+    let policy = RetryExecutionPolicy()
 
-    do (
-        base.SetExecutionPolicy(policy)
-    )
+    do base.SetExecutionPolicy(policy)
     
     let [<Literal>] TransactionProperties = """
         app {
@@ -205,7 +223,7 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
         
         base.SendAsync(request, content, graphqlQueryCost, cancellationToken)
         
-    override x.PostAsync(body: JToken, graphqlQueryCost: Nullable<int>, cancellationToken: CancellationToken): Task<JToken> =
+    override x.PostAsync(_: JToken, _: Nullable<int>, _: CancellationToken): Task<JToken> =
         failwithf "not implemented"
 
     member x.ListTransactionsAsync (page: string option, ?cancellationToken): Task<ShopifyTransactionListResult> = task {
