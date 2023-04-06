@@ -9,6 +9,8 @@ open FoxyBalance.Sync.Models
 type PaypalTransactions = CsvProvider<"../../assets/paypal-transaction-activity.csv", Schema = "Date (string)">
 
 type PaypalTransactionParser() =
+    let [<Literal>] invoiceTransactionType = "T0007"
+    let [<Literal>] expressInvoiceTransactionType = "T0006"
     // Timezones seem to be either PST or PDT
     let tz = TimeZoneInfo.FindSystemTimeZoneById "America/Los_Angeles"
 
@@ -22,11 +24,9 @@ type PaypalTransactionParser() =
     let parsePaypalAmount amt =
         int (amt * 100M)
 
-    [<Literal>]
-    let invoiceTransactionType = "T0007"
-
     let isInvoice (row: PaypalTransactions.Row): bool = 
-        row.``Transaction Event Code`` = invoiceTransactionType
+        (row.``Transaction Event Code`` = invoiceTransactionType
+         || row.``Transaction Event Code`` = expressInvoiceTransactionType)
         && row.Gross > 0M
         && row.``Invoice Number``.HasValue
     
