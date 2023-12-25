@@ -1,7 +1,0 @@
-group Tests
-    xunit
-    xunit.runner.visualstudio
-    Microsoft.NET.Test.Sdk
-    coverlet.collector
-    microsoft.extensions.configuration.usersecrets
-    microsoft.extensions.configuration.environmentvariables

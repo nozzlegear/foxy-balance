@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <DebugType>portable</DebugType>
     <AssemblyName>foxy_balance</AssemblyName>
     <OutputType>Exe</OutputType>
@@ -23,6 +23,13 @@
     <Compile Include="Views\Income.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
+    <Compile Include="Routes\Auth.fs" />
+    <Compile Include="Routes\Balance.fs" />
+    <Compile Include="Routes\Income.fs" />
+    <Compile Include="Program.fs" />
+    <Content Include="appsettings.development.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -38,15 +45,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Routes\Auth.fs" />
-    <Compile Include="Routes\Balance.fs" />
-    <Compile Include="Routes\Income.fs" />
-    <Compile Include="Program.fs" />
-    <Content Include="appsettings.development.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <PackageReference Include="Giraffe" />
+    <PackageReference Include="fsharp.core" />
   </ItemGroup>
-
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
 
 </Project>

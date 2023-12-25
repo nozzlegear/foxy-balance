@@ -11,5 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\FoxyBalance.Migrations\FoxyBalance.Migrations.fsproj" />
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" />
+    <PackageReference Include="fsharp.core" />
+  </ItemGroup>
 </Project>

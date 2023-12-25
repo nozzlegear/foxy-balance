@@ -13,5 +13,9 @@
     <Compile Include="Implementations\TransactionDatabase.fs" />
     <Compile Include="Implementations\IncomeDatabase.fs" />
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <PackageReference Include="system.data.sqlclient" />
+    <PackageReference Include="fsharp.core" />
+    <PackageReference Include="dustytables" />
+  </ItemGroup>
 </Project>

@@ -19,5 +19,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <PackageReference Include="simple.migrations" />
+    <PackageReference Include="system.data.sqlclient" />
+    <PackageReference Include="fsharp.core" />
+  </ItemGroup>
 </Project>

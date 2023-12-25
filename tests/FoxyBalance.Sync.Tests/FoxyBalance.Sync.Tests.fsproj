@@ -16,5 +16,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
   </ItemGroup>
-  <Import Project="..\..\.paket\Paket.Restore.targets" />
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="microsoft.extensions.configuration.usersecrets" />
+    <PackageReference Include="microsoft.extensions.configuration.environmentvariables" />
+  </ItemGroup>
 </Project>

@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+    <PackageVersion Include="DustyTables" Version="4.0" />
+    <PackageVersion Include="FSharp.Core" Version="7.0" />
+    <PackageVersion Include="FSharp.Data" Version="5.0.2" />
+    <PackageVersion Include="Giraffe" Version="6.0" />
+    <PackageVersion Include="JsonSharp" Version="1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="7.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="7.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
+    <PackageVersion Include="ShopifySharp" Version="5.19.1" />
+    <PackageVersion Include="Simple.Migrations" Version="0.9.21" />
+    <PackageVersion Include="System.Data.SqlClient" Version="4.8.5" />
+    <PackageVersion Include="System.Text.Json" Version="7.0.1" />
+    <PackageVersion Include="coverlet.collector" Version="3.2" />
+    <PackageVersion Include="xunit" Version="2.4.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
+  </ItemGroup>
+</Project>
