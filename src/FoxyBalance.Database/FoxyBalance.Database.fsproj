@@ -14,8 +14,8 @@
     <Compile Include="Implementations\IncomeDatabase.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="system.data.sqlclient" />
-    <PackageReference Include="fsharp.core" />
+    <PackageReference Include="System.Data.SqlClient" />
+    <PackageReference Include="FSharp.Core" />
     <PackageReference Include="dustytables" />
   </ItemGroup>
 </Project>

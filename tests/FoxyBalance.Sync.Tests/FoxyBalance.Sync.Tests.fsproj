@@ -21,7 +21,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="microsoft.extensions.configuration.usersecrets" />
-    <PackageReference Include="microsoft.extensions.configuration.environmentvariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
   </ItemGroup>
 </Project>

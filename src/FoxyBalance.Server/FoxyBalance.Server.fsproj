@@ -46,7 +46,7 @@
 
   <ItemGroup>
     <PackageReference Include="Giraffe" />
-    <PackageReference Include="fsharp.core" />
+    <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 
 </Project>

@@ -13,10 +13,10 @@
     <Compile Include="PaypalTransactionParser.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="fsharp.core" />
-    <PackageReference Include="fsharp.data" />
-    <PackageReference Include="shopifysharp" />
-    <PackageReference Include="jsonsharp" />
-    <PackageReference Include="system.text.json" />
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="FSharp.Data" />
+    <PackageReference Include="ShopifySharp" />
+    <PackageReference Include="JsonSharp" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 </Project>

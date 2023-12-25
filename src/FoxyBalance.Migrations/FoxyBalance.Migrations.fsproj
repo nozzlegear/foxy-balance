@@ -20,8 +20,8 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="simple.migrations" />
-    <PackageReference Include="system.data.sqlclient" />
-    <PackageReference Include="fsharp.core" />
+    <PackageReference Include="Simple.Migrations" />
+    <PackageReference Include="System.Data.SqlClient" />
+    <PackageReference Include="FSharp.Core" />
   </ItemGroup>
 </Project>
