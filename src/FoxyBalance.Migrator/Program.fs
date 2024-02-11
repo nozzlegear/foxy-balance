@@ -1,6 +1,8 @@
 ﻿open CommandLine
 open FoxyBalance.Migrations.Migrator
 open FoxyBalance.Migrator.Options
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Logging
 
 let processParserErrors (result : NotParsed<obj>) =
     let error = Seq.head result.Errors
@@ -17,7 +19,12 @@ let processParserErrors (result : NotParsed<obj>) =
         Problem $"Received parser error %A{x}"
         
 let run connStr action =
-    migrate action connStr
+    let services =
+        ServiceCollection()
+         .AddLogging(fun x -> x.AddConsole() |> ignore)
+         .BuildServiceProvider()
+    let loggingFactory = services.GetRequiredService<ILoggerFactory>()
+    migrate(action, connStr, loggingFactory)
     Exit Success
         
 let parseAndRun args =

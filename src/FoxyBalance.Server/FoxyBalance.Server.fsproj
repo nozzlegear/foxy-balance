@@ -16,19 +16,26 @@
     <Compile Include="Format.fs" />
     <Compile Include="Task.fs" />
     <Compile Include="Models.fs" />
+    <Compile Include="Extensions\ModelStateExtensions.fs" />
+    <Compile Include="Authentication\SessionLoaderUtil.fs" />
+    <Compile Include="Authentication\CookieSessionAuthenticationHandler.fs" />
+    <Compile Include="Authentication\ServiceCollectionExtensions.fs" />
+    <Compile Include="BlazorViewResult.fs" />
+    <Compile Include="ExtendActionResult.fs" />
     <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\Components\Form.fs" />
-    <Compile Include="Views\Auth.fs" />
     <Compile Include="Views\Balance.fs" />
     <Compile Include="Views\Income.fs" />
     <Compile Include="Hashes.fs" />
-    <Compile Include="RouteUtils.fs" />
-    <Compile Include="Routes\Auth.fs" />
-    <Compile Include="Routes\Balance.fs" />
-    <Compile Include="Routes\Income.fs" />
+    <Compile Include="Controllers\AuthController.fs" />
+    <Compile Include="Controllers\BalanceController.fs" />
+    <Compile Include="Controllers\IncomeController.fs" />
     <Compile Include="Program.fs" />
-    <Content Include="appsettings.development.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
@@ -39,13 +46,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FoxyBalance.BlazorViews\FoxyBalance.BlazorViews.csproj" />
     <ProjectReference Include="..\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
     <ProjectReference Include="..\FoxyBalance.Migrations\FoxyBalance.Migrations.fsproj" />
     <ProjectReference Include="..\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Giraffe" />
     <PackageReference Include="fsharp.core" />
   </ItemGroup>
 

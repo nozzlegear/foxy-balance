@@ -1,6 +1,6 @@
 ﻿namespace FoxyBalance.Migrations
 
-open System.Data.Common
+open Microsoft.Extensions.Logging
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
 open System.Data.SqlClient
@@ -12,15 +12,18 @@ module Migrator =
         | Target of int64
     
     /// Migrates the SQL database to the desired target migration.
-    let migrate direction (connStr : string) =
-        let assembly = typeof<FoxyBalance.Migrations.Migration_01>.Assembly
-        
+    let migrate (direction, connStr : string, loggerFactory: ILoggerFactory) =
+        let logger =
+            loggerFactory.CreateLogger<SimpleMigrator>()
+            |> CustomLogger
+        let assembly = typeof<Migration_01>.Assembly
+
         use connection = new SqlConnection(connStr)
         connection.Open()
         let provider = MssqlDatabaseProvider connection
         // Customize the name of the migration history table
         provider.TableName <- "FoxyBalance_Migrations"
-        let migrator = SimpleMigrator(assembly, provider)
+        let migrator = SimpleMigrator(assembly, provider, logger)
         
         migrator.Load()
         

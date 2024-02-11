@@ -29,43 +29,6 @@ module Shared =
         | Some el -> el
         | None -> emptyText
     
-    let head pageTitle : XmlNode =
-        head [] [
-            title [] [str pageTitle]
-            meta [_charset "UTF-8"]
-            meta [_httpEquiv "X-UA-Compatible"; _content "IE=edge"]
-            meta [_name "viewport"; _content "width=device-width, initial-scale=1.0"]
-            // Icons
-            link [_rel "shortcut icon"; _href "/Images/Icons/favicon.ico"; _type "image/x-icon" ]
-            link [_rel "apple-touch-icon"; _href "/Images/Icons/apple-touch-icon.png" ]
-            link [_rel "apple-touch-icon"; _sizes "57x57"; _href "/Images/Icons/apple-touch-icon-57x57.png" ]
-            link [_rel "apple-touch-icon"; _sizes "72x72"; _href "/Images/Icons/apple-touch-icon-72x72.png" ]
-            link [_rel "apple-touch-icon"; _sizes "76x76"; _href "/Images/Icons/apple-touch-icon-76x76.png" ]
-            link [_rel "apple-touch-icon"; _sizes "114x114"; _href "/Images/Icons/apple-touch-icon-114x114.png" ]
-            link [_rel "apple-touch-icon"; _sizes "120x120"; _href "/Images/Icons/apple-touch-icon-120x120.png" ]
-            link [_rel "apple-touch-icon"; _sizes "144x144"; _href "/Images/Icons/apple-touch-icon-144x144.png" ]
-            link [_rel "apple-touch-icon"; _sizes "152x152"; _href "/Images/Icons/apple-touch-icon-152x152.png" ]
-            link [_rel "apple-touch-icon"; _sizes "180x180"; _href "/Images/Icons/apple-touch-icon-180x180.png" ]
-            // Manifest for PWA capabilities
-            link [_rel "manifest"; _href "/manifest.json"]
-            // CSS stylesheets
-            link [
-                _rel "stylesheet"
-                _href "https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.min.css"
-                _integrity "sha256-D9M5yrVDqFlla7nlELDaYZIpXfFWDytQtiV+TaH6F1I="
-                _crossorigin "anonymous"
-            ]
-            link [
-                _rel "stylesheet"
-                _href "/main.css"
-            ]
-            // Let the app be installed as a full screen web app on mobile devices
-            meta [_name "mobile-web-app-capable"; _content "yes"]
-            meta [_name "mobile-web-app-title"; _content "Foxy Balance"]
-            meta [_name "apple-mobile-web-app-capable"; _content "yes"]
-            meta [_name "apple-mobile-web-app-title"; _content "Foxy Balance"]
-        ]
-    
     type AuthStatus =
         | Unauthenticated
         | Authenticated

@@ -1,0 +1,13 @@
+@using System.ComponentModel.DataAnnotations
+
+@if (Error is not null)
+{
+    <div class="field">
+        <div class="control">@Error</div>
+    </div>
+}
+
+@code {
+    [Required, EditorRequired]
+    public required string? Error { get; set; }
+}

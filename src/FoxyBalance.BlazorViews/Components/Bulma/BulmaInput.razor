@@ -1,0 +1,26 @@
+@rendermode InteractiveServer
+@inherits InputText
+<div class="field">
+    <div class="control">
+        <label class="label" for="@Name">@Label</label>
+        <input class="input" name="@Name" @attributes="@AdditionalAttributes" />
+        @if (HelpText is not null)
+        {
+            <p class="help">@HelpText</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Name { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Label { get; set; }
+
+    [Parameter]
+    public string? HelpText { get; set; }
+
+    // [Parameter(CaptureUnmatchedValues = true)]
+    // public IDictionary<string, object>? AdditionalAttributes { get; set; }
+}

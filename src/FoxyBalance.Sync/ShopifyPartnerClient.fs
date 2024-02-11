@@ -38,7 +38,7 @@ type private TransactionQueryParams =
 type private RetryExecutionPolicy () =
     let DELAY = TimeSpan.FromMilliseconds 750
 
-    let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken) = task {
+    let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken: CancellationToken) = task {
         try
             return! execute.Invoke requestMessage
         with

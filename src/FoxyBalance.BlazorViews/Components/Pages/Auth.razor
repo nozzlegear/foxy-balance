@@ -1,0 +1,48 @@
+@rendermode InteractiveServer
+@{
+    var (pageTitle, buttonText) = PageType switch
+    {
+        AuthPageType.Login => ("Login to your account", "Login"),
+        AuthPageType.Register => ("Create Account", "Create account"),
+        _ => throw new SwitchExpressionException(PageType)
+    };
+}
+
+<LayoutView Layout="@typeof(MainLayout)">
+    <PageTitle>@(pageTitle)</PageTitle>
+    <BulmaSection WrapChildren="@BulmaSection.WrapType.WrapInSection">
+        <BulmaForm Title="@pageTitle" method="post">
+            <BulmaInput Label="Username"
+                        Name="username"
+                        value="@Username"
+                        type="text"
+                        required=""/>
+            <BulmaInput Label="Password"
+                        Name="password"
+                        type="password"
+                        required=""/>
+            <MaybeError Error="@Error"/>
+            <button class="is-primary" type="submit">
+                @buttonText
+            </button>
+        </BulmaForm>
+    </BulmaSection>
+</LayoutView>
+
+@code {
+    public enum AuthPageType
+    {
+        Login,
+        Register
+    }
+
+    [Parameter, EditorRequired]
+    public required string? Error { get; init; }
+
+    [Parameter, EditorRequired]
+    public required AuthPageType PageType { get; init; }
+
+    [Parameter]
+    public string? Username { get; init; }
+}
+

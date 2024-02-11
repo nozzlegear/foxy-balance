@@ -1,0 +1,28 @@
+@inherits ComponentBase
+@rendermode InteractiveServer
+
+@if (WrapChildren == WrapType.DoNotWrap)
+{
+    @ChildContent
+}
+else if (WrapChildren is null or WrapType.WrapInSection)
+{
+    <div id="content-host" class="container">
+        @ChildContent
+    </div>
+}
+
+@code {
+
+    public enum WrapType
+    {
+        WrapInSection,
+        DoNotWrap
+    }
+
+    [Parameter]
+    public WrapType? WrapChildren { get; set; }
+
+    [Parameter, EditorRequired]
+    public required RenderFragment ChildContent { get; init; }
+}

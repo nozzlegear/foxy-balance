@@ -1,8 +1,12 @@
 ﻿namespace FoxyBalance.Server.Models
 
-open System.Globalization
+open System.ComponentModel.DataAnnotations
 open FoxyBalance.Database.Models
 open Microsoft.Extensions.Configuration
+open System
+open System.Globalization
+open System.Linq;
+open System.Security.Claims
 
 type IConstants =
     abstract member HashingKey : string with get
@@ -27,10 +31,14 @@ type Constants(config : IConfiguration) =
 type DatabaseOptions(constants : IConstants) =
     interface FoxyBalance.Database.Models.IDatabaseOptions with
         member val ConnectionString = constants.ConnectionString
-    
-type Session =
-    { UserId : int }
-     
+
+type CookieSession(userId: UserId) =
+    inherit ClaimsIdentity([Claim("UserId", string userId, ClaimValueTypes.Integer)])
+    new(claims: Claim seq) =
+        let userIdClaim = claims.First(fun x -> x.Type = "UserId")
+        CookieSession(Int32.Parse userIdClaim.Value)
+    member _.UserId = userId
+
 module RequestModels =
     [<CLIMutable>]
     type LoginRequest =
@@ -38,17 +46,24 @@ module RequestModels =
           Password : string }
         
     [<CLIMutable>]
-    type EditTransactionRequest =
-        { Amount : string
-          Name : string
-          CheckNumber : string
-          Date : string
-          ClearDate : string
-          TransactionType : string }
+    type EditTransactionRequest = {
+        [<Required; Range(0.01, Double.MaxValue)>]
+        Amount: string
+        [<Required(AllowEmptyStrings = false)>]
+        Name: string
+        [<Required; DataType(DataType.Date)>]
+        Date: string
+        [<Required; DataType(DataType.Date)>]
+        ClearDate: string
+        [<Required; AllowedValues("credit", "debit")>]
+        TransactionType: string
+        CheckNumber: string
+    }
         with
         static member Validate model : Result<PartialTransaction, string> =
             let tryParseDate dateStr =
-                System.DateTimeOffset.TryParseExact(
+                let f = float 0.01M
+                DateTimeOffset.TryParseExact(
                     dateStr,
                     "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
@@ -196,11 +211,11 @@ module RequestModels =
         NewTaxRate: int
     }
     with
-    static member Validate (model : NewTaxRateRequest) =
-        if model.NewTaxRate > 99 || model.NewTaxRate < 1 then
-            Result.Error "Tax rate must be between 1 and 99."
-        else
-            Result.Ok model
+        static member Validate (model : NewTaxRateRequest) =
+            if model.NewTaxRate > 99 || model.NewTaxRate < 1 then
+                Result.Error "Tax rate must be between 1 and 99."
+            else
+                Result.Ok model
 
 module ViewModels =
     type RouteType =

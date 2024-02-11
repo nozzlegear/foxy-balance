@@ -17,6 +17,11 @@
     <PackageReference Include="fsharp.data" />
     <PackageReference Include="shopifysharp" />
     <PackageReference Include="jsonsharp" />
+    <PackageReference Include="ShopifySharp.Extensions.DependencyInjection" />
     <PackageReference Include="system.text.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Update="shopifysharp" Version="6.10.0" />
+    <PackageVersion Update="system.text.json" Version="8.0.0" />
   </ItemGroup>
 </Project>

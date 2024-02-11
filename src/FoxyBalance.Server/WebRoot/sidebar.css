@@ -1,61 +1,6 @@
-@import "./sidebar.css";
-
-.amount {
-    /*font-weight: bold;*/
-}
-
-.amount.credit {
-    color: green;
-}
-
-.amount.debit {
-    color: red;
-}
-
-p.estimated-tax {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
-p.estimated-tax .ignored {
-    color: red;
-    font-weight: 500;
-}
-
-td span.ignored {
-    color: red;
-}
-
-iframe.shopify-data-frame {
-    display: none;
-    width: 100%;
-    min-height: 500px;
-}
-
-iframe.shopify-data-frame.loaded {
-    display: block;
-}
-
-/*Disable clicks on anchor links with the disabled attribute.
-  If you don't turn off pointer events, users will still be able to click on them and follow the link. */
-a[disabled] {
-    pointer-events: none;
-}
-
 /*
- * Sidebar
- *
- * The sidebar is the drawer, the item we are toggling with our handy hamburger
- * button in the corner of the page.
- *
- * This particular sidebar implementation was inspired by Chris Coyier's
- * "Offcanvas Menu with CSS Target" article, and the checkbox variation from the
- * comments by a reader. It modifies both implementations to continue using the
- * checkbox (no change in URL means no polluted browser history), but this uses
- * `position` for the menu to avoid some potential content reflow issues.
- *
- * Source: http://css-tricks.com/off-canvas-menu-with-css-target/#comment-207504
+ * The sidebar is the nav menu drawer on mobile and the hamburger button that toggles it.
+ * Source: https://github.com/poole/lanyon/blob/e637093ba6cd51830a941a112a64d58e6032e5ed/public/css/lanyon.css
  */
 
 /* Style and "hide" the sidebar */
@@ -177,15 +122,10 @@ a.sidebar-nav-item:focus {
 
 /* Slide effect
  *
- * Handle the sliding effects of the sidebar and content in one spot, separate
- * from the default styles.
- *
- * As an a heads up, we don't use `transform: translate3d()` here because when
+ * As a heads up, we don't use `transform: translate3d()` here because when
  * mixed with `position: fixed;` for the sidebar toggle, it creates a new
  * containing block. Put simply, the fixed sidebar toggle behaves like
  * `position: absolute;` when transformed.
- *
- * Read more about it at http://meyerweb.com/eric/thoughts/2011/09/12/.
  */
 
 .wrap,

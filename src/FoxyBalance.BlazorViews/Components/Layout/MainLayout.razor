@@ -1,0 +1,52 @@
+﻿@inherits LayoutComponentBase
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Foxy Balance</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge"/>
+    @* Icons *@
+    <link rel="shortcut icon" href="/Images/Icons/favicon.ico" type="image/x-icon"/>
+    <link rel="apple-touch-icon" href="/Images/Icons/apple-touch-icon.png"/>
+    <link rel="apple-touch-icon" sizes="57x57" href="/Images/Icons/apple-touch-icon-57x57.png"/>
+    <link rel="apple-touch-icon" sizes="72x72" href="/Images/Icons/apple-touch-icon-72x72.png"/>
+    <link rel="apple-touch-icon" sizes="76x76" href="/Images/Icons/apple-touch-icon-76x76.png"/>
+    <link rel="apple-touch-icon" sizes="114x114" href="/Images/Icons/apple-touch-icon-114x114.png"/>
+    <link rel="apple-touch-icon" sizes="120x120" href="/Images/Icons/apple-touch-icon-120x120.png"/>
+    <link rel="apple-touch-icon" sizes="144x144" href="/Images/Icons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon" sizes="152x152" href="/Images/Icons/apple-touch-icon-152x152.png"/>
+    <link rel="apple-touch-icon" sizes="180x180" href="/Images/Icons/apple-touch-icon-180x180.png"/>
+    @* Let the app be installed as a full screen web app on mobile devices *@
+    <meta name="mobile-web-app-capable" content="yes" \>
+    <meta name="mobile-web-app-title" content="Foxy Balance" \>
+    <meta name="apple-mobile-web-app-capable" content="yes" \>
+    <meta name="apple-mobile-web-app-title" content="Foxy Balance" \>
+    @* Manifest for PWA capabilities *@
+    <link rel="manifest" href="/manifest.json"/>
+    @* CSS stylesheets *@
+    <link rel="stylesheet" href="/bulma.min.css" integrity="sha256-D9M5yrVDqFlla7nlELDaYZIpXfFWDytQtiV+TaH6F1I="/>
+    <link rel="stylesheet" href="/main.css"/>
+    <base href="/"/>
+    <HeadOutlet/>
+</head>
+
+<body>
+<div class="page">
+    <div class="sidebar">
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        </div>
+        <NavMenu />
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+@* <script src="_framework/blazor.web.js"></script> *@
+</body>
+
+</html>

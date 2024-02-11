@@ -1,157 +1,92 @@
-module Program 
+module Program
 
+#nowarn "20"
+
+open System.Text.Json
+open BlazorApp1;
 open FoxyBalance.Database
+open FoxyBalance.Migrations
 open FoxyBalance.Database.Interfaces
-open System
 open System.IO
-open System.Net.Http
 open Microsoft.AspNetCore.Builder
-open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
-open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
-open Giraffe
 open FoxyBalance.Server
-open Microsoft.AspNetCore
-open Microsoft.AspNetCore.Authentication.Cookies
-open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Hosting
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
+open FoxyBalance.Server.Authentication
 open Microsoft.Extensions.Configuration
-open Newtonsoft.Json
-
-module Migrator = FoxyBalance.Migrations.Migrator
-
-let allRoutes : HttpHandler =
-    // Requires authentication for all routes inside the list
-    let authenticated routes =
-        let wrapped : HttpHandler list =
-            routes
-            |> List.map (fun r -> RouteUtils.requiresAuthentication >=> r)
-        choose wrapped
-        
-    choose [
-        GET >=> choose [
-            route "/" >=> redirectTo false "/balance"
-            route "/home" >=> redirectTo false "/balance"
-            route "/auth/logout" >=> Routes.Auth.logoutHandler
-            route "/auth/login" >=> Routes.Auth.loginHandler
-            route "/auth/register" >=> Routes.Auth.registerHandler
-            authenticated [
-                route "/balance/clear" >=> text "Not yet implemented"
-                route "/balance/adjust-balance" >=> text "Not yet implemented"
-                route "/balance/new" >=> Routes.Balance.newTransactionHandler
-                route "/balance" >=> Routes.Balance.homePageHandler
-                routef "/balance/%d" Routes.Balance.editTransactionHandler
-                
-                route "/income" >=> Routes.Income.homePageHandler
-                route "/income/sync" >=> Routes.Income.syncHandler
-                route "/income/new" >=> Routes.Income.newRecordHandler
-                routef "/income/%d" Routes.Income.recordDetailsHandler
-                routef "/income/%d/shopify-details.json" Routes.Income.rawShopifyTransactionHandler
-                routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
-            ]
-        ]
-        POST >=> choose [
-            route "/auth/login" >=> Routes.Auth.loginPostHandler
-            route "/auth/register" >=> Routes.Auth.registerPostHandler
-            authenticated [
-                route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
-                routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
-                routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
-                route "/income/sync" >=> Routes.Income.executeSyncHandler
-                route "/income/new" >=> Routes.Income.executeNewRecordHandler
-                routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
-                routef "/income/%d/delete" Routes.Income.executeDeleteHandler
-                routef "/income/tax-rate/%i" Routes.Income.executeTaxRateHandler
-            ]
-        ]
-        setStatusCode 404 >=> text "Not Found"
-    ]
-
-let errorHandler (ex : Exception) (logger : ILogger) =
-    logger.LogError(ex, "An unhandled exception has occurred while executing the request.")
-    clearResponse >=> setStatusCode 500 >=> text ex.Message
-
-// ---------------------------------
-// Config and Main
-// ---------------------------------
-
-let configureCors (builder : CorsPolicyBuilder) =
-    builder.WithOrigins("http://localhost:8080")
-           .AllowAnyMethod()
-           .AllowAnyHeader()
-           |> ignore
-
-let configureApp (app : IApplicationBuilder) =
-    let env = app.ApplicationServices.GetService<IHostEnvironment>()
-    let app = app.UseAuthentication()
-    (match env.IsDevelopment() with
-    | true  -> app.UseDeveloperExceptionPage()
-    | false -> app.UseGiraffeErrorHandler errorHandler)
-        .UseCors(configureCors)
-        .UseStaticFiles()
-        .UseGiraffe(allRoutes)
-        
-let cookieAuth (options : CookieAuthenticationOptions) =
-    options.Cookie.HttpOnly <- true
-    options.SlidingExpiration <- true
-    // After 60 days of inactivity, the user must sign in again
-    options.ExpireTimeSpan <- TimeSpan.FromDays 60.0
-    options.LoginPath <- PathString "/auth/login"
-    options.LogoutPath <- PathString "/auth/logout"
-
-let jsonSerializer () =
-    let defaultSettings = NewtonsoftJson.Serializer.DefaultSettings
-    defaultSettings.Formatting <- Formatting.Indented
-    NewtonsoftJson.Serializer(defaultSettings)
 
 let configureServices (app : WebHostBuilderContext) (services : IServiceCollection) =
-    let add (fn : unit -> _) = fn () |> ignore
-    
-    add (fun _ -> services.AddCors())
-    add (fun _ -> services.AddGiraffe())
-    add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
-    add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
-    add (fun _ -> services.AddSingleton<ShopifyPartnerClient>())
-    add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
-    add (fun _ -> services.AddSingleton<GumroadClient>())
-    add (fun _ -> services.AddSingleton<IHttpClientFactory, ShopifySharp.Infrastructure.DefaultHttpClientFactory>())
-    add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
-    add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
-    add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
-    add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
-    add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
+    services.AddLogging()
 
-    services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
-    services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify") |> ignore
+    services.AddCors()
+    services.AddControllers()
+    services.AddCookieSessionAuthentication()
+    services.ConfigureHttpJsonOptions(fun x ->
+        x.SerializerOptions.WriteIndented <- app.HostingEnvironment.IsDevelopment()
+        x.SerializerOptions.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
+    )
 
-let configureLogging (builder : ILoggingBuilder) =
-    builder.AddFilter(fun l -> l.Equals LogLevel.Error)
-           .AddConsole()
-           .AddDebug() |> ignore
+    services.AddHttpClient()
+    services.AddSingleton<Models.IConstants, Models.Constants>()
+    services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>()
+    services.AddSingleton<ShopifyPartnerClient>()
+    services.AddSingleton<PaypalTransactionParser>()
+    services.AddSingleton<GumroadClient>()
+    services.AddScoped<IUserDatabase, UserDatabase>()
+    services.AddScoped<ITransactionDatabase, TransactionDatabase>()
+    services.AddScoped<IIncomeDatabase, IncomeDatabase>()
+
+    services.AddBlazorViews()
+    services.AddDatabaseMigrationService(app.Configuration.GetSection "ConnectionStrings")
+    services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad")
+    services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify")
+    ()
+
+let configureAppConfiguration (ctx: WebHostBuilderContext) (configuration: IConfigurationBuilder) =
+    configuration.AddUserSecrets(optional = true)
+    configuration.AddEnvironmentVariables(prefix = "FoxyBalance_")
+    configuration.AddKeyPerFile("/run/secrets", optional = true)
+    // Start with the base appsettings.json file, whose settings can be extended by appsettings.{Environment}.json and then appsettings.local.json
+    configuration.AddJsonFile("appsettings.json")
+    configuration.AddJsonFile($"appsettings.{ctx.HostingEnvironment.EnvironmentName}.json", optional = true)
+    configuration.AddJsonFile("appsettings.local.json", optional = true)
+    ()
+
+let exitCode = 0
 
 [<EntryPoint>]
-let main _ =
+let main args =
     let contentRoot = Directory.GetCurrentDirectory()
-    let webRoot     = Path.Combine(contentRoot, "WebRoot")
-    let host =
-        WebHost.CreateDefaultBuilder()
-            .ConfigureAppConfiguration(fun hostingContext configuration ->
-                configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
-            )
-            .UseUrls([|"http://+:3000"|])
-            .UseWebRoot(webRoot)
-            .Configure(Action<IApplicationBuilder> configureApp)
-            .ConfigureServices(configureServices)
-            .ConfigureLogging(configureLogging)
-            .Build()
-    
-    // Run post-startup tasks here
-    let constants = host.Services.GetRequiredService<Models.IConstants>()
-    // Migrate the SQL database to the latest version 
-    Migrator.migrate Migrator.Latest constants.ConnectionString
-    // Start up the web server 
-    host.Run()
-    0
+    let webRoot = Path.Combine(contentRoot, "WebRoot")
+    let builder =
+        WebApplicationOptions( Args = args, ContentRootPath = contentRoot, WebRootPath = webRoot )
+        |> WebApplication.CreateBuilder
+
+    builder
+        .WebHost
+        .ConfigureAppConfiguration(configureAppConfiguration)
+        .UseUrls([|"https://+:8080"|])
+        .ConfigureServices(configureServices)
+
+    let app = builder.Build()
+
+    if builder.Environment.IsDevelopment() then
+        app.UseDeveloperExceptionPage()
+    else
+        app.UseExceptionHandler("/Home/Error")
+        app.UseHsts()
+
+    app.UseHttpsRedirection()
+
+    app.UseStaticFiles()
+    app.UseRouting()
+    app.UseAuthorization()
+
+    app.MapControllerRoute(name = "default", pattern = "{controller=Home}/{action=Index}/{id?}")
+
+    app.Run()
+
+    exitCode

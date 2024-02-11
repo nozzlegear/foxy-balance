@@ -24,4 +24,8 @@
     <PackageReference Include="microsoft.extensions.configuration.usersecrets" />
     <PackageReference Include="microsoft.extensions.configuration.environmentvariables" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Update="microsoft.extensions.configuration.usersecrets" Version="8.0.0" />
+    <PackageVersion Update="microsoft.extensions.configuration.environmentvariables" Version="8.0.0" />
+  </ItemGroup>
 </Project>
