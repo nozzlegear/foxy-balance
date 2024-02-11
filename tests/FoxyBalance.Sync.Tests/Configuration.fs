@@ -37,5 +37,5 @@ let configureShopifyPartnerOptions() =
     let section = config.GetRequiredSection("Shopify")
     let options = ShopifyPartnerClientOptions()
     options.AccessToken <- section.Item "AccessToken"
-    options.OrganizationId <- section.Item "OrganizationId"
+    options.OrganizationId <- System.Int64.Parse (section.Item "OrganizationId")
     Options.Create(options)

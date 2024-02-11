@@ -11,6 +11,9 @@ open ShopifySharp
 open FoxyBalance.Sync.Models
 open Microsoft.Extensions.Options
 open ShopifySharp.Infrastructure
+open ShopifySharp.Factories
+open ShopifySharp.Credentials
+open ShopifySharp.Utilities
 open Newtonsoft.Json.Linq
 
 type private PartnerTransactionEdge = {
@@ -35,17 +38,18 @@ type private TransactionQueryParams =
 
 /// A ShopifySharp execution policy which retries requests after 750ms. The Shopify Partner API is hard limited to
 /// four requests per second and does not conform to the GraphQL cost limits or REST leaky bucket limits.
-type private RetryExecutionPolicy () =
+type private PartnerServiceRetryExecutionPolicy () =
     let DELAY = TimeSpan.FromMilliseconds 750
 
-    let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken) = task {
+    let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken: CancellationToken) = task {
         try
             return! execute.Invoke requestMessage
         with
         :? ShopifyRateLimitException ->
             // Delay execution and then retry
             do! Task.Delay(DELAY, cancellationToken)
-            return! run (requestMessage.Clone(), execute, cancellationToken)
+            use! requestMessage = requestMessage.CloneAsync()
+            return! run (requestMessage, execute, cancellationToken)
     }
 
     interface IRequestExecutionPolicy with
@@ -53,14 +57,13 @@ type private RetryExecutionPolicy () =
             run(requestMessage, executeRequestAsync, cancellationToken)
     end
 
-type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
-    inherit GraphService("example.myshopify.com", options.Value.AccessToken)
-    
-    let options = options.Value
-    let policy = RetryExecutionPolicy()
+type ShopifyPartnerClient(
+    options: IOptions<ShopifyPartnerClientOptions>
+) =
+    inherit PartnerService(options.Value.OrganizationId, options.Value.AccessToken)
 
-    do base.SetExecutionPolicy(policy)
-    
+    let options = options.Value
+
     let [<Literal>] TransactionProperties = """
         app {
             id
@@ -80,7 +83,7 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             amount
         }
     """
-    
+
     let TransactionTypesQuery = $"""
         __typename
         id
@@ -95,7 +98,7 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             {TransactionProperties}
         }}
     """
-    
+
     /// Reads a decimal and converts it to an integer amount
     let readToAmount (reader: ElementReader) (key: string): int =
         // The amount is in an object that looks like { "key": { "amount": "1.23" }}
@@ -110,13 +113,13 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
             let decimal = Decimal.Parse(strValue)
             // Multiply the decimal by 100 to convert it to cents
             Convert.ToInt32(decimal * 100M)
-            
+
     let readToApp (reader: ElementReader): ShopifyAppDetails option =
         reader.objectOrNone("app", fun app -> {
             Id = app.string "id"
             Title = app.string "name"
         })
-        
+
     let describe (transaction: ShopifyTransaction): string =
         let appPrefix =
             Option.map (fun app -> app.Title) transaction.App
@@ -149,7 +152,7 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
         // Shopify does not directly include the processing fee, but it can be determined by subtracting the
         // net amount from gross amount and shopify fee.
         let processingFee = grossAmount - shopifyFee - netAmount
-   
+
         let transaction: ShopifyTransaction = {
             Id = node.string "id"
             TransactionDate = DateTimeOffset.Parse(node.string "createdAt")
@@ -166,9 +169,9 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
 
         { transaction with Description = describe transaction }
 
-    let mapTransactionEdge (edge: ElementReader): PartnerTransactionEdge = 
+    let mapTransactionEdge (edge: ElementReader): PartnerTransactionEdge =
         let sale = edge.object("node", mapTransaction)
-        
+
         {
             Cursor = edge.string "cursor"
             Node = { sale with Description = describe sale }
@@ -189,7 +192,7 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
                     match queryParams.cursor with
                     | Some cursor -> Map.add "after" (box cursor) variables
                     | _ -> variables
-                
+
                 Map [
                     "query", box queryParams.query
                     "variables", box variables
@@ -199,14 +202,14 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
                     // Must match the name of the variable used in the graph query
                     "transactionId", queryParams.transactionId
                 ]
-                
+
                 Map [
                     "query", box queryParams.query
                     "variables", box variables
                 ]
-        
+
         JsonSerializer.Serialize(data)
-    
+
     let prepareRequest () : RequestUri =
         let ub = UriBuilder(
             "partners.shopify.com",
@@ -216,15 +219,19 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
         )
 
         RequestUri(ub.Uri)
-    
-    override x.PostAsync(body: string, graphqlQueryCost: Nullable<int>, cancellationToken: CancellationToken):Task<JToken> =
-        let request = prepareRequest()
+
+    override x.PostAsync(body: string, cancellationToken: CancellationToken):Task<JToken> =
+        // Cannot use base.BuildRequestUri because PartnerService does not override it, so it drops
+        // down to the ShopifyService implementation which uses the wrong domain and path
+        let uri = Uri($"https://partners.shopify.com/{options.OrganizationId}/api/{base.APIVersion}/graphql.json")
+                  |> RequestUri
         let content = new StringContent(body, Encoding.UTF8, "application/json")
-        
-        base.SendAsync(request, content, graphqlQueryCost, cancellationToken)
-        
-    override x.PostAsync(_: JToken, _: Nullable<int>, _: CancellationToken): Task<JToken> =
-        failwithf "not implemented"
+        let job = base.ExecuteRequestAsync(uri, HttpMethod.Post, cancellationToken, content)
+
+        task {
+            let! outcome = job
+            return outcome.Result.["data"]
+        }
 
     member x.ListTransactionsAsync (page: string option, ?cancellationToken): Task<ShopifyTransactionListResult> = task {
         let token = defaultArg cancellationToken CancellationToken.None
@@ -244,41 +251,41 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
                 }}
             }}
         """
-        
+
         let queryJson =
             { query = query
               transactionTypes = ["APP_SALE_ADJUSTMENT"; "APP_SALE_CREDIT"; "APP_SUBSCRIPTION_SALE"]
               cursor = page }
             |> TransactionListParams
             |> serializeQuery
-        let! result = x.PostAsync(queryJson, Nullable<int>(), token)
-        
+        let! result = x.PostAsync(queryJson, token)
+
         // Parse the result into an ElementReader
         let document = ElementReader.parse(result.ToString()).get("transactions")
-        
+
         let edges = document.array("edges", mapTransactionEdge)
         let pageInfo = document.get("pageInfo")
-        
+
         let nextPageCursor =
             if pageInfo.bool "hasNextPage"
             then Some (Seq.last edges)
             else None
-            
+
         let previousPageCursor =
             if pageInfo.bool "hasPreviousPage"
             then Some (Seq.head edges)
             else None
-            
+
         let getCursor =
             Option.map (fun e -> e.Cursor)
-        
+
         return {
             NextPageCursor = getCursor nextPageCursor
             PreviousPageCursor = getCursor previousPageCursor
             Transactions = edges |> Seq.map (fun e -> e.Node)
         }
     }
-    
+
     member x.GetTransaction (transactionId: string, ?cancellationToken): Task<ShopifyTransaction option> = task {
         let token = defaultArg cancellationToken CancellationToken.None
         let query = $"""
@@ -293,10 +300,10 @@ type ShopifyPartnerClient(options: IOptions<ShopifyPartnerClientOptions>) =
               transactionId = transactionId }
             |> TransactionGetParams
             |> serializeQuery
-        let! result = x.PostAsync(queryJson, Nullable<int>(), token)
-        
+        let! result = x.PostAsync(queryJson, token)
+
         // Parse the result into an ElementReader
         let document = ElementReader.parse(result.ToString())
-        
+
         return document.objectOrNone("transaction", mapTransaction)
     }

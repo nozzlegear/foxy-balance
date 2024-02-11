@@ -3,6 +3,7 @@ module FoxyBalance.Sync.Tests.ShopifyPartnerClientTests
 open System
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
+open ShopifySharp.Factories
 open Xunit
 
 let makeClient () = 

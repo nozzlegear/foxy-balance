@@ -9,7 +9,7 @@ type GumroadClientOptions() =
     
 type ShopifyPartnerClientOptions() =
     member val AccessToken: string = "" with get, set
-    member val OrganizationId: string = "" with get, set
+    member val OrganizationId: int64 = 0 with get, set
     
 type ShopifyAppDetails = {
     Id: string
