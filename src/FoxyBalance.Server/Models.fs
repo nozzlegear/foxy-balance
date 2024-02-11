@@ -196,11 +196,11 @@ module RequestModels =
         NewTaxRate: int
     }
     with
-    static member Validate (model : NewTaxRateRequest) =
-        if model.NewTaxRate > 99 || model.NewTaxRate < 1 then
-            Result.Error "Tax rate must be between 1 and 99."
-        else
-            Result.Ok model
+        static member Validate (model : NewTaxRateRequest) =
+            if model.NewTaxRate > 99 || model.NewTaxRate < 1 then
+                Result.Error "Tax rate must be between 1 and 99."
+            else
+                Result.Ok model
 
 module ViewModels =
     type RouteType =
