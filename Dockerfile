@@ -12,7 +12,7 @@ RUN dotnet publish \
     src/FoxyBalance.Server/FoxyBalance.Server.fsproj
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled as runlayer
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled-extra as runlayer
 WORKDIR /app
 
 # Copy the built files from both fsharp and node
