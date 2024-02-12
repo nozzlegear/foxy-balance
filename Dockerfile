@@ -14,7 +14,6 @@ RUN dotnet publish \
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled as runlayer
 WORKDIR /app
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
 # Copy the built files from both fsharp and node
 COPY --from=0 /app/published ./published
