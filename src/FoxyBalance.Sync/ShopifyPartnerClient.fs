@@ -11,9 +11,6 @@ open ShopifySharp
 open FoxyBalance.Sync.Models
 open Microsoft.Extensions.Options
 open ShopifySharp.Infrastructure
-open ShopifySharp.Factories
-open ShopifySharp.Credentials
-open ShopifySharp.Utilities
 open Newtonsoft.Json.Linq
 
 type private PartnerTransactionEdge = {
@@ -58,9 +55,18 @@ type private PartnerServiceRetryExecutionPolicy () =
     end
 
 type ShopifyPartnerClient(
-    options: IOptions<ShopifyPartnerClientOptions>
+    options: IOptions<ShopifyPartnerClientOptions>,
+    retryPolicy: IRequestExecutionPolicy,
+    httpClientFactory: IHttpClientFactory
 ) =
     inherit PartnerService(options.Value.OrganizationId, options.Value.AccessToken)
+
+    let httpClient = httpClientFactory.CreateClient()
+
+    do (
+        base.SetExecutionPolicy(retryPolicy)
+        base.SetHttpClient(httpClient)
+    )
 
     let options = options.Value
 

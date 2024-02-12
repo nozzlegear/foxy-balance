@@ -115,14 +115,12 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddHttpClient())
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
-    add (fun _ -> services.AddSingleton<ShopifyPartnerClient>())
-    add (fun _ -> services.AddSingleton<PaypalTransactionParser>())
-    add (fun _ -> services.AddSingleton<GumroadClient>())
     add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
+    services.AddFoxyBalanceSyncClients()
 
     services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
     services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify") |> ignore
