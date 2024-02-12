@@ -6,3 +6,4 @@ bin
 appsettings.json
 appsettings.development.json
 published
+Dockerfile
