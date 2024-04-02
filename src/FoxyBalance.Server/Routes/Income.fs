@@ -17,32 +17,37 @@ module Views = FoxyBalance.Server.Views.Income
 module Income =
     let homePageHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let limit = 35
+            let database = ctx.GetService<IIncomeDatabase>()
+
+            let taxYear =
+                ctx.TryGetQueryStringValue "year"
+                |> Option.map int
+                |> Option.defaultValue DateTimeOffset.UtcNow.Year
             let page =
                 let parsedValue =
                     ctx.TryGetQueryStringValue "page"
                     |> Option.map int
                     |> Option.defaultValue 1
                 if parsedValue < 0 then 1 else parsedValue
-            let taxYear =
-                ctx.TryGetQueryStringValue "year"
-                |> Option.map int
-                |> Option.defaultValue System.DateTimeOffset.UtcNow.Year
-            let database = ctx.GetService<IIncomeDatabase>()
-            let! records = database.ListAsync session.UserId taxYear
+            let limit = 100
+
+            let! records = database.ListAsync session.UserId taxYear {
+                Limit = limit
+                Offset = limit * (page - 1)
+                Order = Descending
+            }
             let! taxYears = database.ListTaxYearsAsync session.UserId
             let! summary = database.SummarizeAsync session.UserId taxYear
             let summary = Option.defaultValue IncomeSummary.Default summary
                 
-            let count = summary.TotalRecords
             let model : IncomeViewModel =
                 { IncomeRecords = records
                   Summary = summary
                   Page = page
                   TaxYear = taxYear
                   TaxYears = taxYears
-                  TotalPages = if count % limit > 0 then (count / limit) + 1 else count / limit
-                  TotalRecordsForYear = count }
+                  TotalPages = int (Math.Ceiling (double summary.TotalRecords / double limit))
+                  TotalRecordsForYear = summary.TotalRecords }
             
             return! htmlView (Views.homePage model) next ctx
         })

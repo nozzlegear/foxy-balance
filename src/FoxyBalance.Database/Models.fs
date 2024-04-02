@@ -155,3 +155,8 @@ type ListOptions =
       Offset : int
       Order : Order
       Status : StatusFilter }
+
+type ListIncomeOptions =
+    { Limit: int
+      Offset: int
+      Order: Order }

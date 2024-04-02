@@ -115,18 +115,25 @@ type IncomeDatabase(options : IDatabaseOptions) =
                     TotalEstimatedTaxesImported = read.decimal "TotalEstimatedTaxesImported"
                 })
             
-        member _.ListAsync userId taxYear =
+        member _.ListAsync userId taxYear options =
             connection
             |> Sql.query """
-                SELECT TOP 100 *
+                SELECT *
                 FROM [FoxyBalance_IncomeRecordsView]
                 WHERE [UserId] = @userId
-                AND [TaxYear] = @taxYear
-                ORDER BY [SaleDate] DESC
+                  AND [TaxYear] = @taxYear
+                ORDER BY
+                    CASE WHEN @direction = 'ASC' THEN [SaleDate] END ASC,
+                    CASE WHEN @direction = 'DESC' THEN [SaleDate] END DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @recordLimit ROWS ONLY;
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
                 "taxYear", Sql.int taxYear
+                "recordLimit", Sql.int options.Limit
+                "offset", Sql.int options.Offset
+                "direction", Sql.string (if options.Order = Order.Ascending then "ASC" else "DESC")
             ]
             |> Sql.executeAsync incomeRecordFromSql
             |> Sql.map Seq.ofList
