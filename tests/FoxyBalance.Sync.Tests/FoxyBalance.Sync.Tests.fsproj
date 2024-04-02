@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NSubstitute" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

@@ -13,6 +13,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+    <PackageVersion Include="NSubstitute" Version="5.1.0" />
     <PackageVersion Include="ShopifySharp" Version="6.13.0" />
     <PackageVersion Include="Simple.Migrations" Version="0.9.21" />
     <PackageVersion Include="System.Data.SqlClient" Version="4.8.6" />
