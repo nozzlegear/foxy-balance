@@ -1,6 +1,8 @@
 ﻿namespace FoxyBalance.Server.Views
 
+open System.Web
 open FoxyBalance.Server.Models.ViewModels
+open FoxyBalance.Sync
 open Giraffe.ViewEngine
 open Giraffe.ViewEngine.Accessibility
 open FoxyBalance.Database.Models
@@ -269,31 +271,41 @@ module Shared =
             
             tbody [] tableRows
         ]
-        
+
+    let private toQueryString (queryParams: Map<string, obj>) =
+        let mapValues =
+            Map.map (fun key value -> $"{key}={value}") queryParams
+            |> Map.values
+        System.String.Join ("&", mapValues)
+
     let pagination (options: PaginationOptions) =
-        let statusQueryParam =
-            statusFilterQueryParam options.StatusFilter
         let route =
             match options.RouteType with
             | Balance -> "balance"
             | Income -> "income"
+
         let previousPageAttrs =
+            let queryParams =
+                options.ExtraQueryArgs
+                |> Map.add "page" (box (options.CurrentPage - 1))
+                |> toQueryString
             let baseAttrs = [
                 _class "pagination-previous"
-                options.CurrentPage - 1
-                |> sprintf "/balance?status=%s&page=%i" statusQueryParam
-                |> _href 
+                _href $"/{route}?{queryParams}"
             ]
             // Disable the previous page link if the user is on the first page
             match options.CurrentPage <= 1 with
             | true -> baseAttrs@[_disabled]
             | false -> baseAttrs
+
         let nextPageAttrs =
+            let queryParams =
+                options.ExtraQueryArgs
+                |> Map.add "page" (box (options.CurrentPage + 1))
+                |> toQueryString
             let baseAttrs = [
                 _class "pagination-next"
-                options.CurrentPage + 1
-                |> sprintf "/%s?status=%s&page=%i" route statusQueryParam
-                |> _href
+                _href $"/{route}?{queryParams}"
             ]
             // Disable the next page link if the user is on the last page
             match options.CurrentPage + 1 > options.MaxPages with
@@ -306,10 +318,14 @@ module Shared =
                         // Do not add a link to the current page
                         [ _class "pagination-link is-current" ]
                     else
+                        let queryParams =
+                            options.ExtraQueryArgs
+                            |> Map.add "page" (box options.CurrentPage)
+                            |> toQueryString
                         [ _class "pagination-link"
-                          _href (sprintf "/%s?status=%s&page=%i" route statusQueryParam page)
-                          _ariaLabel (sprintf "Go to page %i" page) ]
-                    
+                          _href $"/{route}?{queryParams}"
+                          _ariaLabel $"Go to page {page}" ]
+
                 li [] [
                     a attrs [
                         str $"{page}"

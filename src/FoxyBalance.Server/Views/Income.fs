@@ -102,10 +102,10 @@ module Income =
             ]
             
             Shared.pagination {
-                StatusFilter = AllTransactions
                 CurrentPage = model.Page
                 MaxPages = model.TotalPages
                 RouteType = Income
+                ExtraQueryArgs = Map [ "year", model.TaxYear ]
             }
         ]
         

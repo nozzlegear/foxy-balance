@@ -100,9 +100,9 @@ module Balance =
             ]
             
             Shared.pagination {
-                StatusFilter = model.Status
                 CurrentPage = model.Page
                 MaxPages = model.TotalPages
+                ExtraQueryArgs = Map [ "status", Shared.statusFilterQueryParam model.Status  ]
                 RouteType = Balance
             }
         ]

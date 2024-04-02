@@ -208,10 +208,10 @@ module ViewModels =
         | Income
     
     type PaginationOptions =
-        { StatusFilter: StatusFilter
-          CurrentPage: int
+        { CurrentPage: int
           MaxPages: int
-          RouteType: RouteType }
+          RouteType: RouteType
+          ExtraQueryArgs: Map<string, obj> }
     
     type LoginViewModel =
         { Error : string option
