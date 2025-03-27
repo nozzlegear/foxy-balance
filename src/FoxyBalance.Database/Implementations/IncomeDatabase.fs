@@ -81,9 +81,9 @@ type IncomeDatabase(options : IDatabaseOptions) =
         
         for record in records do
             let source = incomeSourceToSql record.Source
-            
+
             dataTable.Rows.Add [|
-                box <| record.SaleDate
+                box <| record.SaleDate.ToString("yyyy-MM-dd HH:mm:ss zzz") // Standard SQL-compatible format
                 box <| source.SourceType
                 box <| Option.defaultValue null source.TransactionId
                 box <| source.Description
