@@ -4,7 +4,6 @@ open FoxyBalance.Database
 open FoxyBalance.Database.Interfaces
 open System
 open System.IO
-open System.Net.Http
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Cors.Infrastructure
 open Microsoft.AspNetCore.Hosting
@@ -19,7 +18,6 @@ open Microsoft.Extensions.Hosting
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
 open Microsoft.Extensions.Configuration
-open Newtonsoft.Json
 
 module Migrator = FoxyBalance.Migrations.Migrator
 
@@ -102,20 +100,15 @@ let cookieAuth (options : CookieAuthenticationOptions) =
     options.LoginPath <- PathString "/auth/login"
     options.LogoutPath <- PathString "/auth/logout"
 
-let jsonSerializer () =
-    let defaultSettings = NewtonsoftJson.Serializer.DefaultSettings
-    defaultSettings.Formatting <- Formatting.Indented
-    NewtonsoftJson.Serializer(defaultSettings)
-
 let configureServices (app : WebHostBuilderContext) (services : IServiceCollection) =
     let add (fn : unit -> _) = fn () |> ignore
-    
+
     add (fun _ -> services.AddCors())
     add (fun _ -> services.AddGiraffe())
     add (fun _ -> services.AddHttpClient())
     add (fun _ -> services.AddSingleton<Models.IConstants, Models.Constants>())
     add (fun _ -> services.AddSingleton<Models.IDatabaseOptions, Models.DatabaseOptions>())
-    add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
+    // add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
