@@ -19,22 +19,23 @@ let processParserErrors (result : NotParsed<obj>) =
 let run connStr action =
     migrate action connStr
     Exit Success
-        
+
 let parseAndRun args =
-    let result = Parser.Default.ParseArguments<UpOptions, ToOptions, BaselineOptions> args
+    let result = Parser.Default.ParseArguments<UpOptions, ToOptions> args
     let runResult =
         match result with
         | :? Parsed<obj> as opts ->
             match opts.Value with
             | :? UpOptions as up ->
                 MigrationTarget.Latest
-                |> run up.connectionString 
+                |> run up.connectionString
             | :? ToOptions as opts ->
-                MigrationTarget.Target opts.value
-                |> run opts.connectionString 
-            | :? BaselineOptions as opts ->
-                MigrationTarget.Baseline opts.value
-                |> run opts.connectionString 
+                // ToOptions can be used for both Up and Down depending on value
+                if opts.value < 0L then
+                    MigrationTarget.Down (abs opts.value)
+                else
+                    MigrationTarget.Up opts.value
+                |> run opts.connectionString
             | x ->
                 failwithf "Unhandled parsed command options type '%s'" (x.GetType().FullName)
         | :? NotParsed<obj> as notParsed ->
