@@ -1,4 +1,4 @@
-﻿namespace FoxyBalance.Database
+namespace FoxyBalance.Database
 
 open System
 open FoxyBalance.Database.Models
@@ -11,27 +11,27 @@ type TransactionDatabase(options : IDatabaseOptions) =
         |> Sql.timeout 90
     
     let mapRowToStatus (read : RowReader) : TransactionStatus =
-        match read.string "Status" with
+        match read.string "status" with
         | "Pending" ->
             Pending
         | "Cleared" ->
             // TODO: create a migration to convert the database column to DateTimeOffset
-            DateTimeOffset (read.dateTime "DateCleared")
+            DateTimeOffset (read.dateTime "datecleared")
             |> Cleared
         | x ->
             failwith $"""Unrecognized Status type "{x}"."""
         
     let mapRowToDetails (read : RowReader) : TransactionType =
-        match read.string "Type" with
+        match read.string "type" with
         | "Debit" ->
             Debit
         | "Credit" ->
-            Credit 
+            Credit
         | "Bill" ->
-            { Recurring = read.bool "Recurring" }
+            { Recurring = read.bool "recurring" }
             |> Bill
         | "Check" ->
-            { CheckNumber = read.string "CheckNumber" }
+            { CheckNumber = read.string "checknumber" }
             |> Check
         | x ->
             failwith $"""Unrecognized transaction type "{x}"."""
@@ -40,16 +40,16 @@ type TransactionDatabase(options : IDatabaseOptions) =
         | AllTransactions ->
             ""
         | PendingTransactions ->
-            " AND [Status] = 'Pending' "
+            " AND status = 'Pending' "
         | ClearedTransactions ->
-            " AND [Status] = 'Cleared' "
+            " AND status = 'Cleared' "
                     
     let mapRowToTransaction (read : RowReader) : Transaction =
-        { Id = read.int64 "Id"
-          Name = read.string "Name"
-          Amount = read.decimal "Amount"
+        { Id = read.int64 "id"
+          Name = read.string "name"
+          Amount = read.decimal "amount"
           // TODO: create a migration to convert the database column to DateTimeOffset
-          DateCreated = DateTimeOffset (read.dateTime "DateCreated")
+          DateCreated = DateTimeOffset (read.dateTime "datecreated")
           Status = mapRowToStatus read
           Type = mapRowToDetails read }
     
@@ -85,13 +85,13 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member _.GetStatusAsync userId transactionId =
             connection
             |> Sql.query """
-                SELECT [Status], [DateCleared]
-                FROM [FoxyBalance_Transactions]
-                WHERE [UserId] = @userId AND [Id] = @id
-            """ 
+                SELECT status, datecleared
+                FROM foxybalance_transactions
+                WHERE userid = @userId AND id = @id
+            """
             |> Sql.parameters [
                 "userId", Sql.int userId
-                "id", Sql.int64 transactionId 
+                "id", Sql.int64 transactionId
             ]
             |> Sql.executeRowAsync mapRowToStatus
 
@@ -99,12 +99,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 SELECT *
-                FROM [FoxyBalance_Transactions]
-                WHERE [UserId] = @userId AND [Id] = @id
+                FROM foxybalance_transactions
+                WHERE userid = @userId AND id = @id
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
-                "id", Sql.int64 transactionId 
+                "id", Sql.int64 transactionId
             ]
             |> Sql.executeAsync mapRowToTransaction
             |> Sql.tryExactlyOne
@@ -112,12 +112,10 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member _.ExistsAsync userId transactionId =
             connection
             |> Sql.query """
-                SELECT CASE WHEN EXISTS (
-                    SELECT Id FROM [FoxyBalance_Transactions]
-                    WHERE [UserId] = @userId AND [Id] = @id
+                SELECT EXISTS (
+                    SELECT id FROM foxybalance_transactions
+                    WHERE userid = @userId AND id = @id
                 )
-                THEN CAST(1 AS BIT)
-                ELSE CAST(0 AS BIT) END
                 """
             |> Sql.parameters [
                 "userId", Sql.int userId
@@ -139,20 +137,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "status", status.statusStr
                 "dateCleared", status.dateCleared
             ]
-            
+
             connection
             |> Sql.query """
-                INSERT INTO [FoxyBalance_Transactions] (
-                    UserId,
-                    DateCreated,
-                    Name,
-                    Amount,
-                    Type,
-                    Recurring,
-                    CheckNumber,
-                    Status,
-                    DateCleared
-                ) OUTPUT INSERTED.Id VALUES(
+                INSERT INTO foxybalance_transactions (
+                    userid,
+                    datecreated,
+                    name,
+                    amount,
+                    type,
+                    recurring,
+                    checknumber,
+                    status,
+                    datecleared
+                ) VALUES (
                     @userId,
                     @dateCreated,
                     @name,
@@ -163,11 +161,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     @status,
                     @dateCleared
                 )
+                RETURNING id
             """
             |> Sql.parameters data
             |> Sql.executeRowAsync (fun read ->
                 {
-                    Id = read.int64 "Id"
+                    Id = read.int64 "id"
                     Name = transaction.Name
                     Amount = transaction.Amount
                     DateCreated = transaction.DateCreated
@@ -189,19 +188,19 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "status", status.statusStr
                 "dateCleared", status.dateCleared
             ]
-            
+
             connection
             |> Sql.query """
-                UPDATE [FoxyBalance_Transactions]
-                SET [Name] = @name,
-                [Amount] = @amount,
-                [Type] = @type,
-                [CheckNumber] = @checkNumber,
-                [Recurring] = @recurring,
-                [Status] = @status,
-                [DateCleared] = @dateCleared
-                OUTPUT INSERTED.DateCreated
-                WHERE [UserId] = @userId AND [Id] = @id
+                UPDATE foxybalance_transactions
+                SET name = @name,
+                amount = @amount,
+                type = @type,
+                checknumber = @checkNumber,
+                recurring = @recurring,
+                status = @status,
+                datecleared = @dateCleared
+                WHERE userid = @userId AND id = @id
+                RETURNING datecreated
                 """
             |> Sql.parameters data
             |> Sql.executeRowAsync (fun read ->
@@ -209,7 +208,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Id = transactionId
                     Name = transaction.Name
                     Amount = transaction.Amount
-                    DateCreated = DateTimeOffset (read.dateTime "DateCreated")
+                    DateCreated = DateTimeOffset (read.dateTime "datecreated")
                     Status = transaction.Status
                     Type = transaction.Type
                 })
@@ -221,13 +220,13 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 | Descending -> "DESC"
             let whereClause =
                 statusFilter options.Status
-                |> sprintf "[UserId] = @userId %s"
-                
+                |> sprintf "userid = @userId %s"
+
             connection
             |> Sql.query $"""
-                SELECT * FROM [FoxyBalance_Transactions]
+                SELECT * FROM foxybalance_transactions
                 WHERE {whereClause}
-                ORDER BY [DateCreated] {direction}, [Id] {direction}
+                ORDER BY datecreated {direction}, id {direction}
                 OFFSET @offset ROWS
                 FETCH NEXT @limit ROWS ONLY
             """
@@ -241,7 +240,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             
         member _.DeleteAsync userId transactionId =
             connection
-            |> Sql.query "DELETE FROM [FoxyBalance_Transactions] WHERE [UserId] = @userId AND [Id] = @id" 
+            |> Sql.query "DELETE FROM foxybalance_transactions WHERE userid = @userId AND id = @id"
             |> Sql.parameters [
                 "userId", Sql.int userId
                 "id", Sql.int64 transactionId
@@ -252,12 +251,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member _.CountAsync userId status =
             let whereClause =
                 statusFilter status
-                |> sprintf "[UserId] = @userId %s"
-            
+                |> sprintf "userid = @userId %s"
+
             connection
             |> Sql.query $"""
-                SELECT COUNT(Id)
-                FROM [FoxyBalance_Transactions]
+                SELECT COUNT(id)
+                FROM foxybalance_transactions
                 WHERE {whereClause}
             """
             |> Sql.parameters [ "userId", Sql.int userId ]
@@ -267,12 +266,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 SELECT
-                    SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] <> 'Credit') THEN [Amount] ELSE 0 END) as ClearedDebit,
-                    SUM(CASE WHEN ([Status] = 'Cleared' AND [Type] =  'Credit') THEN [Amount] ELSE 0 END) as ClearedCredit,
-                    SUM(CASE WHEN ([Type] <> 'Credit') THEN [Amount] ELSE 0 END) as TotalDebit,
-                    SUM(CASE WHEN ([Type] =  'Credit') THEN [Amount] ELSE 0 END) as TotalCredit
-                FROM [FoxyBalance_Transactions]
-                WHERE [UserId] = @userId
+                    SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as cleareddebit,
+                    SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as clearedcredit,
+                    SUM(CASE WHEN (type <> 'Credit') THEN amount ELSE 0 END) as totaldebit,
+                    SUM(CASE WHEN (type =  'Credit') THEN amount ELSE 0 END) as totalcredit
+                FROM foxybalance_transactions
+                WHERE userid = @userId
                 """
             |> Sql.parameters [ "userId", Sql.int userId ]
             |> Sql.executeRowAsync (fun read ->
@@ -281,14 +280,14 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     // Default to 0 when that happens.
                     read.decimalOrNone columnName
                     |> Option.defaultValue 0.0M
-                            
-                let totalCredit = toDecimal "TotalCredit"
-                let totalDebit = toDecimal "TotalDebit"
-                let clearedDebit = toDecimal "ClearedDebit"
-                let clearedCredit = toDecimal "ClearedCredit"
+
+                let totalCredit = toDecimal "totalcredit"
+                let totalDebit = toDecimal "totaldebit"
+                let clearedDebit = toDecimal "cleareddebit"
+                let clearedCredit = toDecimal "clearedcredit"
                 let pendingDebit = totalDebit - clearedDebit
                 let pendingCredit = totalCredit - clearedCredit
-                
+
                 { Sum = totalCredit - totalDebit
                   PendingSum = pendingCredit - pendingDebit
                   ClearedSum = clearedCredit - clearedDebit

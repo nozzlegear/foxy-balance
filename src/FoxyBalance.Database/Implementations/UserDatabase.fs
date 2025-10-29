@@ -1,4 +1,4 @@
-﻿namespace FoxyBalance.Database
+namespace FoxyBalance.Database
 
 open System
 open System.Data
@@ -14,41 +14,41 @@ type UserDatabase(options : IDatabaseOptions) =
     interface IUserDatabase with
         member x.CreateAsync partialUser =
             let dateCreated = DateTimeOffset.UtcNow
-            
+
             connection
             |> Sql.query """
-                INSERT INTO FoxyBalance_Users (
-                    EmailAddress,
-                    HashedPassword,
-                    DateCreated
+                INSERT INTO foxybalance_users (
+                    emailaddress,
+                    hashedpassword,
+                    datecreated
                 )
-                OUTPUT INSERTED.Id
                 VALUES (
                     @emailAddress,
                     @hashedPassword,
                     @dateCreated
                 )
+                RETURNING id
             """
             |> Sql.parameters [
                 "emailAddress", Sql.string partialUser.EmailAddress
                 "hashedPassword", Sql.string partialUser.HashedPassword
-                "dateCreated", Sql.dateTimeOffset dateCreated 
+                "dateCreated", Sql.dateTimeOffset dateCreated
             ]
             |> Sql.executeRowAsync (fun read ->
                 {
                     DateCreated = dateCreated
-                    Id = read.int "Id"
+                    Id = read.int "id"
                     EmailAddress = partialUser.EmailAddress
                     HashedPassword = partialUser.HashedPassword
                 })
 
         member _.GetAsync userId =
             let sql, selector =
-                let format column = $"SELECT * FROM [FoxyBalance_Users] WHERE [{column}] = @selector"
+                let format column = $"SELECT * FROM foxybalance_users WHERE {column} = @selector"
                 match userId with
-                | Id id -> format "Id", Sql.int id
-                | Email email -> format "EmailAddress", Sql.string email
-                
+                | Id id -> format "id", Sql.int id
+                | Email email -> format "emailaddress", Sql.string email
+
             connection
             |> Sql.query sql
             |> Sql.parameters [
@@ -56,27 +56,24 @@ type UserDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeAsync (fun read ->
                 {
-                    Id = read.int "Id"
-                    EmailAddress = read.string "EmailAddress"
-                    DateCreated = read.dateTime "DateCreated" |> DateTimeOffset
-                    HashedPassword = read.string "HashedPassword"
+                    Id = read.int "id"
+                    EmailAddress = read.string "emailaddress"
+                    DateCreated = read.dateTime "datecreated" |> DateTimeOffset
+                    HashedPassword = read.string "hashedpassword"
                 })
             |> Sql.tryExactlyOne
 
         member _.ExistsAsync userId =
             let sql, selector =
                 let format column = $"""
-                    SELECT CASE WHEN EXISTS (
-                        SELECT Id FROM FoxyBalance_Users WHERE [{column}] = @selector
+                    SELECT EXISTS (
+                        SELECT id FROM foxybalance_users WHERE {column} = @selector
                     )
-                    THEN CAST(1 AS BIT)
-                    ELSE CAST(0 AS BIT)
-                    END
                 """
                 match userId with
-                | Id id -> format "Id", Sql.int id
-                | Email email -> format "EmailAddress", Sql.string email
-            
+                | Id id -> format "id", Sql.int id
+                | Email email -> format "emailaddress", Sql.string email
+
             connection
             |> Sql.query sql
             |> Sql.parameters [ "selector", selector ]

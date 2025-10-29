@@ -1,7 +1,6 @@
 namespace FoxyBalance.Database
 
 open System.Data
-open System.Data.SqlClient
 open System.Threading.Tasks
 
 [<AutoOpen>]

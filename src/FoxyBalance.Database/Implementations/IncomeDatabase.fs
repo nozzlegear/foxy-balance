@@ -1,6 +1,6 @@
 namespace FoxyBalance.Database
 
-open System.Data
+open System.Text.Json
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
 open DustyTables
@@ -20,17 +20,17 @@ type IncomeDatabase(options : IDatabaseOptions) =
     let incomeSourceFromSql (read : RowReader) =
         let readSourceDescription (sourceType : IncomeSourceDescription -> IncomeSource) =
             sourceType {
-                TransactionId = read.string "SourceTransactionId"
-                Description = read.string "SourceTransactionDescription"
-                CustomerDescription = read.string "SourceTransactionCustomerDescription"
+                TransactionId = read.string "sourcetransactionid"
+                Description = read.string "sourcetransactiondescription"
+                CustomerDescription = read.string "sourcetransactioncustomerdescription"
             }
         let readManualSourceDescription (sourceType : ManualIncomeSourceDescription -> IncomeSource) =
             sourceType {
-                Description = read.string "SourceTransactionDescription"
-                CustomerDescription = read.stringOrNone "SourceTransactionCustomerDescription"
+                Description = read.string "sourcetransactiondescription"
+                CustomerDescription = read.stringOrNone "sourcetransactioncustomerdescription"
             }
-        
-        match read.string "SourceType" with
+
+        match read.string "sourcetype" with
         | "paypal"  -> readSourceDescription Paypal
         | "stripe"  -> readSourceDescription Stripe
         | "gumroad" -> readSourceDescription Gumroad
@@ -40,91 +40,79 @@ type IncomeDatabase(options : IDatabaseOptions) =
         
     let taxYearFromSql (read : RowReader) =
         {
-            TaxYear = read.int "TaxYear"
-            TaxRate = read.int "TaxRate"
+            TaxYear = read.int "taxyear"
+            TaxRate = read.int "taxrate"
         }
-        
+
     let incomeRecordFromSql (read: RowReader) =
         {
-            Id = read.int64 "Id"
+            Id = read.int64 "id"
             Source = incomeSourceFromSql read
-            SaleDate = read.dateTimeOffset "SaleDate"
-            SaleAmount = read.int "SaleAmount"
-            PlatformFee = read.int "PlatformFee"
-            ProcessingFee = read.int "ProcessingFee"
-            NetShare = read.int "NetShare"
-            EstimatedTax = read.int "EstimatedTax"
-            Ignored = read.bool "Ignored"
+            SaleDate = read.dateTimeOffset "saledate"
+            SaleAmount = read.int "saleamount"
+            PlatformFee = read.int "platformfee"
+            ProcessingFee = read.int "processingfee"
+            NetShare = read.int "netshare"
+            EstimatedTax = read.int "estimatedtax"
+            Ignored = read.bool "ignored"
         }
-        
+
     let incomeSummaryFromSql (read: RowReader) =
         {
             TaxYear = taxYearFromSql read
-            TotalRecords = read.int "TotalRecords"
-            TotalSales = read.int "TotalSales"
-            TotalFees = read.int "TotalFees"
-            TotalNetShare = read.int "TotalNetShare"
-            TotalEstimatedTax = int (read.decimal "TotalEstimatedTax")
+            TotalRecords = read.int "totalrecords"
+            TotalSales = read.int "totalsales"
+            TotalFees = read.int "totalfees"
+            TotalNetShare = read.int "totalnetshare"
+            TotalEstimatedTax = int (read.decimal "totalestimatedtax")
         }
 
-    let partialRecords (records : PartialIncomeRecord seq) =
-        let dataTable = new DataTable()
-        dataTable.Columns.Add "SaleDate" |> ignore
-        dataTable.Columns.Add "SourceType" |> ignore
-        dataTable.Columns.Add "SourceTransactionId" |> ignore
-        dataTable.Columns.Add "SourceTransactionDescription" |> ignore
-        dataTable.Columns.Add "SourceTransactionCustomerDescription" |> ignore
-        dataTable.Columns.Add "SaleAmount" |> ignore
-        dataTable.Columns.Add "PlatformFee" |> ignore
-        dataTable.Columns.Add "ProcessingFee" |> ignore
-        dataTable.Columns.Add "NetShare" |> ignore
-        
-        for record in records do
+    let partialRecordsJson (records : PartialIncomeRecord seq) =
+        records
+        |> Seq.map (fun record ->
             let source = incomeSourceToSql record.Source
-
-            dataTable.Rows.Add [|
-                box <| record.SaleDate.ToString("yyyy-MM-dd HH:mm:ss zzz") // Standard SQL-compatible format
-                box <| source.SourceType
-                box <| Option.defaultValue null source.TransactionId
-                box <| source.Description
-                box <| Option.defaultValue null source.Customer
-                box <| record.SaleAmount
-                box <| record.PlatformFee
-                box <| record.ProcessingFee
-                box <| record.NetShare
-            |] |> ignore
-            
-        Sql.table ("tp_PartialIncomeRecord", dataTable)
+            {|
+                SaleDate = record.SaleDate
+                SourceType = source.SourceType
+                SourceTransactionId = source.TransactionId
+                SourceTransactionDescription = source.Description
+                SourceTransactionCustomerDescription = source.Customer
+                SaleAmount = record.SaleAmount
+                PlatformFee = record.PlatformFee
+                ProcessingFee = record.ProcessingFee
+                NetShare = record.NetShare
+            |})
+        |> JsonSerializer.Serialize
 
     interface IIncomeDatabase with
         member _.ImportAsync userId records =
-            let data = [
-                "@userId", Sql.int userId
-                "@partialIncomeRecords", partialRecords records
-            ]
-            
+            let recordsJson = partialRecordsJson records
+
             connection
-            |> Sql.storedProcedure "sp_BatchImportIncomeRecords"
-            |> Sql.parameters data
+            |> Sql.query "SELECT * FROM batch_import_income_records(@userId, @records::jsonb)"
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "records", Sql.string recordsJson
+            ]
             |> Sql.executeRowAsync (fun read ->
                 {
-                    TotalNewRecordsImported = read.int "TotalNewRecordsImported"
-                    TotalSalesImported = read.int "TotalSalesImported"
-                    TotalFeesImported = read.int "TotalFeesImported"
-                    TotalNetShareImported = read.int "TotalNetShareImported"
-                    TotalEstimatedTaxesImported = read.decimal "TotalEstimatedTaxesImported"
+                    TotalNewRecordsImported = read.int "total_new_records_imported"
+                    TotalSalesImported = read.int "total_sales_imported"
+                    TotalFeesImported = read.int "total_fees_imported"
+                    TotalNetShareImported = read.int "total_net_share_imported"
+                    TotalEstimatedTaxesImported = read.decimal "total_estimated_taxes_imported"
                 })
             
         member _.ListAsync userId taxYear options =
             connection
             |> Sql.query """
                 SELECT *
-                FROM [FoxyBalance_IncomeRecordsView]
-                WHERE [UserId] = @userId
-                  AND [TaxYear] = @taxYear
+                FROM foxybalance_incomerecordsview
+                WHERE userid = @userId
+                  AND taxyear = @taxYear
                 ORDER BY
-                    CASE WHEN @direction = 'ASC' THEN [SaleDate] END ASC,
-                    CASE WHEN @direction = 'DESC' THEN [SaleDate] END DESC
+                    CASE WHEN @direction = 'ASC' THEN saledate END ASC,
+                    CASE WHEN @direction = 'DESC' THEN saledate END DESC
                 OFFSET @offset ROWS
                 FETCH NEXT @recordLimit ROWS ONLY;
             """
@@ -141,10 +129,11 @@ type IncomeDatabase(options : IDatabaseOptions) =
         member _.SummarizeAsync userId taxYear =
             connection
             |> Sql.query """
-                SELECT TOP 1 *
-                FROM [FoxyBalance_TaxYearSummaryView]
-                WHERE [UserId] = @userId
-                AND [TaxYear] = @taxYear
+                SELECT *
+                FROM foxybalance_taxyearsummaryview
+                WHERE userid = @userId
+                AND taxyear = @taxYear
+                LIMIT 1
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
@@ -156,10 +145,10 @@ type IncomeDatabase(options : IDatabaseOptions) =
         member _.SetIgnoreAsync userId incomeId shouldIgnore =
             connection
             |> Sql.query """
-                UPDATE [FoxyBalance_IncomeRecords]
-                SET [Ignored] = @ignored
-                WHERE [UserId] = @userId
-                AND [Id] = @recordId
+                UPDATE foxybalance_incomerecords
+                SET ignored = @ignored
+                WHERE userid = @userId
+                AND id = @recordId
             """
             |> Sql.parameters [
                 "ignored", Sql.bool shouldIgnore
@@ -168,13 +157,13 @@ type IncomeDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeNonQueryAsync
             |> Sql.ignore
-            
+
         member _.DeleteAsync userId incomeId =
             connection
             |> Sql.query """
-                DELETE FROM [FoxyBalance_IncomeRecords]
-                WHERE [UserId] = @userId
-                AND [Id] = @recordId
+                DELETE FROM foxybalance_incomerecords
+                WHERE userid = @userId
+                AND id = @recordId
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
@@ -187,26 +176,27 @@ type IncomeDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 SELECT
-                    TaxYear,
-                    TaxRate
-                FROM [FoxyBalance_TaxYearSummaryView]
-                WHERE [UserId] = @userId
+                    taxyear,
+                    taxrate
+                FROM foxybalance_taxyearsummaryview
+                WHERE userid = @userId
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
             ]
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.ofList
-            
+
         member _.GetTaxYearAsync userId taxYear =
             connection
             |> Sql.query """
-                SELECT TOP 1
-                    TaxYear,
-                    TaxRate
-                FROM [FoxyBalance_TaxYearSummaryView]
-                WHERE [UserId] = @userId
-                AND [TaxYear] = @taxYear
+                SELECT
+                    taxyear,
+                    taxrate
+                FROM foxybalance_taxyearsummaryview
+                WHERE userid = @userId
+                AND taxyear = @taxYear
+                LIMIT 1
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
@@ -214,14 +204,14 @@ type IncomeDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.tryHead
-            
+
         member _.SetTaxYearRateAsync userId taxYear rate =
             connection
             |> Sql.query """
-                UPDATE [FoxyBalance_TaxYears]
-                SET [TaxRate] = @taxRate
-                WHERE [UserId] = @userId
-                AND [TaxYear] = @taxYear
+                UPDATE foxybalance_taxyears
+                SET taxrate = @taxRate
+                WHERE userid = @userId
+                AND taxyear = @taxYear
             """
             |> Sql.parameters [
                 "taxRate", Sql.int rate
@@ -235,9 +225,9 @@ type IncomeDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 SELECT *
-                FROM [FoxyBalance_IncomeRecordsView]
-                WHERE [UserId] = @userId
-                AND [Id] = @incomeId
+                FROM foxybalance_incomerecordsview
+                WHERE userid = @userId
+                AND id = @incomeId
             """
             |> Sql.parameters [
                 "userId", Sql.int userId
