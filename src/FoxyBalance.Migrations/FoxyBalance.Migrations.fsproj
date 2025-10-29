@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Utils.fs" />
+    <Compile Include="Migrations\Migration_001_InitialPostgreSQLSchema.fs" />
     <Compile Include="Migrator.fs" />
     <!-- Old SQL Server migrations kept for reference -->
     <!-- <Compile Include="Migrations\Migration_01.fs" />
