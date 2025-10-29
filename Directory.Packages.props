@@ -5,6 +5,9 @@
   <ItemGroup>
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <PackageVersion Include="DustyTables" Version="4.0" />
+    <PackageVersion Include="FluentMigrator" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator.Runner" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
     <PackageVersion Include="FSharp.Core" Version="9.0.201" />
     <PackageVersion Include="FSharp.Data" Version="6.6.0" />
     <PackageVersion Include="Giraffe" Version="7.0.2" />
@@ -13,6 +16,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.3" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageVersion Include="Npgsql" Version="8.0.5" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="ShopifySharp" Version="6.22.2" />
     <PackageVersion Include="Simple.Migrations" Version="0.9.21" />

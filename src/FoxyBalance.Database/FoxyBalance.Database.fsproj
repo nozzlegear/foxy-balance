@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Data.SqlClient" />
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="dustytables" />
   </ItemGroup>
