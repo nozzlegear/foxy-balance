@@ -22,7 +22,7 @@ type Constants(config : IConfiguration) =
         
     interface IConstants with
         member val HashingKey = get "HashingKey"
-        member val ConnectionString = connStr "SqlDatabase"
+        member val ConnectionString = connStr "Database"
         
 type DatabaseOptions(constants : IConstants) =
     interface FoxyBalance.Database.Models.IDatabaseOptions with
