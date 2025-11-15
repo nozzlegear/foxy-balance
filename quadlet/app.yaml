@@ -74,7 +74,13 @@ spec:
       periodSeconds: 5
 
   volumes:
-  - name: foxybalance_secrets
+  - name: secret-database-connection
+    secret:
+      secretName: foxybalance_secrets
+      items:
+      - key: ConnectionStrings__Database
+        path: ConnectionStrings__Database
+  - name: secret-hashing-key
     secret:
       secretName: foxybalance_secrets
   - name: foxybalance-storage
