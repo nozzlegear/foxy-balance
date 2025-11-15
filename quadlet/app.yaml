@@ -83,6 +83,9 @@ spec:
   - name: secret-hashing-key
     secret:
       secretName: foxybalance_secrets
+      items:
+      - key: HashingKey
+        path: HashingKey
   - name: foxybalance-storage
     persistentVolumeClaim:
       claimName: foxybalance-pvc
