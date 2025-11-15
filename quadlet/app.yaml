@@ -15,8 +15,13 @@ spec:
     securityContext:
       capabilities: {}
     volumeMounts:
-    - mountPath: /run/secrets
-      name: foxybalance_secrets
+    - mountPath: /run/secrets/ConnectionStrings__Database
+      name: secret-database-connection
+      subPath: ConnectionStrings__Database
+      readOnly: true
+    - mountPath: /run/secrets/HashingKey
+      name: secret-hashing-key
+      subPath: HashingKey
       readOnly: true
   - image: docker.io/library/postgres:18-alpine
     name: db
