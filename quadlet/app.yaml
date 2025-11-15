@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: foxybalance
+  name: foxybalance
+spec:
+  containers:
+  - image: localhost/nozzlegear/foxybalance:latest
+    name: app
+    restart: unless-stopped
+    ports:
+    - containerPort: 3000
+      hostPort: 7010 # Don't use port 7000, as it's taken by airplay on macOS
+    securityContext:
+      capabilities: {}
+    volumeMounts:
+    - mountPath: /run/secrets
+      name: foxybalance_secrets
+      readOnly: true
+  - image: docker.io/library/postgres:18-alpine
+    name: db
+    restart: unless-stopped
+    ports:
+    - containerPort: 5432
+      hostPort: 7011 # Don't use port 7000, as it's taken by airplay on macOS
+    env:
+    - name: POSTGRES_DB
+      value: foxybalance
+    - name: POSTGRES_USER
+      valueFrom:
+        secretKeyRef:
+          name: foxybalance_secrets
+          key: postgres_username
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: foxybalance_secrets
+          key: postgres_password
+    - name: PGDATA
+      value: /var/lib/postgresql/data/pgdata
+    volumeMounts:
+    - name: foxybalance-storage
+      mountPath: /var/lib/postgresql/data
+    resources:
+      requests:
+        memory: "128Mi"
+        #cpu: "200m"
+      limits:
+        memory: "512Mi"
+        #cpu: "1000m"
+    livenessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+    readinessProbe:
+      exec:
+        command:
+        - /bin/sh
+        - -c
+        - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+  volumes:
+  - name: foxybalance_secrets
+    secret:
+      secretName: foxybalance_secrets
+  - name: foxybalance-storage
+    persistentVolumeClaim:
+      claimName: foxybalance-pvc
