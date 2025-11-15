@@ -1,4 +1,4 @@
-module Program 
+module Program
 
 open FoxyBalance.Database
 open FoxyBalance.Database.Interfaces
@@ -28,7 +28,7 @@ let allRoutes : HttpHandler =
             routes
             |> List.map (fun r -> RouteUtils.requiresAuthentication >=> r)
         choose wrapped
-        
+
     choose [
         GET >=> choose [
             route "/" >=> redirectTo false "/balance"
@@ -42,7 +42,7 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionHandler
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
-                
+
                 route "/income" >=> Routes.Income.homePageHandler
                 route "/income/sync" >=> Routes.Income.syncHandler
                 route "/income/new" >=> Routes.Income.newRecordHandler
@@ -91,7 +91,7 @@ let configureApp (app : IApplicationBuilder) =
         .UseCors(configureCors)
         .UseStaticFiles()
         .UseGiraffe(allRoutes)
-        
+
 let cookieAuth (options : CookieAuthenticationOptions) =
     options.Cookie.HttpOnly <- true
     options.SlidingExpiration <- true
@@ -131,6 +131,7 @@ let main _ =
         WebHost.CreateDefaultBuilder()
             .ConfigureAppConfiguration(fun hostingContext configuration ->
                 configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
+                configuration.AddKeyPerFile("/run/secrets", optional = true) |> ignore
             )
             .UseUrls([|"http://+:3000"|])
             .UseWebRoot(webRoot)
@@ -138,11 +139,11 @@ let main _ =
             .ConfigureServices(configureServices)
             .ConfigureLogging(configureLogging)
             .Build()
-    
+
     // Run post-startup tasks here
     let constants = host.Services.GetRequiredService<Models.IConstants>()
-    // Migrate the SQL database to the latest version 
+    // Migrate the SQL database to the latest version
     Migrator.migrate Migrator.Latest constants.ConnectionString
-    // Start up the web server 
+    // Start up the web server
     host.Run()
     0
