@@ -36,7 +36,7 @@ spec:
       valueFrom:
         secretKeyRef:
           name: foxybalance_secrets
-          key: postgres_username
+          key: Postgres_Username
     - name: POSTGRES_PASSWORD
       valueFrom:
         secretKeyRef:
