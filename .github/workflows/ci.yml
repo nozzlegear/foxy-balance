@@ -34,7 +34,8 @@ jobs:
           -t "$BUILD_IMAGE_NAME" \
           -t "$LATEST_IMAGE_NAME" \
           --build-arg "RUN=${{ github.run_number }}" \
-          --build-arg "COMMIT=${{ github.sha }}"
+          --build-arg "COMMIT=${{ github.sha }}" \
+          .
 
     - name: Push container images to registry
       run: |
