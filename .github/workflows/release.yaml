@@ -1,5 +1,5 @@
 ---
-name: CI/CD Pipeline
+name: Release Pipeline
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ env:
 
 jobs:
   build:
-    name: "Build containers"
+    name: "Build container"
     runs-on: ubuntu-latest
     # Set the permissions granted to the GITHUB_TOKEN for the actions in this job
     permissions:
