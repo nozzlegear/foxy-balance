@@ -1,0 +1,9 @@
+[Unit]
+Description=Persistent volume for FoxyBalance PostgreSQL data
+
+[Volume]
+# Volume name (must match the PVC name referenced in the pod.yaml)
+VolumeName=foxybalance-pvc
+
+[Install]
+WantedBy=default.target

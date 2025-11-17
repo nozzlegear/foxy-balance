@@ -1,0 +1,9 @@
+[Unit]
+Description=Network for FoxyBalance Pod
+
+[Network]
+# Use default podman network settings
+# The network will be created automatically if it doesn't exist
+
+[Install]
+WantedBy=default.target

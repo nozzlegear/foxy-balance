@@ -1,0 +1,20 @@
+[Unit]
+Description=FoxyBalance Kubernetes Pod
+After=network-online.target
+
+[Kube]
+# Path to the Kubernetes YAML file
+Yaml=%h/sites-enabled/foxy-balance/pod.yaml
+
+# Auto-update containers
+AutoUpdate=registry
+
+# Set the pod network mode (default is bridge)
+Network=foxy-balance.network
+
+[Service]
+# Restart policy
+Restart=always
+
+[Install]
+WantedBy=default.target
