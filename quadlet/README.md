@@ -12,7 +12,7 @@ This directory contains Podman quadlet files for running FoxyBalance using syste
 
 1. Generate the pod.yaml file from the Pkl configuration:
    ```bash
-   pkl eval quadlet/app.pkl -o ~/sites-enabled/foxy-balance/pod.yaml
+   pkl eval quadlet/pod.pkl -o ~/sites-enabled/foxy-balance/pod.yaml
    ```
 
 2. Create the secrets YAML file at ~/sites-enabled/foxy-balance/secrets.yaml with your secrets
