@@ -1,0 +1,158 @@
+/// Kubernetes Pod configuration for FoxyBalance application
+module app
+
+output {
+  renderer = new YamlRenderer {}
+}
+
+apiVersion = "v1"
+kind = "Pod"
+metadata {
+  labels {
+    ["app"] = "foxybalance"
+  }
+  name = "foxybalance"
+}
+spec {
+  containers {
+    new {
+      image = read("prop:appImageName")
+      name = "app"
+      restart = "unless-stopped"
+      ports {
+        new {
+          containerPort = 3000
+          hostPort = 7010 // Don't use port 7000, as it's taken by airplay on macOS
+        }
+      }
+      securityContext {
+        capabilities = new Dynamic {}
+      }
+      volumeMounts {
+        new {
+          mountPath = "/run/secrets/ConnectionStrings__Database"
+          name = "secret-database-connection"
+          subPath = "ConnectionStrings__Database"
+          readOnly = true
+        }
+        new {
+          mountPath = "/run/secrets/HashingKey"
+          name = "secret-hashing-key"
+          subPath = "HashingKey"
+          readOnly = true
+        }
+      }
+    }
+    new {
+      image = "docker.io/library/postgres:18-alpine"
+      name = "db"
+      restart = "unless-stopped"
+      ports {
+        new {
+          containerPort = 5432
+          hostPort = 7011 // Don't use port 7000, as it's taken by airplay on macOS
+        }
+      }
+      env {
+        new {
+          name = "POSTGRES_DB"
+          value = "foxybalance"
+        }
+        new {
+          name = "POSTGRES_USER"
+          valueFrom {
+            secretKeyRef {
+              name = "foxybalance_secrets"
+              key = "Postgres_Username"
+            }
+          }
+        }
+        new {
+          name = "POSTGRES_PASSWORD"
+          valueFrom {
+            secretKeyRef {
+              name = "foxybalance_secrets"
+              key = "Postgres_Password"
+            }
+          }
+        }
+        new {
+          name = "PGDATA"
+          value = "/var/lib/postgresql/data/pgdata"
+        }
+      }
+      volumeMounts {
+        new {
+          name = "foxybalance-storage"
+          mountPath = "/var/lib/postgresql/data"
+        }
+      }
+      resources {
+        requests {
+          memory = "128Mi"
+          //cpu = "200m"
+        }
+        limits {
+          memory = "512Mi"
+          //cpu = "1000m"
+        }
+      }
+      livenessProbe {
+        exec {
+          command {
+            "/bin/sh"
+            "-c"
+            #"pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB""#
+          }
+        }
+        initialDelaySeconds = 60
+        periodSeconds = 30
+        timeoutSeconds = 10
+        failureThreshold = 3
+      }
+      readinessProbe {
+        exec {
+          command {
+            "/bin/sh"
+            "-c"
+            #"pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB""#
+          }
+        }
+        initialDelaySeconds = 5
+        periodSeconds = 5
+      }
+    }
+  }
+  volumes {
+    new {
+      name = "secret-database-connection"
+      secret {
+        secretName = "foxybalance_secrets"
+        items {
+          new {
+            key = "ConnectionStrings__Database"
+            path = "ConnectionStrings__Database"
+          }
+        }
+      }
+    }
+    new {
+      name = "secret-hashing-key"
+      secret {
+        secretName = "foxybalance_secrets"
+        items {
+          new {
+            key = "HashingKey"
+            path = "HashingKey"
+          }
+        }
+      }
+    }
+    new {
+      name = "foxybalance-storage"
+      persistentVolumeClaim {
+        claimName = "foxybalance-pvc"
+      }
+    }
+  }
+}
