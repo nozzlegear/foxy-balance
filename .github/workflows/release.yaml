@@ -59,7 +59,7 @@ jobs:
       uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
     - name: Generate k8s yaml file
-      run: pkl eval -p "appImageName=$BUILD_IMAGE_NAME" -o ${{ env.YAML_FILE_NAME }}
+      run: pkl eval quadlet/pod.pkl -p "appImageName=$BUILD_IMAGE_NAME" -o ${{ env.YAML_FILE_NAME }}
 
     - name: Upload Kubernetes config file
       if: (!cancelled())
