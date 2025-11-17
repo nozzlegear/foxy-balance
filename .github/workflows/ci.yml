@@ -9,8 +9,8 @@ env:
   REGISTRY: "ghcr.io"
   YAML_FILE_NAME: "pod.yaml"
   SYSTEMD_SERVICE_NAME: "foxybalance.service"
-  BUILD_IMAGE_NAME: "${{ secrets.ACR_REGISTRY }}/foxy-balance:${{ github.run_number }}"
-  LATEST_IMAGE_NAME: "${{ secrets.ACR_REGISTRY }}/foxy-balance:latest"
+  BUILD_IMAGE_NAME: "ghcr.io/nozzlegear/foxy-balance:${{ github.run_number }}"
+  LATEST_IMAGE_NAME: "ghcr.io/nozzlegear/foxy-balance:latest"
 
 jobs:
   build:
