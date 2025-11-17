@@ -363,6 +363,11 @@ Paket.Restore.targets
 .env
 env.fish
 
-# MIsc
+# Misc
 published
 secrets.yaml
+
+# Ignore the generated k8s yaml file
+**/pod.yaml
+**/app.yaml
+**/container.yaml
