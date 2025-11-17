@@ -18,6 +18,14 @@ WORKDIR /app
 # Copy the built files from both fsharp and node
 COPY --from=0 /app/published ./published
 
+# Build args must be redeclared at each layer
+ARG RUN=DEV
+ARG COMMIT
+# Connects the container to the Github repository. See https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package#connecting-a-repository-to-a-container-image-using-the-command-line
+LABEL org.opencontainers.image.source=https://github.com/nozzlegear/foxy-balance
+LABEL org.opencontainers.image.revision=$COMMIT
+LABEL foxybalance.build.id=$RUN
+
 # Change to /app/published so the program has the right ContentDirectoryRoot (i.e. it can load the App_Data files, etc.)
 WORKDIR "/app/published"
 EXPOSE 3000
