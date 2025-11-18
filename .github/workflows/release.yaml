@@ -94,7 +94,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
         source: ${{ env.YAML_FILE_NAME }}
-        target: "sites-enabled/foxy-balance/${{ env.YAML_FILE_NAME }}"
+        target: "sites-enabled/foxy-balance"
         overwrite: true
 
     - name: Execute deployment script via SSH
