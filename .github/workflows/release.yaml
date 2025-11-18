@@ -41,12 +41,17 @@ jobs:
           .
 
     - name: Push container images to registry
-      id: push_image
       run: |
         podman push "$BUILD_IMAGE_NAME"
         podman push "$LATEST_IMAGE_NAME"
-        # Get the digest of the build image
-        DIGEST=$(podman inspect "$BUILD_IMAGE_NAME" --format='{{.Digest}}')
+
+    - name: Get manifest digest
+      id: push_image
+      run: |
+        TEMP_FILE=$(mktemp)
+        skopeo inspect --raw "docker://$BUILD_IMAGE_NAME" > "$TEMP_FILE"
+        DIGEST=$(skopeo manifest-digest "$TEMP_FILE")
+        rm "$TEMP_FILE"
         echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
   update-pod-yaml:
