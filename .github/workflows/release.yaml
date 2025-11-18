@@ -109,7 +109,7 @@ jobs:
         script_stop: true
         script: |
           podman pull "${{ env.BUILD_IMAGE_NAME }}"
-          systemctl restart "${{ env.SYSTEMD_SERVICE_NAME }}"
+          systemctl --user restart "${{ env.SYSTEMD_SERVICE_NAME }}"
 
     - name: Create GitHub release
       uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
