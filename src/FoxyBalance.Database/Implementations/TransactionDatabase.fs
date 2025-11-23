@@ -3,13 +3,12 @@ namespace FoxyBalance.Database
 open System
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
-open DustyTables
+open Npgsql.FSharp
 
 type TransactionDatabase(options : IDatabaseOptions) =
     let connection =
         Sql.connect options.ConnectionString
-        |> Sql.timeout 90
-    
+
     let mapRowToStatus (read : RowReader) : TransactionStatus =
         match read.string "status" with
         | "Pending" ->
@@ -36,20 +35,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
         | x ->
             failwith $"""Unrecognized transaction type "{x}"."""
         
-    let statusFilter = function
+    let statusFilterParameter = function
         | AllTransactions ->
-            ""
+            SqlValue.String ""
         | PendingTransactions ->
-            " AND status = 'Pending' "
+            SqlValue.String "Pending"
         | ClearedTransactions ->
-            " AND status = 'Cleared' "
-                    
+            SqlValue.String "Cleared"
+
     let mapRowToTransaction (read : RowReader) : Transaction =
         { Id = read.int64 "id"
           Name = read.string "name"
           Amount = read.decimal "amount"
           // TODO: create a migration to convert the database column to DateTimeOffset
-          DateCreated = DateTimeOffset (read.dateTime "datecreated")
+          DateCreated = read.datetimeOffset "DateCreated"
           Status = mapRowToStatus read
           Type = mapRowToDetails read }
     
@@ -79,7 +78,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                dateCleared = Sql.dbnull |}
         | Cleared date -> 
             {| statusStr = Sql.string "Cleared"
-               dateCleared = Sql.dateTimeOffset date |}
+               dateCleared = Sql.timestamptz date |}
                
     interface ITransactionDatabase with
         member _.GetStatusAsync userId transactionId =
@@ -115,20 +114,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 SELECT EXISTS (
                     SELECT id FROM foxybalance_transactions
                     WHERE userid = @userId AND id = @id
-                )
+                ) as TransactionExists
                 """
             |> Sql.parameters [
                 "userId", Sql.int userId
                 "id", Sql.int64 transactionId
             ]
-            |> Sql.executeRowAsync (fun read -> read.bool 0)
+            |> Sql.executeRowAsync (fun read -> read.bool "TransactionExists")
             
         member _.CreateAsync userId transaction =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
             let data = [
                 "userId", Sql.int userId
-                "dateCreated", Sql.dateTimeOffset transaction.DateCreated
+                "dateCreated", Sql.timestamptz transaction.DateCreated
                 "name", Sql.string transaction.Name
                 "amount", Sql.decimal transaction.Amount
                 "type", details.typeStr
@@ -218,22 +217,31 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 match options.Order with
                 | Ascending -> "ASC"
                 | Descending -> "DESC"
-            let whereClause =
-                statusFilter options.Status
-                |> sprintf "userid = @userId %s"
+            let sql =
+                """
+                SELECT * FROM foxybalance_transactions
+                WHERE userId = @userId
+                """
+            let sql =
+                if not options.Status.IsAllTransactions then
+                    sql
+                else
+                    sql + " AND status = @status"
+            let sql =
+              sql + """
+              ORDER BY DateCreated @direction, id @direction
+              OFFSET @offset ROWS
+              FETCH NEXT @limit ROWS ONLY
+              """
 
             connection
-            |> Sql.query $"""
-                SELECT * FROM foxybalance_transactions
-                WHERE {whereClause}
-                ORDER BY datecreated {direction}, id {direction}
-                OFFSET @offset ROWS
-                FETCH NEXT @limit ROWS ONLY
-            """
+            |> Sql.query sql
             |> Sql.parameters [
                 "userId", Sql.int userId
                 "offset", Sql.int options.Offset
                 "limit", Sql.int options.Limit
+                "direction", Sql.string direction
+                "status", statusFilterParameter options.Status
             ]
             |> Sql.executeAsync mapRowToTransaction
             |> Sql.map Seq.ofList
@@ -249,18 +257,25 @@ type TransactionDatabase(options : IDatabaseOptions) =
             |> Sql.ignore
             
         member _.CountAsync userId status =
-            let whereClause =
-                statusFilter status
-                |> sprintf "userid = @userId %s"
+            let sql =
+                """
+                SELECT COUNT(id) as Total
+                FROM foxybalance_transactions
+                WHERE userId = @userId
+                """
+            let sql =
+                if not status.IsAllTransactions then
+                    sql
+                else
+                    sql + " AND status = @status"
 
             connection
-            |> Sql.query $"""
-                SELECT COUNT(id)
-                FROM foxybalance_transactions
-                WHERE {whereClause}
-            """
-            |> Sql.parameters [ "userId", Sql.int userId ]
-            |> Sql.executeRowAsync (fun read -> read.int 0)
+            |> Sql.query sql
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "status", statusFilterParameter status
+            ]
+            |> Sql.executeRowAsync (fun read -> read.int "Total")
             
         member _.SumAsync userId =
             connection

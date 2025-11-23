@@ -3,13 +3,12 @@ namespace FoxyBalance.Database
 open System.Text.Json
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
-open DustyTables
+open Npgsql.FSharp
 
 type IncomeDatabase(options : IDatabaseOptions) =
     let connection =
         Sql.connect options.ConnectionString
-        |> Sql.timeout 90
-        
+
     let incomeSourceToSql = function
         | Paypal  x -> {| SourceType = "paypal"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
         | Stripe  x -> {| SourceType = "stripe"; TransactionId = Some x.TransactionId; Description = x.Description; Customer = Some x.CustomerDescription |}
@@ -48,7 +47,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
         {
             Id = read.int64 "id"
             Source = incomeSourceFromSql read
-            SaleDate = read.dateTimeOffset "saledate"
+            SaleDate = read.datetimeOffset "saledate"
             SaleAmount = read.int "saleamount"
             PlatformFee = read.int "platformfee"
             ProcessingFee = read.int "processingfee"

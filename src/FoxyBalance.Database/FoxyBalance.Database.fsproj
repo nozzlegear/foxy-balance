@@ -16,6 +16,6 @@
   <ItemGroup>
     <PackageReference Include="Npgsql" />
     <PackageReference Include="FSharp.Core" />
-    <PackageReference Include="dustytables" />
+    <PackageReference Include="Npgsql.FSharp" />
   </ItemGroup>
 </Project>
