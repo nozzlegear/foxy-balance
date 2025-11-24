@@ -3,8 +3,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <PackageVersion Include="DustyTables" Version="4.0" />
+    <PackageVersion Include="Faqt" Version="5.1.0" />
     <PackageVersion Include="FluentMigrator" Version="7.1.0" />
     <PackageVersion Include="FluentMigrator.Runner" Version="7.1.0" />
     <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="7.1.0" />
