@@ -15,7 +15,7 @@ type Migration_001_InitialPostgreSQLSchema() =
             CREATE TABLE foxybalance_users (
                 id SERIAL PRIMARY KEY,
                 emailaddress VARCHAR(500) NOT NULL,
-                datecreated TIMESTAMP NOT NULL,
+                datecreated TIMESTAMPTZ NOT NULL,
                 hashedpassword TEXT NOT NULL
             );
             CREATE INDEX idx_emailaddress ON foxybalance_users (emailaddress);
@@ -38,12 +38,12 @@ type Migration_001_InitialPostgreSQLSchema() =
                 userid INT NOT NULL REFERENCES foxybalance_users(id),
                 name VARCHAR(500) NOT NULL,
                 amount NUMERIC(18,2) NOT NULL,
-                datecreated TIMESTAMP NOT NULL,
+                datecreated TIMESTAMPTZ NOT NULL,
                 type VARCHAR(75) NOT NULL,
                 recurring BOOLEAN NOT NULL,
                 checknumber VARCHAR(25),
                 status VARCHAR(75) NOT NULL,
-                datecleared TIMESTAMP
+                datecleared TIMESTAMPTZ
             );
             CREATE INDEX idx_userid ON foxybalance_transactions (userid);
         """)
