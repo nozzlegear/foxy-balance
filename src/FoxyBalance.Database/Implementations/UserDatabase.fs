@@ -37,21 +37,18 @@ type UserDatabase(options : IDatabaseOptions) =
                 })
 
         member _.GetAsync userId =
-            let columnParameter, selectorParameter =
+            let query, parameters =
                 match userId with
-                | Id id -> Sql.string "id", Sql.int id
-                | Email email -> Sql.string "emailaddress", Sql.string email
+                | Id id ->
+                    "SELECT * FROM foxybalance_users WHERE id = @selector",
+                    [ "@selector", Sql.int id ]
+                | Email email ->
+                    "SELECT * FROM foxybalance_users WHERE emailaddress = @selector",
+                    [ "@selector", Sql.string email ]
 
             connection
-            |> Sql.query
-                """
-                SELECT * FROM foxybalance_users
-                WHERE @column = @selector
-                """
-            |> Sql.parameters [
-                "@column", columnParameter
-                "@selector", selectorParameter
-            ]
+            |> Sql.query query
+            |> Sql.parameters parameters
             |> Sql.executeAsync (fun read ->
                 {
                     Id = read.int "id"
@@ -62,20 +59,16 @@ type UserDatabase(options : IDatabaseOptions) =
             |> Sql.tryExactlyOne
 
         member _.ExistsAsync userId =
-            let columnParameter, selectorParameter =
+            let query, parameters =
                 match userId with
-                | Id id -> Sql.string "id", Sql.int id
-                | Email email -> Sql.string "emailaddress", Sql.string email
+                | Id id ->
+                    "SELECT EXISTS (SELECT id FROM foxybalance_users WHERE id = @selector) AS user_exists",
+                    [ "@selector", Sql.int id ]
+                | Email email ->
+                    "SELECT EXISTS (SELECT id FROM foxybalance_users WHERE emailaddress = @selector) AS user_exists",
+                    [ "@selector", Sql.string email ]
 
             connection
-            |> Sql.query
-                """
-                SELECT EXISTS (
-                    SELECT id FROM foxybalance_users WHERE @column = @selector
-                ) as UserExists
-                """
-            |> Sql.parameters [
-                "@column", columnParameter
-                "@selector", selectorParameter
-            ]
-            |> Sql.executeRowAsync (fun read -> read.bool "UserExists")
+            |> Sql.query query
+            |> Sql.parameters parameters
+            |> Sql.executeRowAsync (fun read -> read.bool "user_exists")
