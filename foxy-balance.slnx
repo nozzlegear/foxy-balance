@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <File Path="partner.fish" />
+    <File Path="temp.graph" />
+    <Project Path="src/FoxyBalance.Database/FoxyBalance.Database.fsproj" />
+    <Project Path="src/FoxyBalance.Migrations/FoxyBalance.Migrations.fsproj" />
+    <Project Path="src/FoxyBalance.Migrator/FoxyBalance.Migrator.fsproj" />
+    <Project Path="src/FoxyBalance.Server/FoxyBalance.Server.fsproj" />
+    <Project Path="src/FoxyBalance.Sync/FoxyBalance.Sync.fsproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FoxyBalance.Database.Tests/FoxyBalance.Database.Tests.fsproj" />
+    <Project Path="tests/FoxyBalance.Sync.Tests/FoxyBalance.Sync.Tests.fsproj" />
+  </Folder>
+</Solution>
