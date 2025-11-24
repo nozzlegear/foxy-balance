@@ -4,7 +4,7 @@ open FoxyBalance.Migrator.Options
 
 let processParserErrors (result : NotParsed<obj>) =
     let error = Seq.head result.Errors
-    
+
     match error.Tag with
     | ErrorType.MissingRequiredOptionError ->
         Exit Failure
@@ -15,13 +15,13 @@ let processParserErrors (result : NotParsed<obj>) =
         Exit Success
     | x ->
         Problem $"Received parser error %A{x}"
-        
+
 let run connStr action =
     migrate action connStr
     Exit Success
 
 let parseAndRun args =
-    let result = Parser.Default.ParseArguments<UpOptions, ToOptions> args
+    let result = Parser.Default.ParseArguments<UpOptions, ToOptions, DownOptions> args
     let runResult =
         match result with
         | :? Parsed<obj> as opts ->
@@ -30,11 +30,10 @@ let parseAndRun args =
                 MigrationTarget.Latest
                 |> run up.connectionString
             | :? ToOptions as opts ->
-                // ToOptions can be used for both Up and Down depending on value
-                if opts.value < 0L then
-                    MigrationTarget.Down (abs opts.value)
-                else
-                    MigrationTarget.Up opts.value
+                MigrationTarget.Up opts.value
+                |> run opts.connectionString
+            | :? DownOptions as opts ->
+                MigrationTarget.Down (abs opts.value)
                 |> run opts.connectionString
             | x ->
                 failwithf "Unhandled parsed command options type '%s'" (x.GetType().FullName)
@@ -42,8 +41,8 @@ let parseAndRun args =
             processParserErrors notParsed
         | x ->
             sprintf "Unhandled parse arguments result type '%s'" (x.GetType().FullName)
-            |> Problem 
-        
+            |> Problem
+
     match runResult with
     | Exit exitType ->
         exitType
@@ -51,7 +50,7 @@ let parseAndRun args =
         exitType
     | Problem message ->
         eprintfn "%s" message
-        Failure 
+        Failure
 
 [<EntryPoint>]
 let main argv =
