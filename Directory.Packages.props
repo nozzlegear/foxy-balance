@@ -5,28 +5,31 @@
   <ItemGroup>
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <PackageVersion Include="DustyTables" Version="4.0" />
-    <PackageVersion Include="FluentMigrator" Version="6.2.0" />
-    <PackageVersion Include="FluentMigrator.Runner" Version="6.2.0" />
-    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
-    <PackageVersion Include="FSharp.Core" Version="9.0.201" />
+    <PackageVersion Include="FluentMigrator" Version="7.1.0" />
+    <PackageVersion Include="FluentMigrator.Runner" Version="7.1.0" />
+    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="7.1.0" />
+    <PackageVersion Include="FSharp.Core" Version="10.0.100" />
     <PackageVersion Include="FSharp.Data" Version="6.6.0" />
-    <PackageVersion Include="Giraffe" Version="7.0.2" />
+    <PackageVersion Include="Giraffe" Version="8.2.0" />
     <PackageVersion Include="JsonSharp" Version="1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="7.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.3" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageVersion Include="Npgsql" Version="8.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageVersion Include="Npgsql" Version="10.0.0" />
     <PackageVersion Include="Npgsql.FSharp" Version="8.0.0" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
-    <PackageVersion Include="ShopifySharp" Version="6.22.2" />
+    <PackageVersion Include="ShopifySharp" Version="6.25.4" />
     <PackageVersion Include="System.Data.SqlClient" Version="4.9.0" />
-    <PackageVersion Include="System.Text.Json" Version="9.0.3" />
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+    <PackageVersion Include="Testcontainers" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers.XunitV3" Version="4.9.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="xunit.v3" Version="3.1.0" />
-    <PackageVersion Include="xunit.v3.assert" Version="3.1.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.0" />
+    <PackageVersion Include="xunit.v3.assert" Version="3.2.0" />
     <PackageVersion Include="xUnit.Combinatorial" Version="2.0.24" />
     <PackageVersion Include="xUnit.Runner.VisualStudio" Version="3.1.5" />
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.1.0" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.0" />
   </ItemGroup>
 </Project>
