@@ -7,14 +7,6 @@
     <Compile Include="Utils.fs" />
     <Compile Include="Migrations\Migration_001_InitialPostgreSQLSchema.fs" />
     <Compile Include="Migrator.fs" />
-    <!-- Old SQL Server migrations kept for reference -->
-    <!-- <Compile Include="Migrations\Migration_01.fs" />
-    <Compile Include="Migrations\Migration_02.fs" />
-    <Compile Include="Migrations\Migration_03.fs" />
-    <Compile Include="Migrations\Migration_04.fs" />
-    <Compile Include="Migrations\Migration_05.fs" />
-    <Compile Include="Migrations\Migration_06.fs" />
-    <Compile Include="Migrations\Migration_07.fs" /> -->
   </ItemGroup>
   <ItemGroup>
     <Content Include="Migrations\sql\*">
