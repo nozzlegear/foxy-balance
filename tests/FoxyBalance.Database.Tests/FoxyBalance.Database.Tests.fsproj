@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <OutputType>exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <UseAppHost>true</UseAppHost>
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="DbContainerFixture.fs" />
+    <Compile Include="Domain.fs" />
+    <Compile Include="TransactionDatabaseTests.fs" />
+    <Compile Include="UserDatabaseTests.fs" />
+    <Compile Include="IncomeDatabaseTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Faqt" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.XunitV3" />
+    <PackageReference Include="xUnit.Combinatorial" />
+    <PackageReference Include="xUnit.Runner.VisualStudio" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
+    <ProjectReference Include="..\..\src\FoxyBalance.Migrator\FoxyBalance.Migrator.fsproj" />
+  </ItemGroup>
+
+</Project>
