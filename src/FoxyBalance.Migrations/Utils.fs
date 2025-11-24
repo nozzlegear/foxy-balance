@@ -10,7 +10,7 @@ module Utils =
     let private getPath fileName = 
         // Use the assembly to get the current directory, as it can switch between bin and project directory
         // https://github.com/dotnet/project-system/issues/589
-        let currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)
+        let currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
 
         Path.Combine(currentDirectory, "Migrations", "sql", fileName)
 
