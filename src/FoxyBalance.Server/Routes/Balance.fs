@@ -27,13 +27,12 @@ module Balance =
                 | _ ->
                     AllTransactions
             let database = ctx.GetService<ITransactionDatabase>()
-            let! transactions =
-                { Limit = limit
-                  Offset = limit * (page - 1)
-                  Order = Descending
-                  Status = status }
-                |> database.ListAsync session.UserId
-            let! count = database.CountAsync session.UserId status
+            let! transactions = database.ListAsync(session.UserId, { Limit = limit
+                                                                     Offset = limit * (page - 1)
+                                                                     Order = Descending
+                                                                     Status = status })
+
+            let! count = database.CountAsync(session.UserId, status)
             let! sum = database.SumAsync session.UserId 
             let model : HomePageViewModel =
                 { Transactions = transactions
@@ -56,7 +55,7 @@ module Balance =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<ITransactionDatabase>()
             
-            match! database.GetAsync session.UserId transactionId with
+            match! database.GetAsync(session.UserId, transactionId) with
             | Some transaction ->
                 let view = 
                     (transactionId, EditTransactionViewModel.FromExistingTransaction transaction)
@@ -89,10 +88,10 @@ module Balance =
                 
                 do! match transactionId with
                     | Some transactionId ->
-                        database.UpdateAsync session.UserId transactionId partialTransaction
+                        database.UpdateAsync(session.UserId, transactionId, partialTransaction)
                         |> Task.Ignore 
                     | None ->
-                        database.CreateAsync session.UserId partialTransaction
+                        database.CreateAsync(session.UserId, partialTransaction)
                         |> Task.Ignore 
                 
                 return! redirectTo false "/balance" next ctx
@@ -102,7 +101,7 @@ module Balance =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<ITransactionDatabase>()
             
-            do! database.DeleteAsync session.UserId transactionId
+            do! database.DeleteAsync(session.UserId, transactionId)
             
             return! redirectTo false "/balance" next ctx 
         })

@@ -84,7 +84,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
         |> JsonSerializer.Serialize
 
     interface IIncomeDatabase with
-        member _.ImportAsync userId records =
+        member _.ImportAsync(userId, records) =
             let recordsJson = partialRecordsJson records
 
             connection
@@ -102,7 +102,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
                     TotalEstimatedTaxesImported = read.decimal "total_estimated_taxes_imported"
                 })
             
-        member _.ListAsync userId taxYear options =
+        member _.ListAsync(userId, taxYear, options) =
             connection
             |> Sql.query """
                 SELECT *
@@ -125,7 +125,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync incomeRecordFromSql
             |> Sql.map Seq.ofList
             
-        member _.SummarizeAsync userId taxYear =
+        member _.SummarizeAsync(userId, taxYear) =
             connection
             |> Sql.query """
                 SELECT *
@@ -141,7 +141,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync incomeSummaryFromSql
             |> Sql.map Seq.tryHead
             
-        member _.SetIgnoreAsync userId incomeId shouldIgnore =
+        member _.SetIgnoreAsync(userId, incomeId, shouldIgnore) =
             connection
             |> Sql.query """
                 UPDATE foxybalance_incomerecords
@@ -157,7 +157,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeNonQueryAsync
             |> Sql.ignore
 
-        member _.DeleteAsync userId incomeId =
+        member _.DeleteAsync(userId, incomeId) =
             connection
             |> Sql.query """
                 DELETE FROM foxybalance_incomerecords
@@ -186,7 +186,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.ofList
 
-        member _.GetTaxYearAsync userId taxYear =
+        member _.GetTaxYearAsync(userId, taxYear) =
             connection
             |> Sql.query """
                 SELECT
@@ -204,7 +204,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync taxYearFromSql
             |> Sql.map Seq.tryHead
 
-        member _.SetTaxYearRateAsync userId taxYear rate =
+        member _.SetTaxYearRateAsync(userId, taxYear, rate) =
             connection
             |> Sql.query """
                 UPDATE foxybalance_taxyears
@@ -220,7 +220,7 @@ type IncomeDatabase(options : IDatabaseOptions) =
             |> Sql.executeNonQueryAsync
             |> Sql.ignore
 
-        member _.GetAsync userId incomeId =
+        member _.GetAsync(userId, incomeId) =
             connection
             |> Sql.query """
                 SELECT *
