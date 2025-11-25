@@ -81,7 +81,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                dateCleared = Sql.timestamptz date |}
                
     interface ITransactionDatabase with
-        member _.GetStatusAsync userId transactionId =
+        member _.GetStatusAsync(userId, transactionId) =
             connection
             |> Sql.query """
                 SELECT status, datecleared
@@ -94,7 +94,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeRowAsync mapRowToStatus
 
-        member _.GetAsync userId transactionId =
+        member _.GetAsync(userId, transactionId) =
             connection
             |> Sql.query """
                 SELECT *
@@ -108,7 +108,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync mapRowToTransaction
             |> Sql.tryExactlyOne
             
-        member _.ExistsAsync userId transactionId =
+        member _.ExistsAsync(userId, transactionId) =
             connection
             |> Sql.query """
                 SELECT EXISTS (
@@ -122,7 +122,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeRowAsync (fun read -> read.bool "TransactionExists")
             
-        member _.CreateAsync userId transaction =
+        member _.CreateAsync(userId, transaction) =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
             let data = [
@@ -173,7 +173,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Type = transaction.Type
                 })
             
-        member _.UpdateAsync userId transactionId transaction =
+        member _.UpdateAsync(userId, transactionId, transaction) =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
             let data = [
@@ -212,7 +212,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Type = transaction.Type
                 })
             
-        member _.ListAsync userId options =
+        member _.ListAsync(userId, options) =
             let direction =
                 match options.Order with
                 | Ascending -> "ASC"
@@ -246,7 +246,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             |> Sql.executeAsync mapRowToTransaction
             |> Sql.map Seq.ofList
             
-        member _.DeleteAsync userId transactionId =
+        member _.DeleteAsync(userId, transactionId) =
             connection
             |> Sql.query "DELETE FROM foxybalance_transactions WHERE userid = @userId AND id = @id"
             |> Sql.parameters [
@@ -256,7 +256,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             |> Sql.executeNonQueryAsync
             |> Sql.ignore
             
-        member _.CountAsync userId status =
+        member _.CountAsync(userId, status) =
             let sql =
                 """
                 SELECT COUNT(id) as Total

@@ -31,13 +31,11 @@ module Income =
                 if parsedValue < 0 then 1 else parsedValue
             let limit = 100
 
-            let! records = database.ListAsync session.UserId taxYear {
-                Limit = limit
-                Offset = limit * (page - 1)
-                Order = Descending
-            }
+            let! records = database.ListAsync(session.UserId, taxYear, { Limit = limit
+                                                                         Offset = limit * (page - 1)
+                                                                         Order = Descending })
             let! taxYears = database.ListTaxYearsAsync session.UserId
-            let! summary = database.SummarizeAsync session.UserId taxYear
+            let! summary = database.SummarizeAsync(session.UserId, taxYear)
             let summary = Option.defaultValue IncomeSummary.Default summary
                 
             let model : IncomeViewModel =
@@ -97,7 +95,7 @@ module Income =
                         ProcessingFee = sale.ProcessingFee
                         NetShare = sale.NetAmount
                     })
-                |> database.ImportAsync session.UserId
+                |> fun records -> database.ImportAsync(session.UserId, records)
     }
 
     let private importPaypalTransactions (ctx: HttpContext) (file: IFormFile) (session: Session)  = task {
@@ -121,7 +119,7 @@ module Income =
                     ProcessingFee = 0
                     NetShare = sale.Net
                 })
-            |> database.ImportAsync session.UserId
+            |> fun records -> database.ImportAsync(session.UserId, records)
     }
 
     let private importGumroadTransactions (ctx: HttpContext) (session: Session) = task {
@@ -146,7 +144,7 @@ module Income =
                     ProcessingFee = 0
                     NetShare = sale.Price - sale.GumroadFee 
                 })
-            |> database.ImportAsync session.UserId
+            |> fun records -> database.ImportAsync(session.UserId, records)
     }
         
     let executeSyncHandler : HttpHandler =
@@ -189,7 +187,7 @@ module Income =
                 return! view next ctx
             | Result.Ok partialRecord ->
                 let database = ctx.GetService<IIncomeDatabase>()
-                let! _ = database.ImportAsync session.UserId [partialRecord]
+                let! _ = database.ImportAsync(session.UserId, [partialRecord])
 
                 return! redirectTo false $"/income?totalImported=1" next ctx
         })
@@ -198,7 +196,7 @@ module Income =
         RouteUtils.withSession(fun session next ctx -> task {
             let database = ctx.GetService<IIncomeDatabase>()
 
-            match! database.GetAsync session.UserId recordId with
+            match! database.GetAsync(session.UserId, recordId) with
             | Some record ->
                 let view = 
                     { IncomeRecord = record }
@@ -217,7 +215,7 @@ module Income =
             let database = ctx.GetService<IIncomeDatabase>()
             let client = ctx.GetService<ShopifyPartnerClient>()
             
-            match! database.GetAsync session.UserId recordId with
+            match! database.GetAsync(session.UserId, recordId) with
             | Some record ->
                 match record.Source with
                 | Shopify shopify ->
@@ -236,13 +234,13 @@ module Income =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<IIncomeDatabase>()
             
-            match! database.GetAsync session.UserId recordId with
+            match! database.GetAsync(session.UserId, recordId) with
             | Some record ->
                 match record.Source with
                 | ManualTransaction _ ->
                     return! (setStatusCode 422 >=> text $"Manual transaction income records cannot be ignored, they can only be deleted.") next ctx
                 | _ ->
-                    do! database.SetIgnoreAsync session.UserId recordId (not record.Ignored)
+                    do! database.SetIgnoreAsync(session.UserId, recordId, not record.Ignored)
                     return! (redirectTo false $"/income/{recordId}") next ctx
             | None ->
                 return! (setStatusCode 404 >=> text "Not Found") next ctx
@@ -252,11 +250,11 @@ module Income =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<IIncomeDatabase>()
             
-            match! database.GetAsync session.UserId recordId with
+            match! database.GetAsync(session.UserId, recordId) with
             | Some record ->
                 match record.Source with
                 | ManualTransaction _ ->
-                    do! database.DeleteAsync session.UserId recordId
+                    do! database.DeleteAsync(session.UserId, recordId)
                     return! (redirectTo false $"/income?year={record.SaleDate.Year}") next ctx
                 | source ->
                     let formattedSource = Format.incomeSourceType source
@@ -269,7 +267,7 @@ module Income =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<IIncomeDatabase>()
             
-            match! database.GetTaxYearAsync session.UserId taxYear with
+            match! database.GetTaxYearAsync(session.UserId, taxYear) with
             | Some record ->
                 let view =
                     { Error = None
@@ -286,7 +284,7 @@ module Income =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<IIncomeDatabase>()
             let! request = ctx.BindFormAsync<NewTaxRateRequest>()
-            let! record = database.GetTaxYearAsync session.UserId taxYear
+            let! record = database.GetTaxYearAsync(session.UserId, taxYear)
             
             match record, NewTaxRateRequest.Validate request with
             | Some record, Error err ->
@@ -298,7 +296,7 @@ module Income =
                     |> htmlView
                 return! view next ctx 
             | Some record, Ok request ->
-                do! database.SetTaxYearRateAsync session.UserId record.TaxYear request.NewTaxRate
+                do! database.SetTaxYearRateAsync(session.UserId, record.TaxYear, request.NewTaxRate)
                 return! (redirectTo false $"/income?year={record.TaxYear}") next ctx
             | None, _ ->
                 return! (setStatusCode 404 >=> text $"Tax year {taxYear} not found.") next ctx
