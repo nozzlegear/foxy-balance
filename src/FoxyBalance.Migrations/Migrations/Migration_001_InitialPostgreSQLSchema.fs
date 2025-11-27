@@ -91,7 +91,7 @@ type Migration_001_InitialPostgreSQLSchema() =
                 ir.platformfee,
                 ir.processingfee,
                 ir.netshare,
-                (ir.netshare * ty.taxrate / 100) AS estimatedtax,
+                (ir.netshare * ty.taxrate::NUMERIC / 100) AS estimatedtax,
                 ir.ignored
             FROM foxybalance_incomerecords ir
             INNER JOIN foxybalance_taxyears ty ON ir.taxyearid = ty.id
