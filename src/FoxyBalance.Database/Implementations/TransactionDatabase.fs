@@ -11,27 +11,16 @@ type TransactionDatabase(options : IDatabaseOptions) =
 
     let mapRowToStatus (read : RowReader) : TransactionStatus =
         match read.string "status" with
-        | "Pending" ->
-            Pending
-        | "Cleared" ->
-            // TODO: create a migration to convert the database column to DateTimeOffset
-            DateTimeOffset (read.dateTime "datecleared")
-            |> Cleared
-        | x ->
-            failwith $"""Unrecognized Status type "{x}"."""
+        | "Pending" -> Pending
+        | "Cleared" -> Cleared (read.datetimeOffset "datecleared")
+        | x -> failwith $"""Unrecognized Status type "{x}"."""
         
     let mapRowToDetails (read : RowReader) : TransactionType =
         match read.string "type" with
-        | "Debit" ->
-            Debit
-        | "Credit" ->
-            Credit
-        | "Bill" ->
-            { Recurring = read.bool "recurring" }
-            |> Bill
-        | "Check" ->
-            { CheckNumber = read.string "checknumber" }
-            |> Check
+        | "Debit" -> Debit
+        | "Credit" -> Credit
+        | "Bill" -> Bill { Recurring = read.bool "recurring" }
+        | "Check" -> Check { CheckNumber = read.string "checknumber" }
         | x ->
             failwith $"""Unrecognized transaction type "{x}"."""
         
@@ -47,8 +36,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
         { Id = read.int64 "id"
           Name = read.string "name"
           Amount = read.decimal "amount"
-          // TODO: create a migration to convert the database column to DateTimeOffset
-          DateCreated = read.datetimeOffset "DateCreated"
+          DateCreated = read.datetimeOffset "datecreated"
           Status = mapRowToStatus read
           Type = mapRowToDetails read }
     
@@ -78,7 +66,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                dateCleared = Sql.dbnull |}
         | Cleared date -> 
             {| statusStr = Sql.string "Cleared"
-               dateCleared = Sql.timestamptz date |}
+               dateCleared = Sql.timestamptz (date.ToUniversalTime()) |}
                
     interface ITransactionDatabase with
         member _.GetStatusAsync(userId, transactionId) =
@@ -114,20 +102,20 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 SELECT EXISTS (
                     SELECT id FROM foxybalance_transactions
                     WHERE userid = @userId AND id = @id
-                ) as TransactionExists
+                ) as transactionexists
                 """
             |> Sql.parameters [
                 "userId", Sql.int userId
                 "id", Sql.int64 transactionId
             ]
-            |> Sql.executeRowAsync (fun read -> read.bool "TransactionExists")
+            |> Sql.executeRowAsync (fun read -> read.bool "transactionexists")
             
         member _.CreateAsync(userId, transaction) =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
             let data = [
                 "userId", Sql.int userId
-                "dateCreated", Sql.timestamptz transaction.DateCreated
+                "dateCreated", Sql.timestamptz (transaction.DateCreated.ToUniversalTime())
                 "name", Sql.string transaction.Name
                 "amount", Sql.decimal transaction.Amount
                 "type", details.typeStr
@@ -160,7 +148,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     @status,
                     @dateCleared
                 )
-                RETURNING id
+                RETURNING id, datecreated
             """
             |> Sql.parameters data
             |> Sql.executeRowAsync (fun read ->
@@ -168,7 +156,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     Id = read.int64 "id"
                     Name = transaction.Name
                     Amount = transaction.Amount
-                    DateCreated = transaction.DateCreated
+                    DateCreated = read.datetimeOffset "datecreated"
                     Status = transaction.Status
                     Type = transaction.Type
                 })
@@ -223,13 +211,12 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 WHERE userId = @userId
                 """
             let sql =
-                if not options.Status.IsAllTransactions then
-                    sql
-                else
-                    sql + " AND status = @status"
+                match options.Status with
+                | AllTransactions -> sql
+                | _ -> sql + " AND status = @status"
             let sql =
-              sql + """
-              ORDER BY DateCreated @direction, id @direction
+              sql + $"""
+              ORDER BY datecreated {direction}, id {direction}
               OFFSET @offset ROWS
               FETCH NEXT @limit ROWS ONLY
               """
@@ -240,7 +227,6 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "userId", Sql.int userId
                 "offset", Sql.int options.Offset
                 "limit", Sql.int options.Limit
-                "direction", Sql.string direction
                 "status", statusFilterParameter options.Status
             ]
             |> Sql.executeAsync mapRowToTransaction
@@ -259,15 +245,14 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member _.CountAsync(userId, status) =
             let sql =
                 """
-                SELECT COUNT(id) as Total
+                SELECT COUNT(id) as total
                 FROM foxybalance_transactions
                 WHERE userId = @userId
                 """
             let sql =
-                if not status.IsAllTransactions then
-                    sql
-                else
-                    sql + " AND status = @status"
+                match status with
+                | AllTransactions -> sql
+                | _ -> sql + " AND status = @status"
 
             connection
             |> Sql.query sql
@@ -275,7 +260,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "userId", Sql.int userId
                 "status", statusFilterParameter status
             ]
-            |> Sql.executeRowAsync (fun read -> read.int "Total")
+            |> Sql.executeRowAsync (fun read -> int (read.int64 "total"))
             
         member _.SumAsync userId =
             connection
