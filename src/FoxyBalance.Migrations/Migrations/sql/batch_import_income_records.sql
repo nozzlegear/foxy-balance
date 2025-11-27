@@ -46,10 +46,7 @@ BEGIN
         )
         SELECT
             p_user_id,
-            (SELECT id FROM foxybalance_taxyears
-             WHERE userid = p_user_id
-               AND taxyear = EXTRACT(YEAR FROM (rec->>'SaleDate')::TIMESTAMPTZ)::INT
-             LIMIT 1),
+            ty.id,
             (rec->>'SaleDate')::TIMESTAMPTZ,
             rec->>'SourceType',
             rec->>'SourceTransactionId',
@@ -61,8 +58,9 @@ BEGIN
             (rec->>'NetShare')::INT,
             false
         FROM jsonb_array_elements(p_records) AS rec
-        ON CONFLICT (sourcetransactionid, userid)
-        WHERE sourcetransactionid IS NOT NULL
+        INNER JOIN foxybalance_taxyears ty ON ty.userid = p_user_id
+            AND ty.taxyear = EXTRACT(YEAR FROM (rec->>'SaleDate')::TIMESTAMPTZ)::INT
+        ON CONFLICT (sourcetransactionid, userid) WHERE sourcetransactionid IS NOT NULL
         DO UPDATE SET
             sourcetype = EXCLUDED.sourcetype,
             sourcetransactiondescription = EXCLUDED.sourcetransactiondescription,
@@ -72,28 +70,33 @@ BEGIN
             platformfee = EXCLUDED.platformfee,
             processingfee = EXCLUDED.processingfee,
             netshare = EXCLUDED.netshare
-        RETURNING id,
+        RETURNING
             CASE
                 WHEN xmax = 0 THEN 'INSERT'
                 ELSE 'UPDATE'
-            END as action
+            END as action,
+            saleamount,
+            platformfee,
+            processingfee,
+            netshare,
+            taxyearid
     ),
     summary AS (
         SELECT
-            COUNT(*) FILTER (WHERE m.action = 'INSERT') AS new_records,
-            COALESCE(SUM(v.saleamount) FILTER (WHERE m.action = 'INSERT'), 0) AS total_sales,
-            COALESCE(SUM(v.processingfee + v.platformfee) FILTER (WHERE m.action = 'INSERT'), 0) AS total_fees,
-            COALESCE(SUM(v.netshare) FILTER (WHERE m.action = 'INSERT'), 0) AS total_net,
-            COALESCE(SUM(v.estimatedtax) FILTER (WHERE m.action = 'INSERT'), 0) AS total_tax
+            COALESCE(COUNT(*) FILTER (WHERE m.action = 'INSERT'), 0) AS new_records,
+            COALESCE(SUM(m.saleamount) FILTER (WHERE m.action = 'INSERT'), 0) AS total_sales,
+            COALESCE(SUM(m.processingfee + m.platformfee) FILTER (WHERE m.action = 'INSERT'), 0) AS total_fees,
+            COALESCE(SUM(m.netshare) FILTER (WHERE m.action = 'INSERT'), 0) AS total_net,
+            COALESCE(SUM(m.netshare * ty.taxrate::NUMERIC / 100) FILTER (WHERE m.action = 'INSERT'), 0) AS total_tax
         FROM merged_records m
-        INNER JOIN foxybalance_incomerecordsview v ON m.id = v.id
+        INNER JOIN foxybalance_taxyears ty ON m.taxyearid = ty.id
     )
     SELECT
-        new_records::INT,
-        total_sales::INT,
-        total_fees::INT,
-        total_net::INT,
-        total_tax::NUMERIC
+        COALESCE(new_records::INT, 0),
+        COALESCE(total_sales::INT, 0),
+        COALESCE(total_fees::INT, 0),
+        COALESCE(total_net::INT, 0),
+        COALESCE(total_tax::NUMERIC, 0)
     INTO
         v_new_records_count,
         v_total_sales,
@@ -104,10 +107,10 @@ BEGIN
 
     -- Return the summary
     RETURN QUERY SELECT
-        v_new_records_count,
-        v_total_sales,
-        v_total_fees,
-        v_total_net,
-        v_total_tax;
+        COALESCE(v_new_records_count, 0),
+        COALESCE(v_total_sales, 0),
+        COALESCE(v_total_fees, 0),
+        COALESCE(v_total_net, 0),
+        COALESCE(v_total_tax, 0::NUMERIC);
 END;
 $$ LANGUAGE plpgsql;
