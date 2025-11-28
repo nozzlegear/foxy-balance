@@ -18,6 +18,5 @@
     <PackageReference Include="FSharp.Data" />
     <PackageReference Include="ShopifySharp" />
     <PackageReference Include="JsonSharp" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 </Project>
