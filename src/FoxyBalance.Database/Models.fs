@@ -96,18 +96,7 @@ type IncomeRecord =
       // Indicates that the income record is ignored and not counted as income when estimating taxes. Useful for cases where the app
       // syncs income from external sources that were eventually refunded or were otherwise not applicable for tax purposes.
       Ignored : bool }
-with
-    static member Default =
-        { Id = 0
-          Source = ManualTransaction { Description = ""; CustomerDescription = None }
-          SaleDate = DateTimeOffset.UtcNow
-          SaleAmount = 0
-          PlatformFee = 0
-          ProcessingFee = 0
-          NetShare = 0
-          EstimatedTax =0
-          Ignored = false }
-    
+
 type PartialIncomeRecord =
     { Source : IncomeSource
       SaleDate : DateTimeOffset
