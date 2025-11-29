@@ -1,0 +1,8 @@
+Account Number,Transaction Description,Transaction Date,Transaction Type,Transaction Amount,Balance
+1122,Debit Card Purchase - MERCHANT NAME 1165 TOWN MN,11/27/25,Debit,21,405.12
+1122,Withdrawal to My Savings XXXXXXX1234,11/26/25,Debit,175,426.12
+1122,Deposit from FOO B . BAZ PAY 123456,11/26/25,Credit,504.48,601.12
+1122,Digital Card Purchase - MCK HDWE MCKINLEY OH,11/25/25,Debit,23.52,96.64
+1122,Deposit from Nozzlegear Software XXXXXXX9876,11/25/25,Credit,300,120.16
+1122,Withdrawal from CITY OF MIDTOWN UTIL BILLS,11/25/25,Debit,271.73,-179.84
+1122,Withdrawal from APPLECARD GSBANK PAYMENT,11/24/25,Debit,50,91.89
