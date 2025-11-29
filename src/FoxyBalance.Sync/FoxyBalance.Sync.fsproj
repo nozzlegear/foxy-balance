@@ -11,12 +11,15 @@
     <Compile Include="GumroadClient.fs" />
     <Compile Include="ShopifyPartnerClient.fs" />
     <Compile Include="PaypalTransactionParser.fs" />
+    <Compile Include="CapitalOneTransactionParser.fs" />
     <Compile Include="ServiceCollectionExtensions.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BigNumber" />
     <PackageReference Include="FSharp.Core" />
     <PackageReference Include="FSharp.Data" />
     <PackageReference Include="ShopifySharp" />
     <PackageReference Include="JsonSharp" />
+    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 </Project>

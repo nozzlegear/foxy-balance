@@ -75,3 +75,18 @@ type ShopifyTransactionListResult = {
     PreviousPageCursor: string option
     Transactions: ShopifyTransaction seq
 }
+
+[<RequireQualifiedAccess>]
+type CapitalOneTransactionType =
+    | Credit
+    | Debit
+
+type CapitalOneTransaction = {
+    Id: string
+    DateCreated: DateTimeOffset
+    AccountNumber: string
+    Description: string
+    Type: CapitalOneTransactionType
+    Amount: decimal
+    Balance: decimal
+}

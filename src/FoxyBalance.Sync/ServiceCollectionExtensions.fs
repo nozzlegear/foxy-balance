@@ -11,6 +11,7 @@ module ServiceCollectionExtensions =
         member services.AddFoxyBalanceSyncClients() =
             %services.AddSingleton<GumroadClient>()
             %services.AddSingleton<PaypalTransactionParser>()
+            %services.AddSingleton<CapitalOneTransactionParser>()
             %services.AddSingleton<ShopifyPartnerClient>()
             %services.AddSingleton<IRequestExecutionPolicy, PartnerServiceRetryExecutionPolicy>()
             %services.AddHttpClient()
