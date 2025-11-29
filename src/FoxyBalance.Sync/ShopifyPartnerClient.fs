@@ -36,7 +36,7 @@ type private TransactionQueryParams =
 /// A ShopifySharp execution policy which retries requests after 750ms. The Shopify Partner API is hard limited to
 /// four requests per second and does not conform to the GraphQL cost limits or REST leaky bucket limits.
 type private PartnerServiceRetryExecutionPolicy () =
-    let DELAY = TimeSpan.FromMilliseconds 750
+    let DELAY = TimeSpan.FromMilliseconds 750L
 
     let rec run (requestMessage: CloneableRequestMessage, execute: ExecuteRequestAsync<_>, cancellationToken: CancellationToken) = task {
         try
