@@ -9,6 +9,7 @@
     <UserSecretsId>33ab6fc7-395b-4f96-b66d-8b31155cd925</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CapitalOneTransactionParserTests.fs" />
     <Compile Include="Configuration.fs" />
     <Compile Include="HttpQueryTests.fs" />
     <Compile Include="GumroadClientTests.fs" />
