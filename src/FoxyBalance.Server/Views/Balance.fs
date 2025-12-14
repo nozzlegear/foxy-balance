@@ -153,14 +153,14 @@ module Balance =
                         {| Value = "credit"; Label = "Credit/Deposit"; Selected = model.Type = "credit" |}
                     ]
                 ]
-                
+
                 Form.Element.TextInput [
                     Form.Placeholder "Supermarket purchase"
                     Form.LabelText "Name or description"
                     Form.HtmlName "name"
                     Form.Required
                     Form.Value model.Name ]
-                
+
                 // Group the amount and check number inputs together
                 Form.Element.Group [
                     Form.Element.NumberInput [
@@ -172,14 +172,14 @@ module Balance =
                         Form.Step 0.01M
                         Form.Required
                         Form.Value model.Amount ]
-                    
+
                     Form.Element.TextInput [
                         Form.Placeholder "1234"
                         Form.LabelText "Check Number (optional)"
                         Form.HtmlName "checkNumber"
                         Form.Value model.CheckNumber ]
                 ]
-                
+
                 // Group the date inputs together
                 Form.Element.Group [
                     Form.Element.DateInput [
@@ -188,25 +188,68 @@ module Balance =
                         Form.Value date
                         Form.HtmlName "date"
                         Form.Required ]
-                    
+
                     Form.Element.DateInput [
                         Form.Placeholder placeholderDate
                         Form.LabelText "Date Cleared (optional)"
                         Form.Value model.ClearDate
                         Form.HtmlName "clearDate" ]
                 ]
-                
+
                 Form.Element.MaybeError model.Error
-                
+
                 // Group the buttons together
                 Form.Element.Group [
                     deleteButton
                     // Use an empty div so we still have two columns
                     |> Option.defaultValue Form.Element.EmptyDiv
-                    
+
                     Form.Element.Button [
                         Form.ButtonText buttonText
-                        Form.Alignment Form.ButtonAlignment.Right 
+                        Form.Alignment Form.ButtonAlignment.Right
+                        Form.Color Form.ButtonColor.Success
+                        Form.Type Form.Submit ]
+                ]
+            ]
+        ]
+
+    let uploadTransactionsPage (model : UploadTransactionsViewModel) =
+        let title = "Upload transactions"
+
+        Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     G.a [A._href "/balance"; A._class "button"] [
+                        G.str "Cancel" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
+            Form.create [Form.Method Form.Post; Form.AutoComplete false; Form.EncType Form.Multipart] [
+                Form.Element.SelectBox [
+                    Form.SelectOption.LabelText "Source"
+                    Form.SelectOption.HtmlName "source"
+                    Form.SelectOption.Options [ {| Label = "Capital One"; Value = "capital-one"; Selected = true |} ]
+                    Form.SelectOption.Value "capital-one" ]
+
+                Form.Element.FileInput [
+                    Form.LabelText "CSV file"
+                    Form.HelpText "Upload a CSV file containing your transactions here. The transactions will be parsed according to the source, and the individual transaction records will be applied to your balance."
+                    Form.Accept ".csv"
+                    Form.HtmlName "transactionsCsvFile" ]
+
+                Form.Element.MaybeError model.Error
+
+                // Group the buttons together
+                Form.Element.Group [
+                    // Use an empty div so we still have two columns
+                    Form.Element.EmptyDiv
+
+                    Form.Element.Button [
+                        Form.ButtonText "Upload"
+                        Form.Alignment Form.ButtonAlignment.Right
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
                 ]
