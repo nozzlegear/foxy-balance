@@ -40,6 +40,7 @@ let allRoutes : HttpHandler =
                 route "/balance/clear" >=> text "Not yet implemented"
                 route "/balance/adjust-balance" >=> text "Not yet implemented"
                 route "/balance/new" >=> Routes.Balance.newTransactionHandler
+                route "/balance/upload" >=> Routes.Balance.uploadTransactionsView
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
 
@@ -56,6 +57,7 @@ let allRoutes : HttpHandler =
             route "/auth/register" >=> Routes.Auth.registerPostHandler
             authenticated [
                 route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
+                route "/balance/upload" >=> Routes.Balance.uploadTransactionsHandler
                 routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
                 route "/income/sync" >=> Routes.Income.executeSyncHandler

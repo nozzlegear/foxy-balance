@@ -1,11 +1,14 @@
 ﻿namespace FoxyBalance.Server.Routes
 
 open FoxyBalance.Database.Interfaces
+open FoxyBalance.Sync
 open Giraffe
 open FoxyBalance.Server
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Server.Models.ViewModels
+open Microsoft.Extensions.DependencyInjection
+
 module Views = FoxyBalance.Server.Views.Balance
 
 module Balance =
@@ -114,4 +117,12 @@ module Balance =
         |> createOrEditTransaction
 
     let deleteTransactionPostHandler (transactionId : int64) : HttpHandler =
-        deleteTransaction transactionId 
+        deleteTransaction transactionId
+
+    let uploadTransactionsView : HttpHandler =
+        UploadTransactionsViewModel.Default
+        |> Views.Balance.uploadTransactionsPage
+        |> htmlView
+
+    let uploadTransactionsHandler : HttpHandler =
+        failwith "not implemented"

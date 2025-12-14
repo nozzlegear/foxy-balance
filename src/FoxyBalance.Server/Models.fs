@@ -349,3 +349,9 @@ module ViewModels =
         { Error : string option
           Rate : int
           TaxYear : TaxYear }
+
+    type UploadTransactionsViewModel =
+        { Error: string option }
+    with
+        static member Default =
+            { Error = None }
