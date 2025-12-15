@@ -356,3 +356,10 @@ module ViewModels =
     with
         static member Default =
             { Error = None }
+
+    type UploadTransactionsCompleteViewModel =
+        { NewTransactions: int
+          ExistingTransactions: int }
+    with
+        static member Default =
+            { NewTransactions = 0; ExistingTransactions = 0 }
