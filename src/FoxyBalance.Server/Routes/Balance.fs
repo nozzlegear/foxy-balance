@@ -2,6 +2,7 @@
 
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Sync
+open FoxyBalance.Sync.Models
 open Giraffe
 open FoxyBalance.Server
 open FoxyBalance.Database.Models
@@ -125,4 +126,45 @@ module Balance =
         |> htmlView
 
     let uploadTransactionsHandler : HttpHandler =
-        failwith "not implemented"
+        let errorView msg: HttpHandler =
+            { UploadTransactionsViewModel.Default with Error = Some msg }
+            |> Views.Balance.uploadTransactionsPage
+            |> htmlView
+            >=> setStatusCode 422
+
+        let mapToPartialTransaction (transaction: CapitalOneTransaction): PartialTransaction =
+            { Name = transaction.Description
+              DateCreated = transaction.DateCreated
+              Amount = transaction.Amount
+              Status = TransactionStatus.Cleared transaction.DateCreated
+              Type = if transaction.Type = CapitalOneTransactionType.Credit
+                     then TransactionType.Credit
+                     else TransactionType.Debit
+              ImportId = Some transaction.Id }
+
+
+        RouteUtils.withSession (fun session next ctx -> task {
+            match ctx.Request.Form.TryGetValue("source"), ctx.Request.Form.Files.GetFile("transactionsCsvFile") with
+            | (false, source), _
+            | (true, source), _ when string source <> "capital-one" ->
+                return! (errorView $"Source must be \"Capital One\"; received \"{source}\".") next ctx
+            | _, file when isNull file ->
+                return! (errorView "CSV file is required.") next ctx
+            | _, file ->
+                let transactionParser = ctx.RequestServices.GetRequiredService<CapitalOneTransactionParser>()
+                let transactionDatabase = ctx.RequestServices.GetRequiredService<ITransactionDatabase>()
+
+                let parsedTransactions =
+                    file.OpenReadStream ()
+                    |> transactionParser.FromCsvStream
+                    |> List.map mapToPartialTransaction
+
+                let totalTransactions = List.length parsedTransactions
+                let! importedTransactionsCount =
+                    transactionDatabase.BulkCreateAsync(session.UserId, parsedTransactions)
+                let existingTransactionsCount = totalTransactions - importedTransactionsCount
+
+                return! ({ UploadTransactionsCompleteViewModel.Default with NewTransactions = importedTransactionsCount; ExistingTransactions = existingTransactionsCount }
+                        |> Views.Balance.uploadTransactionsCompletePage
+                        |> htmlView) next ctx
+        })

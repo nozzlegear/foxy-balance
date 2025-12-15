@@ -71,7 +71,7 @@ module Balance =
                 Shared.LeftLevel statusControls
                 Shared.RightLevel [
                     Shared.LevelItem.Element (a [_href "/balance/clear"; _class "button is-light"] [str "Clear All"])
-                    Shared.LevelItem.Element (a [_href "/balance/adjust-balance"; _class "button is-light"] [str "Adjust Balance"])
+                    Shared.LevelItem.Element (a [_href "/balance/upload"; _class "button is-info"] [str "Upload Transactions"])
                     Shared.LevelItem.Element (a [_href "/balance/new"; _class "button is-success"] [str "New Transaction"])
                 ]
             ]
@@ -253,5 +253,28 @@ module Balance =
                         Form.Color Form.ButtonColor.Success
                         Form.Type Form.Submit ]
                 ]
+            ]
+        ]
+
+    let uploadTransactionsCompletePage (model: UploadTransactionsCompleteViewModel) =
+        let title = "Transaction upload complete"
+
+        Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
+            Shared.level [
+                Shared.LeftLevel [
+                    Shared.LevelItem.Element (Shared.title title)
+                ]
+                Shared.RightLevel [
+                     G.a [A._href "/balance"; A._class "button is-info"] [
+                        G.str "Transactions" ]
+                     |> Shared.LevelItem.Element
+                ]
+            ]
+            // Totals
+            Shared.evenlySpacedLevel [
+                // TODO: add help text explaining what "Existed" means
+                Shared.LevelItem.HeadingAndTitle ("Created", string model.NewTransactions)
+                Shared.LevelItem.HeadingAndTitle ("Existed", string model.ExistingTransactions)
+                Shared.LevelItem.HeadingAndTitle ("Total", string (model.ExistingTransactions + model.NewTransactions))
             ]
         ]
