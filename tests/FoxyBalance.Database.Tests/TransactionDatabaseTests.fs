@@ -52,7 +52,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = status
-                  Type = transactionType  }
+                  Type = transactionType
+                  ImportId = None }
 
             // Act
             let! result = database.CreateAsync(user.Id, partialTransaction)
@@ -75,7 +76,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
             let userId = -1
 
             // Act
@@ -107,7 +109,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = status
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -131,7 +134,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -173,7 +177,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user1.Id, partialTransaction)
 
@@ -194,7 +199,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -230,7 +236,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user1.Id, partialTransaction)
 
@@ -251,7 +258,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -260,7 +268,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 5
                   Status = Cleared (bogus.Date.RecentOffset 2)
-                  Type = TransactionType.Credit }
+                  Type = TransactionType.Credit
+                  ImportId = None }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedTransaction)
@@ -283,7 +292,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -292,7 +302,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 5
                   Status = Cleared (bogus.Date.RecentOffset 2)
-                  Type = TransactionType.Credit }
+                  Type = TransactionType.Credit
+                  ImportId = None }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedTransaction)
@@ -311,7 +322,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = decimal i
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit })
+                  Type = TransactionType.Debit
+                  ImportId = None })
 
             for transaction in transactions do
                 let! _ = database.CreateAsync(user.Id, transaction)
@@ -338,7 +350,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = decimal i
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit })
+                  Type = TransactionType.Debit
+                  ImportId = None })
 
             for transaction in transactions do
                 let! _ = database.CreateAsync(user.Id, transaction)
@@ -372,7 +385,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Pending
-                      Type = TransactionType.Debit }
+                      Type = TransactionType.Debit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -383,7 +397,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Cleared (bogus.Date.RecentOffset 10)
-                      Type = TransactionType.Credit }
+                      Type = TransactionType.Credit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -407,7 +422,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = bogus.Finance.Amount()
                   DateCreated = bogus.Date.RecentOffset 20
                   Status = Pending
-                  Type = TransactionType.Debit }
+                  Type = TransactionType.Debit
+                  ImportId = None }
 
             let! created = database.CreateAsync(user.Id, partialTransaction)
 
@@ -432,7 +448,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Pending
-                      Type = TransactionType.Debit }
+                      Type = TransactionType.Debit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -443,7 +460,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Cleared (bogus.Date.RecentOffset 10)
-                      Type = TransactionType.Credit }
+                      Type = TransactionType.Credit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -468,7 +486,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Pending
-                      Type = TransactionType.Debit }
+                      Type = TransactionType.Debit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -479,7 +498,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = decimal i
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Cleared (bogus.Date.RecentOffset 10)
-                      Type = TransactionType.Credit }
+                      Type = TransactionType.Credit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -506,7 +526,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = 100M
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Cleared (bogus.Date.RecentOffset 10)
-                      Type = TransactionType.Debit }
+                      Type = TransactionType.Debit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -517,7 +538,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = 50M
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Cleared (bogus.Date.RecentOffset 10)
-                      Type = TransactionType.Credit }
+                      Type = TransactionType.Credit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -528,7 +550,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = 75M
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Pending
-                      Type = TransactionType.Debit }
+                      Type = TransactionType.Debit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
@@ -539,7 +562,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
                       Amount = 25M
                       DateCreated = bogus.Date.RecentOffset 20
                       Status = Pending
-                      Type = TransactionType.Credit }
+                      Type = TransactionType.Credit
+                      ImportId = None }
                 let! _ = database.CreateAsync(user.Id, transaction)
                 ()
 
