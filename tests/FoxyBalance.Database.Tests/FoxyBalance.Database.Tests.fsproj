@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
     <ProjectReference Include="..\..\src\FoxyBalance.Migrator\FoxyBalance.Migrator.fsproj" />
+    <ProjectReference Include="..\FoxyBalance.Tests.Utils\FoxyBalance.Tests.Utils.fsproj" />
   </ItemGroup>
 
 </Project>
