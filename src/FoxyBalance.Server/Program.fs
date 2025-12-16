@@ -18,6 +18,7 @@ open Microsoft.Extensions.Hosting
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
 open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.Hosting
 
 module Migrator = FoxyBalance.Migrations.Migrator
 
@@ -130,15 +131,18 @@ let main _ =
     let contentRoot = Directory.GetCurrentDirectory()
     let webRoot     = Path.Combine(contentRoot, "WebRoot")
     let host =
-        WebHost.CreateDefaultBuilder()
+        Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration(fun hostingContext configuration ->
                 configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
                 configuration.AddKeyPerFile("/run/secrets", optional = true) |> ignore
             )
-            .UseUrls([|"http://+:3000"|])
-            .UseWebRoot(webRoot)
-            .Configure(Action<IApplicationBuilder> configureApp)
-            .ConfigureServices(configureServices)
+            .ConfigureWebHostDefaults(fun webBuilder ->
+                webBuilder.UseUrls([|"http://+:3000"|]) |> ignore
+                webBuilder.UseWebRoot(webRoot) |> ignore
+                webBuilder.Configure(Action<IApplicationBuilder> configureApp) |> ignore
+                webBuilder.ConfigureServices(configureServices) |> ignore
+                webBuilder.ConfigureLogging(configureLogging) |> ignore
+            )
             .ConfigureLogging(configureLogging)
             .Build()
 
