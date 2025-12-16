@@ -3,6 +3,7 @@ namespace FoxyBalance.Database
 open System
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
+open Npgsql
 open Npgsql.FSharp
 
 type TransactionDatabase(options : IDatabaseOptions) =
@@ -111,6 +112,120 @@ type TransactionDatabase(options : IDatabaseOptions) =
             ]
             |> Sql.executeRowAsync (fun read -> read.bool "transactionexists")
             
+        member _.BulkCreateAsync(userId, partialTransactions) =
+            task {
+                if List.isEmpty partialTransactions then
+                    return 0
+                else
+                    // Collect all ImportIds from the transactions to check for existing records
+                    let importIdsToCheck =
+                        partialTransactions
+                        |> List.choose (fun t -> t.ImportId)
+                        |> List.distinct
+
+                    // Query for existing transactions with these ImportIds
+                    let! existingImportIds =
+                        if List.isEmpty importIdsToCheck then
+                            task { return Set.empty }
+                        else
+                            task {
+                                let! existingIds =
+                                    connection
+                                    |> Sql.query """
+                                        SELECT DISTINCT importid
+                                        FROM foxybalance_transactions
+                                        WHERE userid = @userId AND importid = ANY(@importIds)
+                                    """
+                                    |> Sql.parameters [
+                                        "userId", Sql.int userId
+                                        "importIds", Sql.stringArray (Array.ofList importIdsToCheck)
+                                    ]
+                                    |> Sql.executeAsync (fun read -> read.string "importid")
+                                return Set.ofList existingIds
+                            }
+
+                    // Filter out transactions that already exist
+                    let transactionsToImport =
+                        partialTransactions
+                        |> List.filter (fun t ->
+                            match t.ImportId with
+                            | Some importId -> not (Set.contains importId existingImportIds)
+                            | None -> true // Always import transactions without an ImportId
+                        )
+
+                    if List.isEmpty transactionsToImport then
+                        return 0
+                    else
+                        use conn = new NpgsqlConnection(options.ConnectionString)
+                        do! conn.OpenAsync()
+
+                        let copyCommand = """
+                            COPY foxybalance_transactions (
+                                userid,
+                                datecreated,
+                                name,
+                                amount,
+                                type,
+                                recurring,
+                                checknumber,
+                                status,
+                                datecleared,
+                                importid
+                            ) FROM STDIN (FORMAT BINARY)
+                        """
+
+                        use! writer = conn.BeginBinaryImportAsync(copyCommand)
+
+                        for transaction in transactionsToImport do
+                            do! writer.StartRowAsync()
+                            // userid
+                            do! writer.WriteAsync(userId, NpgsqlTypes.NpgsqlDbType.Integer)
+                            // datecreated
+                            do! writer.WriteAsync(transaction.DateCreated.ToUniversalTime(), NpgsqlTypes.NpgsqlDbType.TimestampTz)
+                            // name
+                            do! writer.WriteAsync(transaction.Name, NpgsqlTypes.NpgsqlDbType.Text)
+                            // amount
+                            do! writer.WriteAsync(transaction.Amount, NpgsqlTypes.NpgsqlDbType.Numeric)
+
+                            // type, recurring, checknumber
+                            match transaction.Type with
+                            | Check check ->
+                                do! writer.WriteAsync("Check", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(false, NpgsqlTypes.NpgsqlDbType.Boolean)
+                                do! writer.WriteAsync(check.CheckNumber, NpgsqlTypes.NpgsqlDbType.Text)
+                            | Bill bill ->
+                                do! writer.WriteAsync("Bill", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(bill.Recurring, NpgsqlTypes.NpgsqlDbType.Boolean)
+                                do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Text)
+                            | Debit ->
+                                do! writer.WriteAsync("Debit", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(false, NpgsqlTypes.NpgsqlDbType.Boolean)
+                                do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Text)
+                            | Credit ->
+                                do! writer.WriteAsync("Credit", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(false, NpgsqlTypes.NpgsqlDbType.Boolean)
+                                do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Text)
+
+                            // status, datecleared
+                            match transaction.Status with
+                            | Pending ->
+                                do! writer.WriteAsync("Pending", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.TimestampTz)
+                            | Cleared date ->
+                                do! writer.WriteAsync("Cleared", NpgsqlTypes.NpgsqlDbType.Text)
+                                do! writer.WriteAsync(date.ToUniversalTime(), NpgsqlTypes.NpgsqlDbType.TimestampTz)
+
+                            // importid
+                            match transaction.ImportId with
+                            | Some importId ->
+                                do! writer.WriteAsync(importId, NpgsqlTypes.NpgsqlDbType.Varchar)
+                            | None ->
+                                do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Varchar)
+
+                        let! rowsImported = writer.CompleteAsync()
+                        return int rowsImported
+            }
+
         member _.CreateAsync(userId, transaction) =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status

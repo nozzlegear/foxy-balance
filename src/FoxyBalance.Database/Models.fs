@@ -9,6 +9,7 @@ type EmailAddress = string
 type UserId = int
 type TransactionId = int64
 type IncomeId = int64
+type BulkCreationCount = int
 
 type UserIdentifier =
     | Id of UserId
