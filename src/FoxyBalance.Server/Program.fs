@@ -122,7 +122,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify") |> ignore
 
 let configureLogging (builder : ILoggingBuilder) =
-    builder.AddFilter(fun l -> l.Equals LogLevel.Error)
+    builder.AddFilter(fun l -> l >= LogLevel.Information)
            .AddConsole()
            .AddDebug() |> ignore
 
