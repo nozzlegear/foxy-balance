@@ -320,7 +320,7 @@ module Shared =
                     else
                         let queryParams =
                             options.ExtraQueryArgs
-                            |> Map.add "page" (box options.CurrentPage)
+                            |> Map.add "page" (box page)
                             |> toQueryString
                         [ _class "pagination-link"
                           _href $"/{route}?{queryParams}"
