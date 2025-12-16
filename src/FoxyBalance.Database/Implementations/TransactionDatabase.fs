@@ -38,7 +38,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
           Amount = read.decimal "amount"
           DateCreated = read.datetimeOffset "datecreated"
           Status = mapRowToStatus read
-          Type = mapRowToDetails read }
+          Type = mapRowToDetails read
+          ImportId = read.stringOrNone "importid" }
     
     let mapDetailsToSqlParams details =
         match details with
@@ -113,6 +114,10 @@ type TransactionDatabase(options : IDatabaseOptions) =
         member _.CreateAsync(userId, transaction) =
             let details = mapDetailsToSqlParams transaction.Type
             let status = mapStatusToSqlParams transaction.Status
+            let importId =
+                match transaction.ImportId with
+                | Some id -> Sql.string id
+                | None -> Sql.dbnull
             let data = [
                 "userId", Sql.int userId
                 "dateCreated", Sql.timestamptz (transaction.DateCreated.ToUniversalTime())
@@ -123,6 +128,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 "recurring", details.recurring
                 "status", status.statusStr
                 "dateCleared", status.dateCleared
+                "importId", importId
             ]
 
             connection
@@ -136,7 +142,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     recurring,
                     checknumber,
                     status,
-                    datecleared
+                    datecleared,
+                    importid
                 ) VALUES (
                     @userId,
                     @dateCreated,
@@ -146,7 +153,8 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     @recurring,
                     @checkNumber,
                     @status,
-                    @dateCleared
+                    @dateCleared,
+                    @importId
                 )
                 RETURNING id, datecreated
             """
@@ -159,6 +167,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     DateCreated = read.datetimeOffset "datecreated"
                     Status = transaction.Status
                     Type = transaction.Type
+                    ImportId = transaction.ImportId
                 })
             
         member _.UpdateAsync(userId, transactionId, transaction) =
@@ -187,7 +196,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                 status = @status,
                 datecleared = @dateCleared
                 WHERE userid = @userId AND id = @id
-                RETURNING datecreated
+                RETURNING datecreated, importid
                 """
             |> Sql.parameters data
             |> Sql.executeRowAsync (fun read ->
@@ -198,6 +207,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                     DateCreated = DateTimeOffset (read.dateTime "datecreated")
                     Status = transaction.Status
                     Type = transaction.Type
+                    ImportId = read.stringOrNone "importid"
                 })
             
         member _.ListAsync(userId, options) =

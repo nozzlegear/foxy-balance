@@ -105,7 +105,8 @@ module RequestModels =
               Amount = 0.00M
               DateCreated = System.DateTimeOffset.Now
               Type = Debit
-              Status = Pending }
+              Status = Pending
+              ImportId = None }
             |> Result.Ok
             |> Result.bind validateName 
             |> Result.bind validateAmount

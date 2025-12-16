@@ -46,14 +46,17 @@ type Transaction =
       Amount : decimal
       DateCreated : DateTimeOffset
       Status : TransactionStatus
-      Type : TransactionType }
+      Type : TransactionType
+      ImportId : string option }
     
 type PartialTransaction =
     { Name : string
       DateCreated : DateTimeOffset
       Amount : decimal
       Status : TransactionStatus
-      Type : TransactionType }
+      Type : TransactionType
+      // A unique identifier assigned by a transaction parser which can identify this transaction in future imports.
+      ImportId : string option }
     
 type TransactionSum =
     { Sum : decimal

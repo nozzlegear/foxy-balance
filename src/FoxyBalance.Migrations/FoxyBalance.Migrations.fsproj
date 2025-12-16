@@ -6,6 +6,7 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="Migrations\Migration_001_InitialPostgreSQLSchema.fs" />
+    <Compile Include="Migrations\Migration_002_AddImportIdToTransactions.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
