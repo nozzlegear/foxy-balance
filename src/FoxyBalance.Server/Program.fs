@@ -45,6 +45,11 @@ let allRoutes : HttpHandler =
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
 
+                route "/bills" >=> Routes.Bills.listBillsHandler
+                route "/bills/new" >=> Routes.Bills.newBillHandler
+                route "/bills/match" >=> Routes.Bills.matchingInterfaceHandler
+                routef "/bills/%d" Routes.Bills.editBillHandler
+
                 route "/income" >=> Routes.Income.homePageHandler
                 route "/income/sync" >=> Routes.Income.syncHandler
                 route "/income/new" >=> Routes.Income.newRecordHandler
@@ -60,7 +65,14 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
                 route "/balance/upload" >=> Routes.Balance.uploadTransactionsHandler
                 routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
+                routef "/balance/%d/match" Routes.Bills.executeMatchHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
+
+                route "/bills/new" >=> Routes.Bills.newBillPostHandler
+                routef "/bills/%d/delete" Routes.Bills.deleteBillPostHandler
+                routef "/bills/%d/toggle" Routes.Bills.toggleActiveBillPostHandler
+                routef "/bills/%d" Routes.Bills.existingBillPostHandler
+
                 route "/income/sync" >=> Routes.Income.executeSyncHandler
                 route "/income/new" >=> Routes.Income.executeNewRecordHandler
                 routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
@@ -114,7 +126,11 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     // add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
+    add (fun _ -> services.AddScoped<IRecurringBillDatabase, RecurringBillDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
+    add (fun _ -> services.AddScoped<Services.BillMatchingService>())
+    add (fun _ -> services.AddScoped<Services.RecurringBillApplicationService>())
+    add (fun _ -> services.AddHostedService<Services.RecurringBillBackgroundService>())
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
     services.AddFoxyBalanceSyncClients()
 
