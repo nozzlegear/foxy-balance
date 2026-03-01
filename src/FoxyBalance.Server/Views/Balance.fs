@@ -71,6 +71,7 @@ module Balance =
                 Shared.LeftLevel statusControls
                 Shared.RightLevel [
                     Shared.LevelItem.Element (a [_href "/balance/clear"; _class "button is-light"] [str "Clear All"])
+                    Shared.LevelItem.Element (a [_href "/bills"; _class "button is-link"] [str "Recurring Bills"])
                     Shared.LevelItem.Element (a [_href "/balance/upload"; _class "button is-info"] [str "Upload Transactions"])
                     Shared.LevelItem.Element (a [_href "/balance/new"; _class "button is-success"] [str "New Transaction"])
                 ]
