@@ -8,9 +8,11 @@
     <Compile Include="Models.fs" />
     <Compile Include="Interfaces\IUserDatabase.fs" />
     <Compile Include="Interfaces\ITransactionDatabase.fs" />
+    <Compile Include="Interfaces\IRecurringBillDatabase.fs" />
     <Compile Include="Interfaces\IIncomeDatabase.fs" />
     <Compile Include="Implementations\UserDatabase.fs" />
     <Compile Include="Implementations\TransactionDatabase.fs" />
+    <Compile Include="Implementations\RecurringBillDatabase.fs" />
     <Compile Include="Implementations\IncomeDatabase.fs" />
   </ItemGroup>
   <ItemGroup>
