@@ -13,8 +13,10 @@
     <Compile Include="DbContainerFixture.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="TransactionDatabaseTests.fs" />
+    <Compile Include="RecurringBillDatabaseTests.fs" />
     <Compile Include="UserDatabaseTests.fs" />
     <Compile Include="IncomeDatabaseTests.fs" />
+    <Compile Include="BillMatchingServiceTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +37,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
+    <ProjectReference Include="..\..\src\FoxyBalance.Server\FoxyBalance.Server.fsproj" />
     <ProjectReference Include="..\..\src\FoxyBalance.Migrator\FoxyBalance.Migrator.fsproj" />
     <ProjectReference Include="..\FoxyBalance.Tests.Utils\FoxyBalance.Tests.Utils.fsproj" />
   </ItemGroup>
