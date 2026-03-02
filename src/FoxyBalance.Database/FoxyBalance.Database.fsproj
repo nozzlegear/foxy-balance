@@ -10,10 +10,14 @@
     <Compile Include="Interfaces\ITransactionDatabase.fs" />
     <Compile Include="Interfaces\IRecurringBillDatabase.fs" />
     <Compile Include="Interfaces\IIncomeDatabase.fs" />
+    <Compile Include="Interfaces\IApiKeyDatabase.fs" />
+    <Compile Include="Interfaces\IRefreshTokenDatabase.fs" />
     <Compile Include="Implementations\UserDatabase.fs" />
     <Compile Include="Implementations\TransactionDatabase.fs" />
     <Compile Include="Implementations\RecurringBillDatabase.fs" />
     <Compile Include="Implementations\IncomeDatabase.fs" />
+    <Compile Include="Implementations\ApiKeyDatabase.fs" />
+    <Compile Include="Implementations\RefreshTokenDatabase.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql" />
