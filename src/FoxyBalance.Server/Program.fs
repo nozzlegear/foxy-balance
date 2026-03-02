@@ -31,6 +31,35 @@ let allRoutes : HttpHandler =
         choose wrapped
 
     choose [
+        // REST API v1 routes
+        subRoute "/api/v1" (choose [
+            // Auth endpoints (no authentication required)
+            POST >=> route "/auth/token" >=> Api.Routes.Auth.tokenExchangeHandler
+            POST >=> route "/auth/refresh" >=> Api.Routes.Auth.tokenRefreshHandler
+
+            // Balance endpoints
+            GET >=> route "/balance" >=> Api.Routes.Balance.getBalanceHandler
+
+            // Transaction endpoints
+            GET >=> route "/transactions" >=> Api.Routes.Transactions.listHandler
+            GET >=> routef "/transactions/%d" Api.Routes.Transactions.getHandler
+            POST >=> route "/transactions" >=> Api.Routes.Transactions.createHandler
+            POST >=> route "/transactions/import" >=> Api.Routes.Transactions.importHandler
+            PUT >=> routef "/transactions/%d" Api.Routes.Transactions.updateHandler
+            DELETE >=> routef "/transactions/%d" Api.Routes.Transactions.deleteHandler
+
+            // Recurring bills endpoints
+            GET >=> route "/bills" >=> Api.Routes.RecurringBills.listHandler
+            GET >=> route "/bills/match/suggestions" >=> Api.Routes.BillMatching.getSuggestionsHandler
+            GET >=> routef "/bills/%d" Api.Routes.RecurringBills.getHandler
+            POST >=> route "/bills" >=> Api.Routes.RecurringBills.createHandler
+            POST >=> route "/bills/match" >=> Api.Routes.BillMatching.executeMatchHandler
+            POST >=> routef "/bills/%d/toggle-active" Api.Routes.RecurringBills.toggleActiveHandler
+            PUT >=> routef "/bills/%d" Api.Routes.RecurringBills.updateHandler
+            DELETE >=> routef "/bills/%d" Api.Routes.RecurringBills.deleteHandler
+        ])
+
+        // Web UI routes
         GET >=> choose [
             route "/" >=> redirectTo false "/balance"
             route "/home" >=> redirectTo false "/balance"

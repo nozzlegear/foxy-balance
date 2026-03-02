@@ -33,6 +33,12 @@
     <Compile Include="Api\JwtService.fs" />
     <Compile Include="Api\ApiKeyService.fs" />
     <Compile Include="Api\Middleware.fs" />
+    <Compile Include="Api\Routes\ApiRouteUtils.fs" />
+    <Compile Include="Api\Routes\Auth.fs" />
+    <Compile Include="Api\Routes\Balance.fs" />
+    <Compile Include="Api\Routes\Transactions.fs" />
+    <Compile Include="Api\Routes\RecurringBills.fs" />
+    <Compile Include="Api\Routes\BillMatching.fs" />
     <Compile Include="Routes\Auth.fs" />
     <Compile Include="Routes\Balance.fs" />
     <Compile Include="Routes\Bills.fs" />
