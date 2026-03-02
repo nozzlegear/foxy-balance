@@ -2,6 +2,7 @@
 
 open System.Globalization
 open FoxyBalance.Database.Models
+open FoxyBalance.Database.Interfaces
 open Microsoft.Extensions.Configuration
 
 type IConstants =
@@ -250,6 +251,18 @@ module RequestModels =
     type MatchTransactionRequest =
         { BillId : int64 }
 
+    [<CLIMutable>]
+    type CreateApiKeyRequest =
+        { Name : string }
+        with
+        static member Validate model : Result<string, string> =
+            if String.isEmpty model.Name then
+                Error "You must enter a name for this API key."
+            elif model.Name.Length > 100 then
+                Error "API key name cannot exceed 100 characters."
+            else
+                Ok model.Name
+
 module ViewModels =
     type RouteType =
         | Balance
@@ -441,3 +454,20 @@ module ViewModels =
 
     type BillMatchingViewModel =
         { MatchCandidates : BillMatchCandidate list }
+
+    type ApiKeysListViewModel =
+        { ApiKeys : ApiKeyInfo seq }
+
+    type NewApiKeyViewModel =
+        { Error : string option
+          Name : string }
+        with
+        static member Default =
+            { Error = None
+              Name = "" }
+
+    type ApiKeyCreatedViewModel =
+        { Name : string
+          ApiKey : string
+          ApiSecret : string
+          BaseUrl : string }

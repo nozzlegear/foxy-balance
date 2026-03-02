@@ -118,6 +118,10 @@ module Shared =
                         str "Expenses"
                     ]
 
+                    a [_class "navbar-item"; _href "/api-keys"] [
+                        str "API Keys"
+                    ]
+
                     a [_class "navbar-item"; _href "https://github.com/nozzlegear/foxy-balance"; _target "blank"] [
                         str "Open Source"
                     ]

@@ -26,6 +26,7 @@
     <Compile Include="Views\Balance.fs" />
     <Compile Include="Views\Bills.fs" />
     <Compile Include="Views\Income.fs" />
+    <Compile Include="Views\ApiKeys.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
     <Compile Include="Api\Models.fs" />
@@ -43,6 +44,7 @@
     <Compile Include="Routes\Balance.fs" />
     <Compile Include="Routes\Bills.fs" />
     <Compile Include="Routes\Income.fs" />
+    <Compile Include="Routes\ApiKeys.fs" />
     <Compile Include="Program.fs" />
     <Content Include="appsettings.development.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
