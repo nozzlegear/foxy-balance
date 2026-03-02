@@ -1,5 +1,8 @@
 module Program
 
+/// Marker type for WebApplicationFactory to find the assembly
+type Marker = class end
+
 open FoxyBalance.Database
 open FoxyBalance.Database.Interfaces
 open System

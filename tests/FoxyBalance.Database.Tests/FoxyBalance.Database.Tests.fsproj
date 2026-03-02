@@ -17,11 +17,13 @@
     <Compile Include="UserDatabaseTests.fs" />
     <Compile Include="IncomeDatabaseTests.fs" />
     <Compile Include="BillMatchingServiceTests.fs" />
+    <Compile Include="ApiIntegrationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Bogus" />
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Faqt" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Npgsql" />
