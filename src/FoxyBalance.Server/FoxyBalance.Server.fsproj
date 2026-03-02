@@ -30,6 +30,9 @@
     <Compile Include="RouteUtils.fs" />
     <Compile Include="Api\Models.fs" />
     <Compile Include="Api\HalBuilder.fs" />
+    <Compile Include="Api\JwtService.fs" />
+    <Compile Include="Api\ApiKeyService.fs" />
+    <Compile Include="Api\Middleware.fs" />
     <Compile Include="Routes\Auth.fs" />
     <Compile Include="Routes\Balance.fs" />
     <Compile Include="Routes\Bills.fs" />
@@ -55,6 +58,8 @@
   <ItemGroup>
     <PackageReference Include="Giraffe" />
     <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
 
 </Project>

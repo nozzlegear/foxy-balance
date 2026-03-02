@@ -133,6 +133,20 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddScoped<Services.BillMatchingService>())
     add (fun _ -> services.AddScoped<Services.RecurringBillApplicationService>())
     add (fun _ -> services.AddHostedService<Services.RecurringBillBackgroundService>())
+
+    // API authentication services
+    let jwtConfig : Api.JwtConfig =
+        { SecretKey = app.Configuration.["HashingKey"]
+          Issuer = "FoxyBalance"
+          Audience = "FoxyBalanceApi"
+          AccessTokenLifetime = TimeSpan.FromHours(1.0)
+          RefreshTokenLifetime = TimeSpan.FromDays(30.0) }
+    add (fun _ -> services.AddSingleton<Api.JwtService>(Api.JwtService(jwtConfig)))
+    add (fun _ -> services.AddScoped<Api.ApiKeyService>(fun sp ->
+        let apiKeyDb = sp.GetRequiredService<IApiKeyDatabase>()
+        let hashingKey = app.Configuration.["HashingKey"]
+        Api.ApiKeyService(apiKeyDb, hashingKey)))
+
     add (fun _ -> services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(cookieAuth))
     services.AddFoxyBalanceSyncClients()
 
