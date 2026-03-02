@@ -128,6 +128,8 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
     add (fun _ -> services.AddScoped<IRecurringBillDatabase, RecurringBillDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
+    add (fun _ -> services.AddScoped<IApiKeyDatabase, ApiKeyDatabase>())
+    add (fun _ -> services.AddScoped<IRefreshTokenDatabase, RefreshTokenDatabase>())
     add (fun _ -> services.AddScoped<Services.BillMatchingService>())
     add (fun _ -> services.AddScoped<Services.RecurringBillApplicationService>())
     add (fun _ -> services.AddHostedService<Services.RecurringBillBackgroundService>())
