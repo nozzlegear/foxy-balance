@@ -85,6 +85,9 @@ let allRoutes : HttpHandler =
                 routef "/income/%d" Routes.Income.recordDetailsHandler
                 routef "/income/%d/shopify-details.json" Routes.Income.rawShopifyTransactionHandler
                 routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
+
+                route "/api-keys" >=> Routes.ApiKeys.listApiKeysHandler
+                route "/api-keys/new" >=> Routes.ApiKeys.newApiKeyHandler
             ]
         ]
         POST >=> choose [
@@ -107,6 +110,10 @@ let allRoutes : HttpHandler =
                 routef "/income/%d/ignore" Routes.Income.executeToggleIgnoreHandler
                 routef "/income/%d/delete" Routes.Income.executeDeleteHandler
                 routef "/income/tax-rate/%i" Routes.Income.executeTaxRateHandler
+
+                route "/api-keys/new" >=> Routes.ApiKeys.newApiKeyPostHandler
+                routef "/api-keys/%d/revoke" Routes.ApiKeys.revokeApiKeyPostHandler
+                routef "/api-keys/%d/delete" Routes.ApiKeys.deleteApiKeyPostHandler
             ]
         ]
         setStatusCode 404 >=> text "Not Found"
