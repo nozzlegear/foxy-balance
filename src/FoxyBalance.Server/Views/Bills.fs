@@ -24,6 +24,13 @@ module Bills =
         | System.DayOfWeek.Saturday -> "Saturday"
         | _ -> "Unknown"
 
+    let private daySuffix day =
+        match day with
+        | 1 | 21 | 31 -> "st"
+        | 2 | 22 -> "nd"
+        | 3 | 23 -> "rd"
+        | _ -> "th"
+
     let listBillsPage (model : RecurringBillsListViewModel) : XmlNode =
         let title = "Recurring Bills"
 
@@ -52,10 +59,15 @@ module Bills =
                     ]
                     Shared.TableBody [
                         for bill in model.Bills do
+                            let scheduleText =
+                                match bill.Schedule with
+                                | WeekBased(week, day) -> $"{formatWeekOfMonth week} week, {formatDayOfWeek day}"
+                                | DateBased(dayOfMonth) -> $"{dayOfMonth}{daySuffix dayOfMonth} of month"
+
                             yield Shared.TableRow [
                                 Shared.TableCell (G.a [A._href (sprintf "/bills/%i" bill.Id)] [G.str bill.Name])
                                 Shared.TableCell (Format.amountWithDollarSign bill.Amount |> G.str)
-                                Shared.TableCell (G.str $"{formatWeekOfMonth bill.WeekOfMonth} week, {formatDayOfWeek bill.DayOfWeek}")
+                                Shared.TableCell (G.str scheduleText)
                                 Shared.TableCell (
                                     match bill.LastAppliedDate with
                                     | Some date -> Format.date date |> G.str
@@ -128,29 +140,84 @@ module Bills =
                     Form.Value viewModel.Amount ]
 
                 Form.Element.SelectBox [
-                    Form.SelectOption.LabelText "Week of Month"
-                    Form.SelectOption.HtmlName "weekOfMonth"
+                    Form.SelectOption.LabelText "Schedule Type"
+                    Form.SelectOption.HtmlName "scheduleType"
                     Form.SelectOption.Options [
-                        {| Label = "1st week"; Value = "1"; Selected = viewModel.WeekOfMonth = "1" |}
-                        {| Label = "2nd week"; Value = "2"; Selected = viewModel.WeekOfMonth = "2" |}
-                        {| Label = "3rd week"; Value = "3"; Selected = viewModel.WeekOfMonth = "3" |}
-                        {| Label = "4th week"; Value = "4"; Selected = viewModel.WeekOfMonth = "4" |}
+                        {| Label = "Week of month (e.g., 2nd Wednesday)"; Value = "week"; Selected = viewModel.ScheduleType = "week" |}
+                        {| Label = "Day of month (e.g., 15th of every month)"; Value = "date"; Selected = viewModel.ScheduleType = "date" |}
                     ]
-                    Form.SelectOption.Value viewModel.WeekOfMonth ]
+                    Form.SelectOption.Value viewModel.ScheduleType ]
 
-                Form.Element.SelectBox [
-                    Form.SelectOption.LabelText "Day of Week"
-                    Form.SelectOption.HtmlName "dayOfWeek"
-                    Form.SelectOption.Options [
-                        {| Label = "Sunday"; Value = "0"; Selected = viewModel.DayOfWeek = "0" |}
-                        {| Label = "Monday"; Value = "1"; Selected = viewModel.DayOfWeek = "1" |}
-                        {| Label = "Tuesday"; Value = "2"; Selected = viewModel.DayOfWeek = "2" |}
-                        {| Label = "Wednesday"; Value = "3"; Selected = viewModel.DayOfWeek = "3" |}
-                        {| Label = "Thursday"; Value = "4"; Selected = viewModel.DayOfWeek = "4" |}
-                        {| Label = "Friday"; Value = "5"; Selected = viewModel.DayOfWeek = "5" |}
-                        {| Label = "Saturday"; Value = "6"; Selected = viewModel.DayOfWeek = "6" |}
+                Form.Element.Raw [
+                    G.div [
+                        A._class "week-based-fields"
+                        A._style (if viewModel.ScheduleType = "week" then "" else "display:none")
+                    ] [
+                        G.div [A._class "field"] [
+                            G.div [A._class "control"] [
+                                G.label [A._class "label"; A._for "weekOfMonth"] [G.str "Week of Month"]
+                                G.div [A._class "select is-fullwidth"] [
+                                    G.select [A._name "weekOfMonth"; A._value viewModel.WeekOfMonth] [
+                                        G.option [A._value "1"; if viewModel.WeekOfMonth = "1" then A._selected] [G.str "1st week"]
+                                        G.option [A._value "2"; if viewModel.WeekOfMonth = "2" then A._selected] [G.str "2nd week"]
+                                        G.option [A._value "3"; if viewModel.WeekOfMonth = "3" then A._selected] [G.str "3rd week"]
+                                        G.option [A._value "4"; if viewModel.WeekOfMonth = "4" then A._selected] [G.str "4th week"]
+                                    ]
+                                ]
+                            ]
+                        ]
+                        G.div [A._class "field"] [
+                            G.div [A._class "control"] [
+                                G.label [A._class "label"; A._for "dayOfWeek"] [G.str "Day of Week"]
+                                G.div [A._class "select is-fullwidth"] [
+                                    G.select [A._name "dayOfWeek"; A._value viewModel.DayOfWeek] [
+                                        G.option [A._value "0"; if viewModel.DayOfWeek = "0" then A._selected] [G.str "Sunday"]
+                                        G.option [A._value "1"; if viewModel.DayOfWeek = "1" then A._selected] [G.str "Monday"]
+                                        G.option [A._value "2"; if viewModel.DayOfWeek = "2" then A._selected] [G.str "Tuesday"]
+                                        G.option [A._value "3"; if viewModel.DayOfWeek = "3" then A._selected] [G.str "Wednesday"]
+                                        G.option [A._value "4"; if viewModel.DayOfWeek = "4" then A._selected] [G.str "Thursday"]
+                                        G.option [A._value "5"; if viewModel.DayOfWeek = "5" then A._selected] [G.str "Friday"]
+                                        G.option [A._value "6"; if viewModel.DayOfWeek = "6" then A._selected] [G.str "Saturday"]
+                                    ]
+                                ]
+                            ]
+                        ]
                     ]
-                    Form.SelectOption.Value viewModel.DayOfWeek ]
+
+                    G.div [
+                        A._class "date-based-fields"
+                        A._style (if viewModel.ScheduleType = "date" then "" else "display:none")
+                    ] [
+                        G.div [A._class "field"] [
+                            G.div [A._class "control"] [
+                                G.label [A._class "label"; A._for "dayOfMonth"] [G.str "Day of Month (1-31)"]
+                                G.input [A._class "input"; A._type "number"; A._name "dayOfMonth"; A._value viewModel.DayOfMonth; A._placeholder "15"; A._min "1"; A._max "31"]
+                                G.p [A._class "help"] [
+                                    G.str "If this day doesn't exist in a month (e.g., Feb 31st), the bill will be applied on the last day of that month."
+                                ]
+                            ]
+                        ]
+                    ]
+
+                    G.script [] [
+                        G.rawText """
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var scheduleTypeSelect = document.querySelector('select[name="scheduleType"]');
+                                var weekBasedFields = document.querySelector('.week-based-fields');
+                                var dateBasedFields = document.querySelector('.date-based-fields');
+
+                                function updateFieldVisibility() {
+                                    var isWeek = scheduleTypeSelect.value === 'week';
+                                    weekBasedFields.style.display = isWeek ? '' : 'none';
+                                    dateBasedFields.style.display = isWeek ? 'none' : '';
+                                }
+
+                                scheduleTypeSelect.addEventListener('change', updateFieldVisibility);
+                                updateFieldVisibility();
+                            });
+                        """
+                    ]
+                ]
 
                 Form.Element.MaybeError viewModel.Error
 
@@ -207,13 +274,15 @@ module Bills =
                                 ]
                             ]
                             G.div [A._class "column is-4"] [
+                                let scheduleDesc =
+                                    match bill.Schedule with
+                                    | WeekBased(week, day) -> $"{formatWeekOfMonth week} week, {formatDayOfWeek day}"
+                                    | DateBased(dayOfMonth) -> $"{dayOfMonth}{daySuffix dayOfMonth} of month"
+
                                 G.p [A._class "has-text-weight-bold"] [G.str "Bill"]
                                 G.p [] [G.str bill.Name]
                                 G.p [A._class "is-size-7"] [
-                                    G.str (sprintf "%s - %s week, %s"
-                                        (Format.amountWithDollarSign bill.Amount)
-                                        (formatWeekOfMonth bill.WeekOfMonth)
-                                        (formatDayOfWeek bill.DayOfWeek))
+                                    G.str $"{Format.amountWithDollarSign bill.Amount} - {scheduleDesc}"
                                 ]
                             ]
                             G.div [A._class "column is-2"] [
