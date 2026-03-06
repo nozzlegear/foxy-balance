@@ -382,13 +382,13 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
 
             // User1 should only see their own bill and transaction
             %user1MatchesList.Should().AllSatisfy(fun m ->
-                m.Transaction.Id.Should().Be(user1Transaction.Id)
-                m.RecurringBill.Id.Should().Be(user1Bill.Id))
+                %m.Transaction.Id.Should().Be(user1Transaction.Id)
+                %m.RecurringBill.Id.Should().Be(user1Bill.Id))
 
             // User2 should only see their own bill and transaction
             %user2MatchesList.Should().AllSatisfy(fun m ->
-                m.Transaction.Id.Should().Be(user2Transaction.Id)
-                m.RecurringBill.Id.Should().Be(user2Bill.Id))
+                %m.Transaction.Id.Should().Be(user2Transaction.Id)
+                %m.RecurringBill.Id.Should().Be(user2Bill.Id))
         }
 
     [<Fact>]
