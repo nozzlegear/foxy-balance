@@ -112,8 +112,10 @@ type ApiTransactionRequest =
 type ApiRecurringBillRequest =
     { Name: string
       Amount: string
+      ScheduleType: string
       WeekOfMonth: string
-      DayOfWeek: string }
+      DayOfWeek: string
+      DayOfMonth: string }
 
 /// Match execution request
 [<CLIMutable>]
@@ -166,11 +168,18 @@ module ApiDtos =
 
     /// Convert a RecurringBill to a DTO
     let fromRecurringBill (b: RecurringBill) =
+        let (scheduleType, weekOfMonth, dayOfWeek, dayOfMonth) =
+            match b.Schedule with
+            | WeekBased(week, day) -> ("week", Some (week.ToInt()), Some (int day), None)
+            | DateBased(dom) -> ("date", None, None, Some dom)
+
         {| Id = b.Id
            Name = b.Name
            Amount = b.Amount
-           WeekOfMonth = b.WeekOfMonth.ToInt()
-           DayOfWeek = int b.DayOfWeek
+           ScheduleType = scheduleType
+           WeekOfMonth = weekOfMonth
+           DayOfWeek = dayOfWeek
+           DayOfMonth = dayOfMonth
            DateCreated = b.DateCreated
            LastAppliedDate = b.LastAppliedDate
            Active = b.Active |}

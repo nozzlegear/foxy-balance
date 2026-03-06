@@ -210,8 +210,10 @@ module RequestModels =
     type EditRecurringBillRequest =
         { Name : string
           Amount : string
+          ScheduleType : string
           WeekOfMonth : string
-          DayOfWeek : string }
+          DayOfWeek : string
+          DayOfMonth : string }
         with
         static member Validate model : Result<PartialRecurringBill, string> =
             let validateName name =
@@ -239,13 +241,25 @@ module RequestModels =
                 | true, day when day < 0 || day > 6 -> Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
                 | true, day -> Ok (enum<System.DayOfWeek> day)
 
-            match validateName model.Name, validateAmount model.Amount, validateWeekOfMonth model.WeekOfMonth, validateDayOfWeek model.DayOfWeek with
-            | Ok name, Ok amount, Ok week, Ok day ->
-                Ok { Name = name; Amount = amount; WeekOfMonth = week; DayOfWeek = day }
-            | Error err, _, _, _
-            | _, Error err, _, _
-            | _, _, Error err, _
-            | _, _, _, Error err -> Error err
+            let validateSchedule schedType week day dayOfMonth =
+                match schedType with
+                | "week" ->
+                    match validateWeekOfMonth week, validateDayOfWeek day with
+                    | Ok w, Ok d -> Ok (WeekBased(w, d))
+                    | Error e, _ | _, Error e -> Error e
+                | "date" ->
+                    match System.Int32.TryParse(dayOfMonth : string) with
+                    | false, _ -> Error "Could not parse day of month."
+                    | true, d when d < 1 || d > 31 -> Error "Day of month must be between 1 and 31."
+                    | true, d -> Ok (DateBased d)
+                | _ -> Error "Invalid schedule type. Must be 'week' or 'date'."
+
+            match validateName model.Name, validateAmount model.Amount, validateSchedule model.ScheduleType model.WeekOfMonth model.DayOfWeek model.DayOfMonth with
+            | Ok name, Ok amount, Ok schedule ->
+                Ok { Name = name; Amount = amount; Schedule = schedule }
+            | Error err, _, _
+            | _, Error err, _
+            | _, _, Error err -> Error err
 
     [<CLIMutable>]
     type MatchTransactionRequest =
@@ -431,22 +445,33 @@ module ViewModels =
         { Error : string option
           Name : string
           Amount : string
+          ScheduleType : string
           WeekOfMonth : string
-          DayOfWeek : string }
+          DayOfWeek : string
+          DayOfMonth : string }
         with
         static member Default =
             { Error = None
               Name = ""
               Amount = ""
+              ScheduleType = "week"
               WeekOfMonth = "1"
-              DayOfWeek = "0" }
+              DayOfWeek = "0"
+              DayOfMonth = "" }
 
         static member FromExistingBill (bill: RecurringBill) =
+            let (schedType, week, day, dayOfMonth) =
+                match bill.Schedule with
+                | WeekBased(w, d) -> ("week", string (w.ToInt()), string (int d), "")
+                | DateBased(dom) -> ("date", "", "", string dom)
+
             { Error = None
               Name = bill.Name
               Amount = string bill.Amount
-              WeekOfMonth = string (bill.WeekOfMonth.ToInt())
-              DayOfWeek = string (int bill.DayOfWeek) }
+              ScheduleType = schedType
+              WeekOfMonth = week
+              DayOfWeek = day
+              DayOfMonth = dayOfMonth }
 
     type BillViewModel =
         | NewBill of EditRecurringBillViewModel

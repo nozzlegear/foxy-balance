@@ -11,8 +11,10 @@ module RecurringBills =
     let private toEditBillRequest (req: ApiRecurringBillRequest) : EditRecurringBillRequest =
         { Name = req.Name
           Amount = req.Amount
+          ScheduleType = req.ScheduleType
           WeekOfMonth = req.WeekOfMonth
-          DayOfWeek = req.DayOfWeek }
+          DayOfWeek = req.DayOfWeek
+          DayOfMonth = req.DayOfMonth }
 
     /// GET /api/v1/bills
     /// List recurring bills

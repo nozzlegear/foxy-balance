@@ -5,6 +5,7 @@ open Microsoft.Extensions.DependencyInjection
 open FoxyBalance.Server.Api
 open FoxyBalance.Server.Services
 open FoxyBalance.Database.Interfaces
+open FoxyBalance.Database.Models
 
 module BillMatching =
     /// GET /api/v1/bills/match/suggestions
@@ -21,12 +22,19 @@ module BillMatching =
                         // Convert to DTOs for serialization
                         let transactionDto = ApiDtos.fromTransaction s.Transaction
 
+                        let (scheduleType, weekOfMonth, dayOfWeek, dayOfMonth) =
+                            match s.RecurringBill.Schedule with
+                            | WeekBased(week, day) -> ("week", Some (week.ToInt()), Some (int day), None)
+                            | DateBased(dom) -> ("date", None, None, Some dom)
+
                         let billDto =
                             {| Id = s.RecurringBill.Id
                                Name = s.RecurringBill.Name
                                Amount = s.RecurringBill.Amount
-                               WeekOfMonth = s.RecurringBill.WeekOfMonth.ToInt()
-                               DayOfWeek = int s.RecurringBill.DayOfWeek
+                               ScheduleType = scheduleType
+                               WeekOfMonth = weekOfMonth
+                               DayOfWeek = dayOfWeek
+                               DayOfMonth = dayOfMonth
                                Active = s.RecurringBill.Active |}
 
                         let data =

@@ -56,8 +56,10 @@ module Bills =
                     { Error = Some msg
                       Name = request.Name
                       Amount = request.Amount
+                      ScheduleType = request.ScheduleType
                       WeekOfMonth = request.WeekOfMonth
-                      DayOfWeek = request.DayOfWeek }
+                      DayOfWeek = request.DayOfWeek
+                      DayOfMonth = request.DayOfMonth }
 
                 let view =
                     model
@@ -83,8 +85,10 @@ module Bills =
                     { Error = Some msg
                       Name = request.Name
                       Amount = request.Amount
+                      ScheduleType = request.ScheduleType
                       WeekOfMonth = request.WeekOfMonth
-                      DayOfWeek = request.DayOfWeek }
+                      DayOfWeek = request.DayOfWeek
+                      DayOfMonth = request.DayOfMonth }
 
                 let view =
                     (billId, model)
