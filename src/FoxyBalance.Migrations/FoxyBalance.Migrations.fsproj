@@ -10,6 +10,7 @@
     <Compile Include="Migrations\Migration_003_CreateRecurringBillsTable.fs" />
     <Compile Include="Migrations\Migration_004_AddBillRelationshipToTransactions.fs" />
     <Compile Include="Migrations\Migration_005_AddApiAuthTables.fs" />
+    <Compile Include="Migrations\Migration_006_AddDateBasedScheduling.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
