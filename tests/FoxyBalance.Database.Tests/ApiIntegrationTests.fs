@@ -794,8 +794,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let newBill =
                 {| Name = "Monthly Rent"
                    Amount = "1500"
+                   ScheduleType = "week"
                    WeekOfMonth = "1"
-                   DayOfWeek = "1" |}
+                   DayOfWeek = "1"
+                   DayOfMonth = "" |}
 
             // Act
             let! response = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" newBill accessToken
@@ -818,14 +820,18 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let bill1 =
                 {| Name = "Bill 1"
                    Amount = "100"
+                   ScheduleType = "week"
                    WeekOfMonth = "1"
-                   DayOfWeek = "1" |}
+                   DayOfWeek = "1"
+                   DayOfMonth = "" |}
 
             let bill2 =
                 {| Name = "Bill 2"
                    Amount = "200"
+                   ScheduleType = "week"
                    WeekOfMonth = "2"
-                   DayOfWeek = "3" |}
+                   DayOfWeek = "3"
+                   DayOfMonth = "" |}
 
             let! _ = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" bill1 accessToken
             let! _ = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" bill2 accessToken
@@ -851,8 +857,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let newBill =
                 {| Name = "Specific Bill"
                    Amount = "75"
+                   ScheduleType = "week"
                    WeekOfMonth = "3"
-                   DayOfWeek = "5" |}
+                   DayOfWeek = "5"
+                   DayOfMonth = "" |}
 
             let! createResponse = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" newBill accessToken
             let! createBody = createResponse.Content.ReadAsStringAsync()
@@ -879,8 +887,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let newBill =
                 {| Name = "Original Bill"
                    Amount = "100"
+                   ScheduleType = "week"
                    WeekOfMonth = "1"
-                   DayOfWeek = "1" |}
+                   DayOfWeek = "1"
+                   DayOfMonth = "" |}
 
             let! createResponse = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" newBill accessToken
             let! createBody = createResponse.Content.ReadAsStringAsync()
@@ -891,8 +901,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let updateData =
                 {| Name = "Updated Bill"
                    Amount = "200"
+                   ScheduleType = "week"
                    WeekOfMonth = "2"
-                   DayOfWeek = "3" |}
+                   DayOfWeek = "3"
+                   DayOfMonth = "" |}
 
             let! response = ApiTestHelpers.putJsonWithAuth client $"/api/v1/bills/{id}" updateData accessToken
 
@@ -914,8 +926,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let newBill =
                 {| Name = "To Be Deleted"
                    Amount = "50"
+                   ScheduleType = "week"
                    WeekOfMonth = "1"
-                   DayOfWeek = "1" |}
+                   DayOfWeek = "1"
+                   DayOfMonth = "" |}
 
             let! createResponse = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" newBill accessToken
             let! createBody = createResponse.Content.ReadAsStringAsync()
@@ -943,8 +957,10 @@ type ApiBillTests(fixture: ApiTestFixture) =
             let newBill =
                 {| Name = "Toggle Bill"
                    Amount = "50"
+                   ScheduleType = "week"
                    WeekOfMonth = "1"
-                   DayOfWeek = "1" |}
+                   DayOfWeek = "1"
+                   DayOfMonth = "" |}
 
             let! createResponse = ApiTestHelpers.postJsonWithAuth client "/api/v1/bills" newBill accessToken
             let! createBody = createResponse.Content.ReadAsStringAsync()
@@ -1009,8 +1025,7 @@ type ApiBillMatchingTests(fixture: ApiTestFixture) =
             userId,
             { Name = name
               Amount = amount
-              WeekOfMonth = weekOfMonth
-              DayOfWeek = dayOfWeek }
+              Schedule = WeekBased(weekOfMonth, dayOfWeek) }
         )
 
     let createImportedTransaction userId name amount =

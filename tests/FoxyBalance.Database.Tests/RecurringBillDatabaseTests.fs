@@ -27,8 +27,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Electric Bill"
                   Amount = 125.50M
-                  WeekOfMonth = SecondWeek
-                  DayOfWeek = DayOfWeek.Wednesday }
+                  Schedule = WeekBased(SecondWeek, DayOfWeek.Wednesday) }
 
             // Act
             let! result = database.CreateAsync(user.Id, partialBill)
@@ -37,8 +36,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             %result.Id.Should().BeGreaterThan(0L)
             %result.Name.Should().Be(partialBill.Name)
             %result.Amount.Should().Be(partialBill.Amount)
-            %result.WeekOfMonth.Should().Be(partialBill.WeekOfMonth)
-            %result.DayOfWeek.Should().Be(partialBill.DayOfWeek)
+            %result.Schedule.Should().Be(partialBill.Schedule)
             %result.Active.Should().BeTrue()
             %result.LastAppliedDate.Should().BeNone()
             %result.DateCreated.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds 5L)
@@ -59,15 +57,13 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
                 let partialBill: PartialRecurringBill =
                     { Name = $"Bill {weekNumber}-{dayNumber}"
                       Amount = decimal (weekNumber * 10 + dayNumber)
-                      WeekOfMonth = week
-                      DayOfWeek = day }
+                      Schedule = WeekBased(week, day) }
 
                 // Act
                 let! result = database.CreateAsync(user.Id, partialBill)
 
                 // Assert
-                %result.WeekOfMonth.Should().Be(week)
-                %result.DayOfWeek.Should().Be(day)
+                %result.Schedule.Should().Be(WeekBased(week, day))
         }
 
     [<Fact>]
@@ -77,8 +73,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Invalid Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
             let userId = -1
 
             // Act
@@ -101,8 +96,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Water Bill"
                   Amount = 45.75M
-                  WeekOfMonth = ThirdWeek
-                  DayOfWeek = DayOfWeek.Friday }
+                  Schedule = WeekBased(ThirdWeek, DayOfWeek.Friday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -115,8 +109,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             %bill.Id.Should().Be(created.Id)
             %bill.Name.Should().Be(partialBill.Name)
             %bill.Amount.Should().Be(partialBill.Amount)
-            %bill.WeekOfMonth.Should().Be(partialBill.WeekOfMonth)
-            %bill.DayOfWeek.Should().Be(partialBill.DayOfWeek)
+            %bill.Schedule.Should().Be(partialBill.Schedule)
         }
 
     [<Fact>]
@@ -142,8 +135,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "User 1 Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user1.Id, partialBill)
 
@@ -162,8 +154,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let bills = [1..5] |> List.map (fun i ->
                 { Name = $"Bill {i}"
                   Amount = decimal (i * 10)
-                  WeekOfMonth = WeekOfMonth.FromInt((i % 4) + 1)
-                  DayOfWeek = enum<DayOfWeek>(i % 7) })
+                  Schedule = WeekBased(WeekOfMonth.FromInt((i % 4) + 1), enum<DayOfWeek>(i % 7)) })
 
             for bill in bills do
                 let! _ = database.CreateAsync(user.Id, bill)
@@ -184,13 +175,13 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
 
             // Create active bills
             for i in 1..3 do
-                let bill = { Name = $"Active {i}"; Amount = decimal i; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }
+                let bill = { Name = $"Active {i}"; Amount = decimal i; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
                 let! _ = database.CreateAsync(user.Id, bill)
                 ()
 
             // Create and pause some bills
             for i in 1..2 do
-                let bill = { Name = $"Paused {i}"; Amount = decimal i; WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday }
+                let bill = { Name = $"Paused {i}"; Amount = decimal i; Schedule = WeekBased(SecondWeek, DayOfWeek.Tuesday) }
                 let! created = database.CreateAsync(user.Id, bill)
                 do! database.SetActiveAsync(user.Id, created.Id, false)
 
@@ -211,7 +202,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let billNames = ["Zebra Bill"; "Apple Bill"; "Maple Bill"]
 
             for name in billNames do
-                let bill = { Name = name; Amount = 50M; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }
+                let bill = { Name = name; Amount = 50M; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
                 let! _ = database.CreateAsync(user.Id, bill)
                 ()
 
@@ -232,13 +223,13 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
 
             // Create bills for user1
             for i in 1..3 do
-                let bill = { Name = $"User1 Bill {i}"; Amount = decimal i; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }
+                let bill = { Name = $"User1 Bill {i}"; Amount = decimal i; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
                 let! _ = database.CreateAsync(user1.Id, bill)
                 ()
 
             // Create bills for user2
             for i in 1..2 do
-                let bill = { Name = $"User2 Bill {i}"; Amount = decimal i; WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday }
+                let bill = { Name = $"User2 Bill {i}"; Amount = decimal i; Schedule = WeekBased(SecondWeek, DayOfWeek.Tuesday) }
                 let! _ = database.CreateAsync(user2.Id, bill)
                 ()
 
@@ -259,16 +250,14 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let originalBill: PartialRecurringBill =
                 { Name = "Original Name"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, originalBill)
 
             let updatedBill: PartialRecurringBill =
                 { Name = "Updated Name"
                   Amount = 200M
-                  WeekOfMonth = FourthWeek
-                  DayOfWeek = DayOfWeek.Saturday }
+                  Schedule = WeekBased(FourthWeek, DayOfWeek.Saturday) }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedBill)
@@ -277,8 +266,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             %result.Id.Should().Be(created.Id)
             %result.Name.Should().Be(updatedBill.Name)
             %result.Amount.Should().Be(updatedBill.Amount)
-            %result.WeekOfMonth.Should().Be(updatedBill.WeekOfMonth)
-            %result.DayOfWeek.Should().Be(updatedBill.DayOfWeek)
+            %result.Schedule.Should().Be(updatedBill.Schedule)
         }
 
     [<Fact>]
@@ -289,8 +277,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let originalBill: PartialRecurringBill =
                 { Name = "Original"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, originalBill)
 
@@ -302,8 +289,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let updatedBill: PartialRecurringBill =
                 { Name = "Updated"
                   Amount = 200M
-                  WeekOfMonth = SecondWeek
-                  DayOfWeek = DayOfWeek.Tuesday }
+                  Schedule = WeekBased(SecondWeek, DayOfWeek.Tuesday) }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedBill)
@@ -323,8 +309,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Test Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
             let appliedDate = DateTimeOffset.UtcNow.AddDays(-3.0)
@@ -347,8 +332,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Test Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -375,8 +359,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Test Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -397,8 +380,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "User 1 Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user1.Id, partialBill)
 
@@ -418,8 +400,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Never Applied"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -443,8 +424,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Old Application"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -469,8 +449,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Recently Applied"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -495,8 +474,7 @@ type RecurringBillDatabaseTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = "Inactive Bill"
                   Amount = 100M
-                  WeekOfMonth = FirstWeek
-                  DayOfWeek = DayOfWeek.Monday }
+                  Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) }
 
             let! created = database.CreateAsync(user.Id, partialBill)
             do! database.SetActiveAsync(user.Id, created.Id, false)

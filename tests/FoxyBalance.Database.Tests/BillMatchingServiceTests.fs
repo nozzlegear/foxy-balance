@@ -26,8 +26,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringBill =
                 { Name = name
                   Amount = amount
-                  WeekOfMonth = week
-                  DayOfWeek = day }
+                  Schedule = WeekBased(week, day) }
             return! billDatabase.CreateAsync(userId, partialBill)
         }
 

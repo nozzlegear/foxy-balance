@@ -1132,7 +1132,7 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // First create a bill to link to
             let billDatabase: IRecurringBillDatabase = RecurringBillDatabase(TestDatabaseOptions fixture)
-            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday })
+            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) })
 
             let partialTransaction: PartialTransaction =
                 { Name = "Auto-generated from bill"
@@ -1195,7 +1195,7 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // First create a bill to link to
             let billDatabase: IRecurringBillDatabase = RecurringBillDatabase(TestDatabaseOptions fixture)
-            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday })
+            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) })
 
             let originalTransaction: PartialTransaction =
                 { Name = "Original Transaction"
@@ -1235,8 +1235,8 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // First create bills to link to
             let billDatabase: IRecurringBillDatabase = RecurringBillDatabase(TestDatabaseOptions fixture)
-            let! bill1 = billDatabase.CreateAsync(user.Id, { Name = "Bill 1"; Amount = 100M; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday })
-            let! bill2 = billDatabase.CreateAsync(user.Id, { Name = "Bill 2"; Amount = 150M; WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday })
+            let! bill1 = billDatabase.CreateAsync(user.Id, { Name = "Bill 1"; Amount = 100M; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) })
+            let! bill2 = billDatabase.CreateAsync(user.Id, { Name = "Bill 2"; Amount = 150M; Schedule = WeekBased(SecondWeek, DayOfWeek.Tuesday) })
 
             let transactions = [
                 { Name = "Auto-generated 1"
@@ -1298,7 +1298,7 @@ type TransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // First create a bill to link to
             let billDatabase: IRecurringBillDatabase = RecurringBillDatabase(TestDatabaseOptions fixture)
-            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday })
+            let! bill = billDatabase.CreateAsync(user.Id, { Name = "Test Bill"; Amount = 100M; Schedule = WeekBased(FirstWeek, DayOfWeek.Monday) })
 
             // Create transaction linked to a bill
             let linkedTransaction: PartialTransaction =
