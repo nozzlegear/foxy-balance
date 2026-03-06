@@ -93,12 +93,15 @@ type WeekOfMonth =
         | 4 -> FourthWeek
         | _ -> failwith $"Invalid WeekOfMonth value: {value}"
 
+type RecurringSchedule =
+    | WeekBased of WeekOfMonth * DayOfWeek
+    | DateBased of dayOfMonth: int
+
 type RecurringBill =
     { Id : RecurringBillId
       Name : string
       Amount : decimal
-      WeekOfMonth : WeekOfMonth
-      DayOfWeek : DayOfWeek
+      Schedule : RecurringSchedule
       DateCreated : DateTimeOffset
       LastAppliedDate : DateTimeOffset option
       Active : bool }
@@ -106,8 +109,7 @@ type RecurringBill =
 type PartialRecurringBill =
     { Name : string
       Amount : decimal
-      WeekOfMonth : WeekOfMonth
-      DayOfWeek : DayOfWeek }
+      Schedule : RecurringSchedule }
 
 type BillMatchCandidate =
     { Transaction : Transaction
