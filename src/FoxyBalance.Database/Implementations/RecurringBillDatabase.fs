@@ -9,11 +9,22 @@ type RecurringBillDatabase(options : IDatabaseOptions) =
     let connection = Sql.connect options.ConnectionString
 
     let mapRowToRecurringBill (read : RowReader) : RecurringBill =
+        let scheduleType = read.string "scheduletype"
+        let schedule =
+            match scheduleType with
+            | "week_based" ->
+                let week = WeekOfMonth.FromInt(read.int "weekofmonth")
+                let day = enum<DayOfWeek>(read.int "dayofweek")
+                WeekBased(week, day)
+            | "date_based" ->
+                let dayOfMonth = read.int "dayofmonth"
+                DateBased(dayOfMonth)
+            | _ -> failwith $"Unknown schedule type: {scheduleType}"
+
         { Id = read.int64 "id"
           Name = read.string "name"
           Amount = read.decimal "amount"
-          WeekOfMonth = WeekOfMonth.FromInt(read.int "weekofmonth")
-          DayOfWeek = enum<DayOfWeek>(read.int "dayofweek")
+          Schedule = schedule
           DateCreated = read.datetimeOffset "datecreated"
           LastAppliedDate = read.datetimeOffsetOrNone "lastapplieddate"
           Active = read.bool "active" }
@@ -52,44 +63,68 @@ type RecurringBillDatabase(options : IDatabaseOptions) =
             }
 
         member _.CreateAsync(userId, bill) =
+            let scheduleParams =
+                match bill.Schedule with
+                | WeekBased(week, day) ->
+                    [ "scheduleType", Sql.string "week_based"
+                      "weekOfMonth", Sql.int (week.ToInt())
+                      "dayOfWeek", Sql.int (int day)
+                      "dayOfMonth", Sql.dbnull ]
+                | DateBased(dayOfMonth) ->
+                    [ "scheduleType", Sql.string "date_based"
+                      "weekOfMonth", Sql.dbnull
+                      "dayOfWeek", Sql.dbnull
+                      "dayOfMonth", Sql.int dayOfMonth ]
+
             connection
             |> Sql.query """
                 INSERT INTO foxybalance_recurringbills (
-                    userid, name, amount, weekofmonth, dayofweek, datecreated, active
+                    userid, name, amount, scheduletype, weekofmonth, dayofweek, dayofmonth, datecreated, active
                 ) VALUES (
-                    @userId, @name, @amount, @weekOfMonth, @dayOfWeek, @dateCreated, true
+                    @userId, @name, @amount, @scheduleType, @weekOfMonth, @dayOfWeek, @dayOfMonth, @dateCreated, true
                 )
                 RETURNING *
             """
-            |> Sql.parameters [
+            |> Sql.parameters ([
                 "userId", Sql.int userId
                 "name", Sql.string bill.Name
                 "amount", Sql.decimal bill.Amount
-                "weekOfMonth", Sql.int (bill.WeekOfMonth.ToInt())
-                "dayOfWeek", Sql.int (int bill.DayOfWeek)
                 "dateCreated", Sql.timestamptz DateTimeOffset.UtcNow
-            ]
+            ] @ scheduleParams)
             |> Sql.executeRowAsync mapRowToRecurringBill
 
         member _.UpdateAsync(userId, billId, bill) =
+            let scheduleParams =
+                match bill.Schedule with
+                | WeekBased(week, day) ->
+                    [ "scheduleType", Sql.string "week_based"
+                      "weekOfMonth", Sql.int (week.ToInt())
+                      "dayOfWeek", Sql.int (int day)
+                      "dayOfMonth", Sql.dbnull ]
+                | DateBased(dayOfMonth) ->
+                    [ "scheduleType", Sql.string "date_based"
+                      "weekOfMonth", Sql.dbnull
+                      "dayOfWeek", Sql.dbnull
+                      "dayOfMonth", Sql.int dayOfMonth ]
+
             connection
             |> Sql.query """
                 UPDATE foxybalance_recurringbills
                 SET name = @name,
                     amount = @amount,
+                    scheduletype = @scheduleType,
                     weekofmonth = @weekOfMonth,
-                    dayofweek = @dayOfWeek
+                    dayofweek = @dayOfWeek,
+                    dayofmonth = @dayOfMonth
                 WHERE userid = @userId AND id = @billId
                 RETURNING *
             """
-            |> Sql.parameters [
+            |> Sql.parameters ([
                 "userId", Sql.int userId
                 "billId", Sql.int64 billId
                 "name", Sql.string bill.Name
                 "amount", Sql.decimal bill.Amount
-                "weekOfMonth", Sql.int (bill.WeekOfMonth.ToInt())
-                "dayOfWeek", Sql.int (int bill.DayOfWeek)
-            ]
+            ] @ scheduleParams)
             |> Sql.executeRowAsync mapRowToRecurringBill
 
         member _.UpdateLastAppliedDateAsync(userId, billId, appliedDate) =
@@ -148,7 +183,7 @@ type RecurringBillDatabase(options : IDatabaseOptions) =
                 let! results =
                     connection
                     |> Sql.query """
-                        SELECT userid, id, name, amount, weekofmonth, dayofweek, datecreated, lastapplieddate, active
+                        SELECT userid, id, name, amount, scheduletype, weekofmonth, dayofweek, dayofmonth, datecreated, lastapplieddate, active
                         FROM foxybalance_recurringbills
                         WHERE active = true
                         AND (
