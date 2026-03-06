@@ -33,7 +33,10 @@ type BillMatchingService(
             else 0.0M
 
         // Calculate expected date for this bill in the transaction's month
-        let expectedDate = calculateTargetDateForWeek bill.WeekOfMonth bill.DayOfWeek transaction.DateCreated
+        let expectedDate =
+            match bill.Schedule with
+            | WeekBased(week, day) -> calculateTargetDateForWeek week day transaction.DateCreated
+            | DateBased _ -> transaction.DateCreated // For date-based bills, we'll use a simpler comparison
 
         // Date score based on proximity to expected date
         let daysDiff = abs ((transaction.DateCreated.Date - expectedDate.Date).Days)

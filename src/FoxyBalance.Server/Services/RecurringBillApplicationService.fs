@@ -22,9 +22,28 @@ type RecurringBillApplicationService(
         let weeksToAdd = weekOfMonth.ToInt() - 1
         firstTargetDayOfMonth.AddDays(float (weeksToAdd * 7))
 
+    /// Calculate the target date for date-based bills, handling edge cases
+    let calculateTargetDateForDayOfMonth (dayOfMonth: int) (referenceDate: DateTimeOffset) =
+        let year = referenceDate.Year
+        let month = referenceDate.Month
+        let daysInMonth = DateTime.DaysInMonth(year, month)
+
+        // If the specified day doesn't exist in this month, use the last day
+        let actualDay = min dayOfMonth daysInMonth
+
+        DateTimeOffset(year, month, actualDay, 0, 0, 0, referenceDate.Offset)
+
+    /// Calculate target date based on schedule type
+    let calculateTargetDate (bill: RecurringBill) (referenceDate: DateTimeOffset) =
+        match bill.Schedule with
+        | WeekBased(week, day) ->
+            calculateTargetDateForWeek week day referenceDate
+        | DateBased(dayOfMonth) ->
+            calculateTargetDateForDayOfMonth dayOfMonth referenceDate
+
     /// Check if we're in the correct week to apply a bill
     let shouldApplyBillNow (bill: RecurringBill) (currentDate: DateTimeOffset) =
-        let targetDate = calculateTargetDateForWeek bill.WeekOfMonth bill.DayOfWeek currentDate
+        let targetDate = calculateTargetDate bill currentDate
 
         // Apply if we're on or after the target date but haven't applied this month
         let isAfterTargetDate = currentDate.Date >= targetDate.Date
@@ -52,7 +71,7 @@ type RecurringBillApplicationService(
                 if shouldApplyBillNow bill currentDate then
                     try
                         // Create a pending transaction from this bill
-                        let targetDate = calculateTargetDateForWeek bill.WeekOfMonth bill.DayOfWeek currentDate
+                        let targetDate = calculateTargetDate bill currentDate
                         let partialTransaction : PartialTransaction =
                             { Name = bill.Name
                               DateCreated = targetDate
