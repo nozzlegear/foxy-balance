@@ -62,12 +62,12 @@ type BillMatchingService(
             // Get all active recurring bills for the user
             let! bills = recurringBillDb.ListAsync(userId, true)
 
-            // Get all unmatched transactions (no RecurringBillId and not auto-generated)
+            // Get all unmatched pending transactions (no RecurringBillId and not auto-generated)
             let! allTransactions = transactionDb.ListAsync(userId, {
                 Limit = 1000
                 Offset = 0
                 Order = Descending
-                Status = AllTransactions
+                Status = PendingTransactions
             })
 
             let unmatchedTransactions =
