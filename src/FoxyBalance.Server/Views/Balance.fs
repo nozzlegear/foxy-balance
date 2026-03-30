@@ -289,8 +289,11 @@ module Balance =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
+                     G.a [A._href "/bills/match"; A._class "button is-primary"] [
+                        G.str "Match Transactions to Bills" ]
+                     |> Shared.LevelItem.Element
                      G.a [A._href "/balance"; A._class "button is-info"] [
-                        G.str "Transactions" ]
+                        G.str "Back to Transactions" ]
                      |> Shared.LevelItem.Element
                 ]
             ]
