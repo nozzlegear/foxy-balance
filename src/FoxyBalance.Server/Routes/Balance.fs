@@ -8,6 +8,7 @@ open FoxyBalance.Server
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Server.Models.ViewModels
+open FoxyBalance.Server.Services
 open Microsoft.Extensions.DependencyInjection
 
 module Views = FoxyBalance.Server.Views.Balance
@@ -58,17 +59,27 @@ module Balance =
     let editTransactionHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<ITransactionDatabase>()
-            
+            let matchingService = ctx.GetService<BillMatchingService>()
+
             match! database.GetAsync(session.UserId, transactionId) with
             | Some transaction ->
-                let view = 
-                    (transactionId, EditTransactionViewModel.FromExistingTransaction transaction)
+                let! candidates =
+                    match transaction.Status with
+                    | Pending ->
+                        task {
+                            let! all = matchingService.GetMatchSuggestionsForUser(session.UserId)
+                            return all |> List.filter (fun c -> c.Transaction.Id = transaction.Id)
+                        }
+                    | Cleared _ -> task { return [] }
+
+                let view =
+                    (transactionId, EditTransactionViewModel.FromExistingTransaction transaction, candidates)
                     |> ExistingTransaction
                     |> Views.createOrEditTransactionPage
                     |> htmlView
                 return! view next ctx
             | None ->
-                return! (setStatusCode 404 >=> text "Not Found") next ctx 
+                return! (setStatusCode 404 >=> text "Not Found") next ctx
         })
         
     let private createOrEditTransaction (transactionId : int64 option) =
@@ -81,7 +92,7 @@ module Balance =
                     let viewModel = EditTransactionViewModel.FromBadRequest model msg
                     
                     transactionId
-                    |> Option.map (fun i -> ExistingTransaction (i, viewModel))
+                    |> Option.map (fun i -> ExistingTransaction (i, viewModel, []))
                     |> Option.defaultWith (fun _ -> NewTransaction viewModel)
                     |> Views.createOrEditTransactionPage
                     |> htmlView

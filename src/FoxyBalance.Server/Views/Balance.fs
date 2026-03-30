@@ -111,23 +111,23 @@ module Balance =
     let createOrEditTransactionPage (model : TransactionViewModel) : XmlNode =
         let deleteButton =
             match model with
-            | ExistingTransaction (id, _) ->
+            | ExistingTransaction (id, _, _) ->
                 Form.Element.Button [
                     Form.ButtonText "Delete"
                     Form.ButtonFormAction (sprintf "/balance/%i/delete" id)
                     Form.Color Form.ButtonColor.Danger
                     Form.OnClick "return confirm('Are you sure you want to delete this transaction? This action cannot be undone.')"
                     Form.Type Form.Submit ]
-                |> Some 
+                |> Some
             | _ ->
-                None 
-        
-        let model, title, buttonText =
+                None
+
+        let transactionIdOpt, model, title, buttonText, matchCandidates =
             match model with
             | NewTransaction n ->
-                n, "New Transaction", "Create Transaction"
-            | ExistingTransaction (id, e) ->
-                e, sprintf "Edit Transaction #%i" id, "Update Transaction"
+                None, n, "New Transaction", "Create Transaction", []
+            | ExistingTransaction (id, e, candidates) ->
+                Some id, e, sprintf "Edit Transaction #%i" id, "Update Transaction", candidates
         let date =
             String.defaultValue "" model.DateCreated
         let placeholderDate =
@@ -212,6 +212,29 @@ module Balance =
                         Form.Type Form.Submit ]
                 ]
             ]
+
+            if not (List.isEmpty matchCandidates) then
+                G.div [A._class "mt-6"] [
+                    G.p [A._class "title is-5"] [G.str "Suggested Bill Matches"]
+                    G.p [A._class "subtitle is-6"] [G.str "This pending transaction may correspond to one of the following recurring bills."]
+                    for candidate in matchCandidates do
+                        let bill = candidate.RecurringBill
+                        G.div [A._class "box"] [
+                            G.div [A._class "columns is-vcentered"] [
+                                G.div [A._class "column"] [
+                                    G.p [A._class "has-text-weight-bold"] [G.str bill.Name]
+                                    G.p [A._class "is-size-7"] [G.str (Format.amountWithDollarSign bill.Amount)]
+                                ]
+                                G.div [A._class "column is-narrow has-text-right"] [
+                                    G.p [A._class "has-text-weight-bold"] [G.str (sprintf "Score: %.0f%%" candidate.MatchScore)]
+                                    G.form [A._method "post"; A._action (sprintf "/balance/%i/match" transactionIdOpt.Value)] [
+                                        G.input [A._type "hidden"; A._name "billId"; A._value (string bill.Id)]
+                                        G.button [A._type "submit"; A._class "button is-primary"] [G.str "Match"]
+                                    ]
+                                ]
+                            ]
+                        ]
+                ]
         ]
 
     let uploadTransactionsPage (model : UploadTransactionsViewModel) =

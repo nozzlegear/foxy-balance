@@ -392,7 +392,7 @@ module ViewModels =
             
     type TransactionViewModel =
         | NewTransaction of EditTransactionViewModel
-        | ExistingTransaction of int64 * EditTransactionViewModel
+        | ExistingTransaction of int64 * EditTransactionViewModel * BillMatchCandidate list
         
     type SyncShopifySalesViewModel =
         { Error : string option
