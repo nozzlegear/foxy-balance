@@ -1,5 +1,6 @@
 namespace FoxyBalance.Database.Interfaces
 
+open System
 open FoxyBalance.Database.Models
 open System.Threading.Tasks
 
@@ -11,6 +12,7 @@ type ITransactionDatabase =
     abstract member CreateAsync : userId: UserId * partialTransaction: PartialTransaction -> Task<Transaction>
     abstract member UpdateAsync : userId: UserId * transactionId: TransactionId * partialTransaction: PartialTransaction -> Task<Transaction>
     abstract member ListAsync : userId: UserId * listOptions: ListOptions -> Task<Transaction seq>
+    abstract member ListMatchCandidatesAsync : userId: UserId * cutoffDate: DateTimeOffset -> Task<Transaction seq>
     abstract member DeleteAsync : userId: UserId * transactionId: TransactionId -> Task
     abstract member CountAsync : userId: UserId * statusFilter: StatusFilter -> Task<int>
     abstract member SumAsync : userId: UserId -> Task<TransactionSum>

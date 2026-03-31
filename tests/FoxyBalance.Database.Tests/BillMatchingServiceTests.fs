@@ -31,6 +31,16 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             return! billDatabase.CreateAsync(userId, partialBill)
         }
 
+    // Mirrors BillMatchingService.calculateTargetDateForWeek so tests can produce dates that
+    // align with the bill schedule and stay within the 60-day match-candidate window.
+    let calculateExpectedDate (week: WeekOfMonth) (day: DayOfWeek) =
+        let now = DateTimeOffset.UtcNow
+        let firstDayOfMonth = DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero)
+        let daysUntilTargetDay = (int day - int firstDayOfMonth.DayOfWeek + 7) % 7
+        let firstTargetDayOfMonth = firstDayOfMonth.AddDays(float daysUntilTargetDay)
+        let weeksToAdd = week.ToInt() - 1
+        firstTargetDayOfMonth.AddDays(float (weeksToAdd * 7))
+
     let createTransaction (userId: UserId) (name: string) (amount: decimal) (date: DateTimeOffset) =
         task {
             let partialTransaction: PartialTransaction =
@@ -53,7 +63,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let amount = 125.50M
 
             let! bill = createBill user.Id "Electric Bill" amount FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero) // First Monday of Jan 2024
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
             let! transaction = createTransaction user.Id "ELECTRIC COMPANY" amount targetDate
 
             // Act
@@ -76,7 +86,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user = createUser ()
 
             let! bill = createBill user.Id "Water Bill" 100M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create transactions with different amounts
             let! exactMatch = createTransaction user.Id "Water" 100M targetDate
@@ -106,8 +116,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             // Bill scheduled for first Monday of month
             let! bill = createBill user.Id "Internet Bill" 75M FirstWeek DayOfWeek.Monday
 
-            // First Monday of January 2024 is January 1st
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create transactions on different dates
             let! exactDate = createTransaction user.Id "Internet" 75M targetDate
@@ -138,7 +147,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user = createUser ()
 
             let! bill = createBill user.Id "Gas Bill" 60M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create transactions with and without name match
             let! withNameMatch = createTransaction user.Id "GAS COMPANY - Gas Bill Payment" 60M targetDate
@@ -165,7 +174,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user = createUser ()
 
             let! bill = createBill user.Id "Phone Bill" 50M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create an auto-generated transaction
             let autoGenTransaction: PartialTransaction =
@@ -201,7 +210,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user = createUser ()
 
             let! bill = createBill user.Id "Cable Bill" 80M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create a transaction already matched to a bill
             let matchedTransaction: PartialTransaction =
@@ -238,10 +247,9 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
 
             // Create a bill for $100
             let! bill = createBill user.Id "Expensive Bill" 100M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
 
-            // Create a transaction with very different amount and far-off date (should score low)
-            let! poorMatch = createTransaction user.Id "Something Else" 10M (targetDate.AddDays(30.0))
+            // Create a transaction with very different amount (should score low regardless of date)
+            let! poorMatch = createTransaction user.Id "Something Else" 10M DateTimeOffset.UtcNow
 
             // Act
             let! matches = service.GetMatchSuggestionsForUser(user.Id)
@@ -260,7 +268,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user = createUser ()
 
             let! bill = createBill user.Id "Utility Bill" 100M FirstWeek DayOfWeek.Monday
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create transactions with different match qualities
             let! perfectMatch = createTransaction user.Id "Utility Bill Payment" 100M targetDate
@@ -366,7 +374,7 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             let! user1Bill = createBill user1.Id "User1 Bill" 100M FirstWeek DayOfWeek.Monday
             let! user2Bill = createBill user2.Id "User2 Bill" 100M FirstWeek DayOfWeek.Monday
 
-            let targetDate = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate FirstWeek DayOfWeek.Monday
 
             // Create transactions for both users
             let! user1Transaction = createTransaction user1.Id "Payment 1" 100M targetDate
@@ -400,14 +408,13 @@ type BillMatchingServiceTests(fixture: DbContainerFixture) =
             // Bill scheduled for second Wednesday
             let! bill = createBill user.Id "Trash Service" 25M SecondWeek DayOfWeek.Wednesday
 
-            // Second Wednesday of January 2024 is January 10th
-            let targetDate = DateTimeOffset(2024, 1, 10, 0, 0, 0, TimeSpan.Zero)
+            let targetDate = calculateExpectedDate SecondWeek DayOfWeek.Wednesday
 
             // Create transaction on the exact target date
             let! exactMatch = createTransaction user.Id "Waste Management" 25M targetDate
 
-            // Create transaction on wrong week (first Wednesday = Jan 3)
-            let! wrongWeek = createTransaction user.Id "Waste Management" 25M (DateTimeOffset(2024, 1, 3, 0, 0, 0, TimeSpan.Zero))
+            // Create transaction on wrong week (first Wednesday = targetDate - 7 days)
+            let! wrongWeek = createTransaction user.Id "Waste Management" 25M (targetDate.AddDays(-7.0))
 
             // Act
             let! matches = service.GetMatchSuggestionsForUser(user.Id)
