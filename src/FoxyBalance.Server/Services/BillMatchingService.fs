@@ -20,8 +20,9 @@ type BillMatchingService(
         let weeksToAdd = weekOfMonth.ToInt() - 1
         firstTargetDayOfMonth.AddDays(float (weeksToAdd * 7))
 
-    /// Calculate a match score between a transaction and a recurring bill
-    let calculateMatchScore (transaction: Transaction) (bill: RecurringBill) =
+    /// Calculate a match score between a transaction and a recurring bill.
+    /// history is a map of (UPPER(TRIM(name)), billId) -> number of prior confirmed matches.
+    let calculateMatchScore (history: Map<string * RecurringBillId, int>) (transaction: Transaction) (bill: RecurringBill) =
         // Amount score
         let amountDiff = abs (transaction.Amount - bill.Amount)
         let amountScore =
@@ -50,8 +51,17 @@ type BillMatchingService(
                 50.0M
             else 0.0M
 
-        // Weighted average: amount is most important, then date, then name
-        let totalScore = (amountScore * 0.5M) + (dateScore * 0.4M) + (nameScore * 0.1M)
+        // History score: how many times has a transaction with this exact name (case-insensitive)
+        // been confirmed as a match for this bill? Reaches full confidence at 2+ prior matches.
+        let historyScore =
+            let key = transaction.Name.Trim().ToUpperInvariant(), bill.Id
+            match Map.tryFind key history with
+            | None -> 0.0M
+            | Some count -> min (decimal count * 50.0M) 100.0M
+
+        // Weighted average: amount 45%, date 35%, name 5%, history 15%
+        let totalScore =
+            (amountScore * 0.45M) + (dateScore * 0.35M) + (nameScore * 0.05M) + (historyScore * 0.15M)
 
         { Transaction = transaction
           RecurringBill = bill
@@ -68,11 +78,14 @@ type BillMatchingService(
             let! unmatchedTransactions = transactionDb.ListMatchCandidatesAsync(userId, cutoffDate)
             let unmatchedTransactions = unmatchedTransactions |> List.ofSeq
 
+            // Get history of confirmed matches grouped by (normalized name, bill id)
+            let! history = transactionDb.GetBillMatchHistoryAsync(userId)
+
             // Calculate match scores for all combinations
             let candidates =
                 [ for transaction in unmatchedTransactions do
                     for bill in bills do
-                        yield calculateMatchScore transaction bill ]
+                        yield calculateMatchScore history transaction bill ]
                 |> List.filter (fun c -> c.MatchScore >= 40.0M)  // Only show decent matches
                 |> List.sortByDescending (fun c -> c.MatchScore)
 
