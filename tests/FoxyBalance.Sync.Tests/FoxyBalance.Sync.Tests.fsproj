@@ -24,7 +24,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="FakeItEasy" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="xUnit.Combinatorial" />
     <PackageReference Include="xUnit.Runner.VisualStudio" />

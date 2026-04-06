@@ -3,15 +3,15 @@ module FoxyBalance.Sync.Tests.ShopifyPartnerClientTests
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
 open System.Net.Http
-open NSubstitute
+open FakeItEasy
 open Xunit
 
 let makeClient () =
     let options = Configuration.configureShopifyPartnerOptions()
     let executionPolicy = ShopifySharp.RetryExecutionPolicy()
-    let mockedHttpClientFactory = Substitute.For<IHttpClientFactory>()
-    mockedHttpClientFactory.CreateClient(NSubstitute.Arg.Any<string>()).Returns(new HttpClient()) |> ignore
-    ShopifyPartnerClient(options, executionPolicy, mockedHttpClientFactory)
+    let fakeHttpClientFactory = A.Fake<IHttpClientFactory>()
+    A.CallTo(fun () -> fakeHttpClientFactory.CreateClient(A<string>.Ignored)).Returns(new HttpClient()) |> ignore
+    ShopifyPartnerClient(options, executionPolicy, fakeHttpClientFactory)
 
 [<Fact(Skip = "Should only be run manually.")>]
 let ``Should list transactions`` () =
