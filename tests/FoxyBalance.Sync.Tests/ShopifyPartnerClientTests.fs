@@ -2,16 +2,16 @@ module FoxyBalance.Sync.Tests.ShopifyPartnerClientTests
 
 open FoxyBalance.Sync
 open FoxyBalance.Sync.Models
-open ShopifySharp
 open System.Net.Http
 open NSubstitute
 open Xunit
 
 let makeClient () =
     let options = Configuration.configureShopifyPartnerOptions()
-    let mockedExecutionPolicy = Substitute.For<IRequestExecutionPolicy>()
+    let executionPolicy = ShopifySharp.RetryExecutionPolicy()
     let mockedHttpClientFactory = Substitute.For<IHttpClientFactory>()
-    ShopifyPartnerClient(options, mockedExecutionPolicy, mockedHttpClientFactory)
+    mockedHttpClientFactory.CreateClient(NSubstitute.Arg.Any<string>()).Returns(new HttpClient()) |> ignore
+    ShopifyPartnerClient(options, executionPolicy, mockedHttpClientFactory)
 
 [<Fact(Skip = "Should only be run manually.")>]
 let ``Should list transactions`` () =
@@ -66,7 +66,7 @@ let ``Should list transactions`` () =
         
         Assert.Equal(sum, subscriptions + adjustments + credits)
     }
-    
+
 [<Fact(Skip = "Should only be run manually.")>]
 let ``Should get a transaction`` () =
     let client = makeClient()
