@@ -91,6 +91,61 @@ jobs:
       contents: write
       packages: read
     steps:
+    - name: Checkout branch
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+
+    - name: Install sops
+      run: |
+        SOPS_VERSION=3.9.4
+        curl -Lo /usr/local/bin/sops "https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64"
+        chmod +x /usr/local/bin/sops
+
+    - name: Decrypt secrets
+      env:
+        SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      run: sops decrypt secrets.json > /tmp/appsettings.secrets.json
+
+    - name: Copy decrypted secrets to host
+      uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        source: /tmp/appsettings.secrets.json
+        target: /tmp/
+        overwrite: true
+
+    - name: Update Podman secrets on host
+      uses: appleboy/ssh-action@91f3272fc5907f4699dcf59761eb622a07342f5a # v1.2.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        port: ${{ secrets.SSH_PORT }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        script_stop: true
+        script: |
+          NEW_HASH=$(sha256sum /tmp/appsettings.secrets.json | awk '{print $1}')
+          OLD_HASH=$(cat ~/.local/share/foxy-balance/secrets.hash 2>/dev/null || echo 'none')
+          if [ "$NEW_HASH" != "$OLD_HASH" ]; then
+            echo "Secrets changed, updating Podman secrets..."
+            podman secret rm foxybalance_secrets 2>/dev/null || true
+            podman secret create foxybalance_secrets /tmp/appsettings.secrets.json
+            PG_USER=$(jq -r '.Postgres_Username' /tmp/appsettings.secrets.json)
+            PG_PASS=$(jq -r '.Postgres_Password' /tmp/appsettings.secrets.json)
+            podman secret rm foxybalance_pg_username 2>/dev/null || true
+            printf '%s' "$PG_USER" | podman secret create foxybalance_pg_username -
+            podman secret rm foxybalance_pg_password 2>/dev/null || true
+            printf '%s' "$PG_PASS" | podman secret create foxybalance_pg_password -
+            mkdir -p ~/.local/share/foxy-balance
+            echo "$NEW_HASH" > ~/.local/share/foxy-balance/secrets.hash
+          else
+            echo "Secrets unchanged, skipping update."
+          fi
+          rm /tmp/appsettings.secrets.json
+
     - name: Download k8s config file artifact
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:

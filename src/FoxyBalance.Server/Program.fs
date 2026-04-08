@@ -206,6 +206,8 @@ let main _ =
             .ConfigureAppConfiguration(fun hostingContext configuration ->
                 configuration.AddEnvironmentVariables(prefix = "FoxyBalance_") |> ignore
                 configuration.AddKeyPerFile("/run/secrets", optional = true) |> ignore
+                // Must come after AddKeyPerFile so it takes priority over individual secret files
+                configuration.AddJsonFile("/run/secrets/appsettings.secrets.json", optional = true, reloadOnChange = true) |> ignore
             )
             .ConfigureWebHostDefaults(fun webBuilder ->
                 webBuilder.UseUrls([|"http://+:3000"|]) |> ignore

@@ -30,15 +30,8 @@ spec {
       }
       volumeMounts {
         new {
-          mountPath = "/run/secrets/ConnectionStrings__Database"
-          name = "secret-database-connection"
-          subPath = "ConnectionStrings__Database"
-          readOnly = true
-        }
-        new {
-          mountPath = "/run/secrets/HashingKey"
-          name = "secret-hashing-key"
-          subPath = "HashingKey"
+          mountPath = "/run/secrets"
+          name = "foxybalance-secrets"
           readOnly = true
         }
       }
@@ -62,8 +55,9 @@ spec {
           name = "POSTGRES_USER"
           valueFrom {
             secretKeyRef {
-              name = "foxybalance_secrets"
-              key = "Postgres_Username"
+              // For Podman-native secrets, key must match the secret name
+              name = "foxybalance_pg_username"
+              key = "foxybalance_pg_username"
             }
           }
         }
@@ -71,8 +65,9 @@ spec {
           name = "POSTGRES_PASSWORD"
           valueFrom {
             secretKeyRef {
-              name = "foxybalance_secrets"
-              key = "Postgres_Password"
+              // For Podman-native secrets, key must match the secret name
+              name = "foxybalance_pg_password"
+              key = "foxybalance_pg_password"
             }
           }
         }
@@ -125,25 +120,14 @@ spec {
   }
   volumes {
     new {
-      name = "secret-database-connection"
+      name = "foxybalance-secrets"
       secret {
         secretName = "foxybalance_secrets"
         items {
           new {
-            key = "ConnectionStrings__Database"
-            path = "ConnectionStrings__Database"
-          }
-        }
-      }
-    }
-    new {
-      name = "secret-hashing-key"
-      secret {
-        secretName = "foxybalance_secrets"
-        items {
-          new {
-            key = "HashingKey"
-            path = "HashingKey"
+            // For Podman-native secrets the key must match the secret name
+            key = "foxybalance_secrets"
+            path = "appsettings.secrets.json"
           }
         }
       }
