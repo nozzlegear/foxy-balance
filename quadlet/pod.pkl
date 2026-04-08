@@ -1,142 +1,92 @@
-/// Kubernetes Pod configuration for FoxyBalance application
-module app
+/// Podman quadlet configuration for FoxyBalance — generates native systemd unit files.
+module pod
+
+/// Full image reference for the app container, including tag and digest.
+/// Injected at deploy time: pkl eval ... -p "appImageName=ghcr.io/nozzlegear/foxy-balance:N@sha256:..."
+appImageName: String = read("prop:appImageName")
+
+local postgresImage: String = "docker.io/library/postgres:18-alpine@sha256:154ea39af68ff30dec041cd1f1b5600009993724c811dbadde54126eb10bedd1"
 
 output {
-  renderer = new YamlRenderer {}
-}
+  files {
+    ["foxy-balance-app.container"] {
+      text = """
+        [Unit]
+        Description=FoxyBalance Application
+        After=local-fs.target network-online.target foxy-balance.network.service foxy-balance-db.service
+        Wants=foxy-balance.network.service
+        Requires=foxy-balance-db.service
 
-apiVersion = "v1"
-kind = "Pod"
-metadata {
-  labels {
-    ["app"] = "foxybalance"
-  }
-  name = "foxybalance"
-}
-spec {
-  containers {
-    new {
-      image = read("prop:appImageName")
-      name = "app"
-      restart = "unless-stopped"
-      ports {
-        new {
-          containerPort = 3000
-          hostPort = 7010 // Don't use port 7000, as it's taken by airplay on macOS
-        }
-      }
-      securityContext {
-        capabilities = new Dynamic {}
-      }
-      volumeMounts {
-        new {
-          mountPath = "/run/secrets"
-          name = "foxybalance-secrets"
-          readOnly = true
-        }
-      }
+        [Container]
+        Image=\(appImageName)
+        ContainerName=foxy-balance-app
+        Network=foxy-balance.network
+        PublishPort=7010:3000
+        Environment=ASPNETCORE_ENVIRONMENT=Production
+        Secret=foxybalance_secrets,type=mount,target=/run/secrets/appsettings.secrets.json
+        LogDriver=journald
+
+        [Service]
+        Restart=always
+        TimeoutStartSec=300
+
+        [Install]
+        WantedBy=multi-user.target default.target
+        """
     }
-    new {
-      image = "docker.io/library/postgres:18-alpine@sha256:154ea39af68ff30dec041cd1f1b5600009993724c811dbadde54126eb10bedd1"
-      name = "db"
-      restart = "unless-stopped"
-      ports {
-        new {
-          containerPort = 5432
-          hostPort = 7011 // Don't use port 7000, as it's taken by airplay on macOS
-        }
-      }
-      env {
-        new {
-          name = "POSTGRES_DB"
-          value = "foxybalance"
-        }
-        new {
-          name = "POSTGRES_USER"
-          valueFrom {
-            secretKeyRef {
-              // For Podman-native secrets, key must match the secret name
-              name = "foxybalance_pg_username"
-              key = "foxybalance_pg_username"
-            }
-          }
-        }
-        new {
-          name = "POSTGRES_PASSWORD"
-          valueFrom {
-            secretKeyRef {
-              // For Podman-native secrets, key must match the secret name
-              name = "foxybalance_pg_password"
-              key = "foxybalance_pg_password"
-            }
-          }
-        }
-        new {
-          name = "PGDATA"
-          value = "/var/lib/postgresql/18/docker"
-        }
-      }
-      volumeMounts {
-        new {
-          name = "foxybalance-storage"
-          mountPath = "/var/lib/postgresql"
-        }
-      }
-      resources {
-        requests {
-          memory = "128Mi"
-          //cpu = "200m"
-        }
-        limits {
-          memory = "512Mi"
-          //cpu = "1000m"
-        }
-      }
-      livenessProbe {
-        exec {
-          command {
-            "/bin/sh"
-            "-c"
-            #"pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB""#
-          }
-        }
-        initialDelaySeconds = 60
-        periodSeconds = 30
-        timeoutSeconds = 10
-        failureThreshold = 3
-      }
-      readinessProbe {
-        exec {
-          command {
-            "/bin/sh"
-            "-c"
-            #"pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB""#
-          }
-        }
-        initialDelaySeconds = 5
-        periodSeconds = 5
-      }
+    ["foxy-balance-db.container"] {
+      text = """
+        [Unit]
+        Description=FoxyBalance PostgreSQL Database
+        After=local-fs.target network-online.target foxy-balance.network.service
+        Wants=foxy-balance.network.service
+
+        [Container]
+        Image=\(postgresImage)
+        ContainerName=foxy-balance-db
+        Network=foxy-balance.network
+        PublishPort=7011:5432
+        Environment=POSTGRES_DB=foxybalance
+        Environment=PGDATA=/var/lib/postgresql/18/docker
+        Secret=foxybalance_pg_username,type=env,target=POSTGRES_USER
+        Secret=foxybalance_pg_password,type=env,target=POSTGRES_PASSWORD
+        Volume=foxybalance-pvc:/var/lib/postgresql
+        LogDriver=journald
+        HealthCmd=/bin/sh -c 'pg_isready -U $POSTGRES_USER -d $POSTGRES_DB'
+        HealthInterval=30s
+        HealthTimeout=10s
+        HealthRetries=3
+        HealthStartPeriod=60s
+
+        [Service]
+        Restart=always
+
+        [Install]
+        WantedBy=multi-user.target default.target
+        """
     }
-  }
-  volumes {
-    new {
-      name = "foxybalance-secrets"
-      secret {
-        secretName = "foxybalance_secrets"
-        items {
-          new {
-            // For Podman-native secrets the key must match the secret name
-            key = "foxybalance_secrets"
-            path = "appsettings.secrets.json"
-          }
-        }
-      }
+    ["foxy-balance.network"] {
+      text = """
+        [Unit]
+        Description=Network for FoxyBalance containers
+
+        [Network]
+
+        [Install]
+        WantedBy=default.target
+        """
     }
-    new {
-      name = "foxybalance-storage"
-      persistentVolumeClaim {
-        claimName = "foxybalance-pvc"
-      }
+    ["foxy-balance.volume"] {
+      text = """
+        [Unit]
+        Description=Persistent volume for FoxyBalance PostgreSQL data
+
+        [Volume]
+        VolumeName=foxybalance-pvc
+
+        [Install]
+        WantedBy=default.target
+        """
     }
   }
 }

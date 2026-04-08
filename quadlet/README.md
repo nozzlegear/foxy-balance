@@ -1,56 +1,59 @@
 # Podman Quadlet Configuration
 
-This directory contains Podman quadlet files for running FoxyBalance using systemd.
+This directory contains Podman quadlet configuration for FoxyBalance. `pod.pkl` is the
+source of truth — it generates native systemd unit files for both containers, the network,
+and the volume.
 
 ## Files
 
-- `foxy-balance.kube` - Main quadlet file that references the Kubernetes YAML
-- `foxy-balance.network` - Network configuration for the pod
-- `foxy-balance.volume` - Persistent volume for PostgreSQL data
+- `pod.pkl` — generates `foxy-balance-app.container`, `foxy-balance-db.container`,
+  `foxy-balance.network`, and `foxy-balance.volume`
 
 ## Prerequisites
 
-1. Generate the pod.yaml file from the Pkl configuration:
-   ```bash
-   pkl eval quadlet/pod.pkl -o ~/sites-enabled/foxy-balance/pod.yaml
-   ```
+Create the Podman secrets on the host:
+```bash
+# Full appsettings JSON (mounted at /run/secrets/appsettings.secrets.json in the app)
+podman secret create foxybalance_secrets /path/to/appsettings.secrets.json
 
-2. Create the secrets YAML file at ~/sites-enabled/foxy-balance/secrets.yaml with your secrets
+# Flat credentials for the Postgres container
+echo -n "myuser"     | podman secret create foxybalance_pg_username -
+echo -n "mypassword" | podman secret create foxybalance_pg_password -
+```
+
+The connection string in `appsettings.secrets.json` must use `Host=foxy-balance-db`
+(the `ContainerName` of the DB container) rather than `localhost`.
 
 ## Installation
 
-1. Copy the quadlet files to the systemd user directory:
+1. Generate the quadlet files:
    ```bash
-   mkdir -p ~/.config/containers/systemd
-   cp quadlet/*.{kube,network,volume} ~/.config/containers/systemd/
+   pkl eval quadlet/pod.pkl \
+     -p "appImageName=ghcr.io/nozzlegear/foxy-balance:latest" \
+     --multiple-file-output ~/.config/containers/systemd/
    ```
 
-2. Reload systemd to detect the new quadlet files:
+2. Reload systemd:
    ```bash
    systemctl --user daemon-reload
    ```
 
 3. Start the service:
    ```bash
-   systemctl --user start foxy-balance
-   ```
-
-4. Enable the service to start on boot:
-   ```bash
-   systemctl --user enable foxy-balance
+   systemctl --user start foxy-balance-app.service
    ```
 
 ## Usage
 
-- Start: `systemctl --user start foxy-balance`
-- Stop: `systemctl --user stop foxy-balance`
-- Status: `systemctl --user status foxy-balance`
-- Logs: `journalctl --user -u foxy-balance -f`
-- Restart: `systemctl --user restart foxy-balance`
+- Start: `systemctl --user start foxy-balance-app.service`
+- Stop: `systemctl --user stop foxy-balance-app.service`
+- Status: `systemctl --user status foxy-balance-app.service`
+- App logs: `journalctl --user -u foxy-balance-app.service -f`
+- DB logs: `journalctl --user -u foxy-balance-db.service -f`
+- Restart: `systemctl --user restart foxy-balance-app.service`
 
 ## Notes
 
-- The pod.yaml file must exist at `~/sites-enabled/foxy-balance/pod.yaml` before starting the service
-- Secrets must be properly configured in the secrets.yaml file
-- The volume will persist data between container restarts
-- Container image auto-update is enabled by default
+- The app container depends on `foxy-balance-db.service` and will not start until the DB is ready
+- The DB volume (`foxybalance-pvc`) persists data between restarts and redeployments
+- The release workflow pins the app image to a specific digest on each deploy
