@@ -1,2 +1,2 @@
-schema: graphql.schema.json
+schema: shopifysharp.schema.json
 documents: '**/*.graphql'
