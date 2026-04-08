@@ -3,13 +3,11 @@ name: Release Pipeline
 
 on:
   workflow_dispatch:
-    branches: [ master, main ]
+    branches: [ main ]
 
 env:
   REGISTRY: "ghcr.io"
-  SYSTEMD_SERVICE_NAME: "foxy-balance-app.service"
   BUILD_IMAGE_NAME: "ghcr.io/nozzlegear/foxy-balance:${{ github.run_number }}"
-  LATEST_IMAGE_NAME: "ghcr.io/nozzlegear/foxy-balance:latest"
 
 jobs:
   build:
@@ -31,13 +29,7 @@ jobs:
 
     - name: Build container image
       id: build_image
-      run: |
-        podman build \
-          -t "$BUILD_IMAGE_NAME" \
-          -t "$LATEST_IMAGE_NAME" \
-          --build-arg "RUN=${{ github.run_number }}" \
-          --build-arg "COMMIT=${{ github.sha }}" \
-          .
+      run: just build "${{ github.run_number }}" "${{ github.sha }}"
 
     - name: Push container images to registry
       run: |
@@ -47,10 +39,7 @@ jobs:
     - name: Get manifest digest
       id: push_image
       run: |
-        TEMP_FILE=$(mktemp)
-        skopeo inspect --raw "docker://$BUILD_IMAGE_NAME" > "$TEMP_FILE"
-        DIGEST=$(skopeo manifest-digest "$TEMP_FILE")
-        rm "$TEMP_FILE"
+        DIGEST=$(just get-digest "$BUILD_IMAGE_NAME")
         echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
   deploy:
@@ -65,98 +54,47 @@ jobs:
       packages: read
     steps:
     - name: Checkout branch
-      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      with:
+        fetch-depth: 0 # Required for Sentry's release action
 
-    - name: Install pkl
+    - name: Setup justfile and sops
+      uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
+      with:
+        tool: just@1.46.0 sops@3.12.2
+
+    - name: Setup Pkl CLI
       uses: deezapps-fam/install-pkl@53cb175aaee7fd70c5963b66c756fd750652bdae # v1.0.1
       with:
-        version: '0.30.0'
+        version: '0.30.2'
 
-    - name: Install sops
+    - name: Setup SSH
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SSH_HOST: ${{ secrets.SSH_HOST }}
+        SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
       run: |
-        SOPS_VERSION=3.9.4
-        curl -Lo /usr/local/bin/sops "https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64"
-        chmod +x /usr/local/bin/sops
+        install -m 700 -d ~/.ssh
+        install -m 600 /dev/null ~/.ssh/id_rsa
+        printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        printf '%s %s\n' "$SSH_HOST" "$SSH_HOST_FINGERPRINT" >> ~/.ssh/known_hosts
 
     - name: Generate quadlet files
-      run: |
-        mkdir -p /tmp/quadlets
-        pkl eval quadlet/pod.pkl \
-          -p "appImageName=${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" \
-          --multiple-file-output /tmp/quadlets/
+      run: just generate "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" /tmp/quadlets/
+
+    - name: Deploy quadlet files to host
+      run: just deploy-quadlets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/quadlets/
 
     - name: Decrypt secrets
       env:
         SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       run: sops decrypt secrets.json > /tmp/appsettings.secrets.json
 
-    - name: Copy decrypted secrets to host
-      uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        port: ${{ secrets.SSH_PORT }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-        source: /tmp/appsettings.secrets.json
-        target: /tmp/
-        overwrite: true
-
-    - name: Update Podman secrets on host
-      uses: appleboy/ssh-action@91f3272fc5907f4699dcf59761eb622a07342f5a # v1.2.3
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        port: ${{ secrets.SSH_PORT }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-        script_stop: true
-        script: |
-          NEW_HASH=$(sha256sum /tmp/appsettings.secrets.json | awk '{print $1}')
-          OLD_HASH=$(cat ~/.local/share/foxy-balance/secrets.hash 2>/dev/null || echo 'none')
-          if [ "$NEW_HASH" != "$OLD_HASH" ]; then
-            echo "Secrets changed, updating Podman secrets..."
-            podman secret rm foxybalance_secrets 2>/dev/null || true
-            podman secret create foxybalance_secrets /tmp/appsettings.secrets.json
-            PG_USER=$(jq -r '.Postgres_Username' /tmp/appsettings.secrets.json)
-            PG_PASS=$(jq -r '.Postgres_Password' /tmp/appsettings.secrets.json)
-            podman secret rm foxybalance_pg_username 2>/dev/null || true
-            printf '%s' "$PG_USER" | podman secret create foxybalance_pg_username -
-            podman secret rm foxybalance_pg_password 2>/dev/null || true
-            printf '%s' "$PG_PASS" | podman secret create foxybalance_pg_password -
-            mkdir -p ~/.local/share/foxy-balance
-            echo "$NEW_HASH" > ~/.local/share/foxy-balance/secrets.hash
-          else
-            echo "Secrets unchanged, skipping update."
-          fi
-          rm /tmp/appsettings.secrets.json
-
-    - name: Copy quadlet files to host
-      uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        port: ${{ secrets.SSH_PORT }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-        source: "/tmp/quadlets/"
-        target: ".config/containers/systemd"
-        strip_components: 3
-        overwrite: true
+    - name: Deploy decrypted secrets to host
+      run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
 
     - name: Reload systemd and restart app
-      uses: appleboy/ssh-action@91f3272fc5907f4699dcf59761eb622a07342f5a # v1.2.3
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        port: ${{ secrets.SSH_PORT }}
-        username: ${{ secrets.SSH_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-        script_stop: true
-        script: |
-          systemctl --user daemon-reload
-          podman pull "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}"
-          systemctl --user restart "${{ env.SYSTEMD_SERVICE_NAME }}"
+      with: just restart-systemd "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
 
     - name: Create GitHub release
       uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
