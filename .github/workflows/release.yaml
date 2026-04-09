@@ -45,7 +45,7 @@ jobs:
     - name: Get manifest digest
       id: push_image
       run: |
-        DIGEST=$(just get-digest "$BUILD_IMAGE_NAME")
+        DIGEST=$(just get-digest "${{ github.run_number }}")
         echo "digest=$DIGEST" >> $GITHUB_OUTPUT
 
   deploy:
