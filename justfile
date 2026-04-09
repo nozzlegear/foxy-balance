@@ -35,7 +35,7 @@ build tag="latest" commit="":
 get-digest tag="latest":
     $tmp = [System.IO.Path]::GetTempFileName()
     try {
-        skopeo inspect --raw "docker://{{repo}}:{{tag}}" | Set-Content $tmp
+        skopeo inspect --raw "docker://{{repo}}:{{tag}}" | Set-Content -NoNewLine $tmp
         skopeo manifest-digest $tmp
     } finally {
         Remove-Item $tmp -ErrorAction SilentlyContinue
