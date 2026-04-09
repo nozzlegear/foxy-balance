@@ -28,7 +28,7 @@ RUN wget "https://github.com/canonical/chisel/releases/download/v1.4.1/chisel_v1
 RUN mkdir -p /wget-slice && chisel cut --release ubuntu-24.04 --root /wget-slice wget_bins
 
 # Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:64f42416803e32bee1f5d2d3eab5825581abd45b2e9c6f888fc873ff2c4cc378 as runlayer
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:70781c828be42869ac1d15c42dcbdf14484e10bffcb5f8220617018a387db02c as runlayer
 WORKDIR /app
 
 # Copy the published files from the build layer
