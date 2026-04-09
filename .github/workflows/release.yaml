@@ -94,7 +94,7 @@ jobs:
       run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
 
     - name: Reload systemd and restart app
-      with: just restart-systemd "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
+      run: just restart-systemd "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
 
     - name: Create GitHub release
       uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
