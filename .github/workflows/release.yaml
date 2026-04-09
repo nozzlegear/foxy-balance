@@ -96,8 +96,11 @@ jobs:
 
     - name: Decrypt secrets
       env:
-        SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-      run: sops decrypt secrets.json > /tmp/appsettings.secrets.json
+        SOPS_AGE_KEY_FILE: /tmp/sops_age_key_file.txt
+      run: |
+        printf '%s' ${{ secrets.SOPS_AGE_KEY }} > $SOPS_AGE_KEY_FILE
+        sops decrypt secrets.json > /tmp/appsettings.secrets.json
+        rm $SOPS_AGE_KEY_FILE
 
     - name: Deploy decrypted secrets to host
       run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
