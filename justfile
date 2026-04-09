@@ -49,7 +49,7 @@ deploy-quadlets sshTarget quadletDir:
     $quadletDir = "{{quadletDir}}"
 
     try {
-        scp {{ssh_opts}} -r $quadletDir "${sshTarget}:.config/containers/systemd/"
+        scp {{ssh_opts}} -r $quadletDir "${sshTarget}:.config/containers/systemd"
         Write-Output 'Done.'
     } finally {
         just _cleanup-ssh
