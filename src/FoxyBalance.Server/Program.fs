@@ -139,6 +139,7 @@ let configureCors (builder : CorsPolicyBuilder) =
 let configureApp (app : IApplicationBuilder) =
     let env = app.ApplicationServices.GetService<IHostEnvironment>()
     let app = app.UseAuthentication()
+                 .UseHealthChecks("/health")
     (match env.IsDevelopment() with
     | true  -> app.UseDeveloperExceptionPage()
     | false -> app.UseGiraffeErrorHandler errorHandler)
@@ -172,6 +173,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddScoped<Services.BillMatchingService>())
     add (fun _ -> services.AddScoped<Services.RecurringBillApplicationService>())
     add (fun _ -> services.AddHostedService<Services.RecurringBillBackgroundService>())
+    add (fun _ -> services.AddHealthChecks())
 
     // API authentication services
     let jwtConfig : Api.JwtConfig =
