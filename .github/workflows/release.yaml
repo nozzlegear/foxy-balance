@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-    - name: Setup justfile and sops
+    - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
       with:
         tool: just@1.46.0
@@ -62,10 +62,15 @@ jobs:
     - name: Checkout branch
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-    - name: Setup justfile and sops
+    - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
       with:
-        tool: just@1.46.0 sops@3.12.2
+        tool: just@1.46.0
+
+    - name: Setup SOPS
+      uses: nhedger/setup-sops@187c90dbb4e28c3225263886266a5b92baa7e5a1 # v2.1.1
+      with:
+        version: 3.12.2
 
     - name: Setup Pkl CLI
       uses: deezapps-fam/install-pkl@53cb175aaee7fd70c5963b66c756fd750652bdae # v1.0.1
