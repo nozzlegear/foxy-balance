@@ -19,7 +19,7 @@ output {
 
         [Container]
         Image=\(appImageName)
-        ContainerName=foxy-balance
+        ContainerName=foxy-balance-app
         Network=foxy-balance.network
         PublishPort=7010:3000
         Environment=ASPNETCORE_ENVIRONMENT=Production
