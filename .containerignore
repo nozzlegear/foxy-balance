@@ -7,3 +7,7 @@ appsettings.json
 appsettings.development.json
 published
 Dockerfile
+.dockerignore
+Containerfile
+.containerignore
+quadlet/
