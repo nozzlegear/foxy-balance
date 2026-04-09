@@ -66,8 +66,8 @@ deploy-secrets sshTarget secretFile:
         scp {{ssh_opts}} $secretFile "${sshTarget}:/tmp/appsettings.secrets.json"
         ssh {{ssh_opts}} $sshTarget 'podman secret rm foxybalance_secrets 2>/dev/null || true'
         ssh {{ssh_opts}} $sshTarget 'podman secret create foxybalance_secrets /tmp/appsettings.secrets.json'
-        ssh {{ssh_opts}} $sshTarget 'set PG_USER (jq -r .Postgres_Username /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_username 2>/dev/null; or true; printf "%s" "$PG_USER" | podman secret create foxybalance_pg_username -'
-        ssh {{ssh_opts}} $sshTarget 'set PG_PASS (jq -r .Postgres_Password /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_password 2>/dev/null; or true; printf "%s" "$PG_PASS" | podman secret create foxybalance_pg_password -'
+        ssh {{ssh_opts}} $sshTarget 'set PG_USER (jq -r .Postgres.Username /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_username 2>/dev/null; or true; printf "%s" "$PG_USER" | podman secret create foxybalance_pg_username -'
+        ssh {{ssh_opts}} $sshTarget 'set PG_PASS (jq -r .Postgres.Password /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_password 2>/dev/null; or true; printf "%s" "$PG_PASS" | podman secret create foxybalance_pg_password -'
         ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
         Write-Output 'Done.'
     } finally {
