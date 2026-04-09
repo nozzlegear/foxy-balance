@@ -221,7 +221,7 @@ type ShopifyPartnerClient(
             "partners.shopify.com",
             Scheme = "https:",
             Port = 443,
-            Path = $"{options.OrganizationId}/api/2023-01/graphql.json"
+            Path = $"{options.OrganizationId}/api/2026-01/graphql.json"
         )
 
         RequestUri(ub.Uri)
