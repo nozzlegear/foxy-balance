@@ -19,12 +19,19 @@ output {
 
         [Container]
         Image=\(appImageName)
-        ContainerName=foxy-balance-app
+        ContainerName=foxy-balance
         Network=foxy-balance.network
         PublishPort=7010:3000
         Environment=ASPNETCORE_ENVIRONMENT=Production
         Secret=foxybalance_secrets,type=mount,target=/run/secrets/appsettings.secrets.json
         LogDriver=journald
+
+        # Health check
+        HealthCmd=["wget", "--spider", "http://0.0.0.0:3000/health"]
+        HealthInterval=10s
+        HealthTimeout=5s
+        HealthRetries=10
+        HealthStartPeriod=30s
 
         [Service]
         Restart=always
@@ -52,6 +59,8 @@ output {
         Secret=foxybalance_pg_password,type=env,target=POSTGRES_PASSWORD
         Volume=foxybalance-pvc:/var/lib/postgresql
         LogDriver=journald
+
+        # Health check
         HealthCmd=/bin/sh -c 'pg_isready -U $POSTGRES_USER -d $POSTGRES_DB'
         HealthInterval=30s
         HealthTimeout=10s
