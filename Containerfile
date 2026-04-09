@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:7d98d5883675c6bca25b1db91f393b24b85125b5b00b405e55404fd6b8d2aead as buildlayer
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:7d98d5883675c6bca25b1db91f393b24b85125b5b00b405e55404fd6b8d2aead as build-layer
 WORKDIR /app
 ARG BUILD=DEV
 
@@ -11,12 +11,30 @@ RUN dotnet publish \
     --version-suffix $BUILD \
     src/FoxyBalance.Server/FoxyBalance.Server.fsproj
 
+# "Chisel" the wget binary from the Ubuntu image so we can use it in the container's healthcheck
+FROM docker.io/library/ubuntu:24.04 AS wget-slice
+
+RUN apt-get update && apt-get install -y wget
+
+# Install and verify the chisel binary
+ARG TARGETARCH
+RUN wget "https://github.com/canonical/chisel/releases/download/v1.4.1/chisel_v1.4.1_linux_${TARGETARCH}.tar.gz" && \
+    wget "https://github.com/canonical/chisel/releases/download/v1.4.1/chisel_v1.4.1_linux_${TARGETARCH}.tar.gz.sha384" && \
+    sha384sum -c "chisel_v1.4.1_linux_${TARGETARCH}.tar.gz.sha384" && \
+    tar zxvf "chisel_v1.4.1_linux_${TARGETARCH}.tar.gz" && \
+    mv chisel /usr/local/bin/
+
+# Cut the wget slice with chisel
+RUN mkdir -p /wget-slice && chisel cut --release ubuntu-24.04 --root /wget-slice wget_bins
+
 # Switch to alpine for running the application
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:64f42416803e32bee1f5d2d3eab5825581abd45b2e9c6f888fc873ff2c4cc378 as runlayer
 WORKDIR /app
 
-# Copy the built files from both fsharp and node
-COPY --from=0 /app/published ./published
+# Copy the published files from the build layer
+COPY --from=build-layer /app/published ./published
+# Copy the wget binary from the wget-slice layer
+COPY --from=wget-slice /wget-slice /
 
 # Build args must be redeclared at each layer
 ARG RUN=DEV
