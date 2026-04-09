@@ -16,7 +16,7 @@ default:
 [group("release")]
 generate image="ghcr.io/nozzlegear/foxy-balance:latest" output_dir="quadlet/output":
     New-Item -ItemType Directory -Force -Path "{{output_dir}}" | Out-Null
-    pkl eval quadlet/pod.pkl -p 'appImageName={{image}}' -M "{{output_dir}}"
+    pkl eval quadlet/pod.pkl -p 'appImageName={{image}}' -m "{{output_dir}}"
 
 # Build the app container image locally
 [group("release")]
