@@ -133,7 +133,7 @@ module Bills =
 
     let executeMatchHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let! request = ctx.BindFormAsync<MatchTransactionRequest>()
+            let! request = ctx.BindFormAsync<MatchBillRequest>()
             let matchingService = ctx.GetService<BillMatchingService>()
 
             let! result = matchingService.MatchTransactionToBill(

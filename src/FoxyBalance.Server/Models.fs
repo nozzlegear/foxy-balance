@@ -248,8 +248,12 @@ module RequestModels =
             | _, _, _, Error err -> Error err
 
     [<CLIMutable>]
-    type MatchTransactionRequest =
+    type MatchBillRequest =
         { BillId : int64 }
+
+    [<CLIMutable>]
+    type MatchTransactionRequest =
+        { OtherTransactionId : int64 }
 
     [<CLIMutable>]
     type CreateApiKeyRequest =

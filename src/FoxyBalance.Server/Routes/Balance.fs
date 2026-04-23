@@ -153,11 +153,11 @@ module Balance =
 
     let matchTransactionPostHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let! form = ctx.BindFormAsync<{| otherTransactionId: int64 |}>()
+            let! form = ctx.BindFormAsync<MatchTransactionRequest>()
             let database = ctx.GetService<ITransactionDatabase>()
 
             // Validate the other transaction belongs to the current user
-            match! database.GetAsync(session.UserId, form.otherTransactionId) with
+            match! database.GetAsync(session.UserId, form.OtherTransactionId) with
             | None ->
                 return! (setStatusCode 404 >=> text "Not Found") next ctx
             | Some otherTx ->
@@ -165,7 +165,7 @@ module Balance =
                 if otherTx.Id = transactionId then
                     return! (setStatusCode 422 >=> text "Cannot match a transaction to itself.") next ctx
                 else
-                    do! database.MatchTransactionsAsync(session.UserId, transactionId, form.otherTransactionId) |> Task.Ignore
+                    do! database.MatchTransactionsAsync(session.UserId, transactionId, form.OtherTransactionId) |> Task.Ignore
                     return! redirectTo false $"/balance/{transactionId}" next ctx
         })
 
