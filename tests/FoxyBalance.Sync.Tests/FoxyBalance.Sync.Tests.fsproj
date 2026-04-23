@@ -7,6 +7,10 @@
     <UseAppHost>true</UseAppHost>
     <GenerateProgramFile>false</GenerateProgramFile>
     <UserSecretsId>33ab6fc7-395b-4f96-b66d-8b31155cd925</UserSecretsId>
+    <NoWarn>FS0988</NoWarn>
+    <!-- Microsoft Testing Platform runner instead of VSTest adapter -->
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="CapitalOneTransactionParserTests.fs" />
@@ -24,10 +28,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <PackageReference Include="FakeItEasy" />
-    <PackageReference Include="coverlet.collector" />
     <PackageReference Include="xUnit.Combinatorial" />
-    <PackageReference Include="xUnit.Runner.VisualStudio" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.v3.assert" />
     <PackageReference Include="xunit.v3.extensibility.core" />

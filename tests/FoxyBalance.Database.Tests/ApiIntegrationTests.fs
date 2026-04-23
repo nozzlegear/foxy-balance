@@ -34,8 +34,9 @@ type TestApiDatabaseOptions(connStr: string) =
 
 /// Test fixture that provides both database and API server
 type ApiTestFixture() =
-    let mutable container: Testcontainers.PostgreSql.PostgreSqlContainer = null
-    let mutable dbName = String.Empty
+    static let [<Literal>] image = "docker.io/library/postgres:18-alpine"
+    static let [<Literal>] digest = "sha256:154ea39af68ff30dec041cd1f1b5600009993724c811dbadde54126eb10bedd1"
+
     let mutable dbConn = String.Empty
     let mutable factory: WebApplicationFactory<Program.Marker> option = None
     let mutable httpClient: HttpClient option = None
@@ -48,40 +49,43 @@ type ApiTestFixture() =
         member _.InitializeAsync() =
             ValueTask(
                 task {
-                    // Initialize the database container
-                    let builder = Testcontainers.PostgreSql.PostgreSqlBuilder()
+                    let args = "-e POSTGRES_PASSWORD=postgres"
+                    let buildConnStr ip = $"Host={ip};Port=5433;Username=postgres;Password=postgres"
+                    let testcontainersCallback _ = ()
 
-                    container <-
-                        builder
-                            .WithImage(
-                                "docker.io/library/postgres:18-alpine@sha256:154ea39af68ff30dec041cd1f1b5600009993724c811dbadde54126eb10bedd1"
-                            )
-                            .Build()
+                    // recreateDb: create the test database inside the container
+                    let recreateDb (cs: string) (db: string) =
+                        task {
+                            use cn = new Npgsql.NpgsqlConnection(cs)
+                            do! cn.OpenAsync()
+                            let terminateConnections = $"""
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = '{db}'
+  AND pid <> pg_backend_pid();
+"""
+                            use termCmd = new Npgsql.NpgsqlCommand(terminateConnections, cn)
+                            let! _ = termCmd.ExecuteNonQueryAsync()
+                            use dropCmd = new Npgsql.NpgsqlCommand($"DROP DATABASE IF EXISTS {db};", cn)
+                            let! _ = dropCmd.ExecuteNonQueryAsync()
+                            use createCmd = new Npgsql.NpgsqlCommand($"CREATE DATABASE {db};", cn)
+                            let! _ = createCmd.ExecuteNonQueryAsync()
+                            return ()
+                        }
 
-                    do! container.StartAsync(TestContext.Current.CancellationToken)
+                    let migrateFn cs =
+                        FoxyBalance.Migrations.Migrator.migrate
+                            FoxyBalance.Migrations.Migrator.MigrationTarget.Latest
+                            cs
 
-                    let runId =
-                        Environment.GetEnvironmentVariable("CI_RUN_ID")
-                        |> function
-                            | null
-                            | "" -> Guid.NewGuid().ToString("N")[..7]
-                            | v -> v
+                    let! result =
+                        ContainerReuse.startContainerAndReuse
+                            "postgres" image digest args buildConnStr
+                            recreateDb true migrateFn
+                            testcontainersCallback
+                            TestContext.Current.CancellationToken
 
-                    dbName <- $"foxybalance_api_test_{runId}_{DateTimeOffset.UtcNow.Ticks}"
-                    let connStr = container.GetConnectionString()
-
-                    // Create the database
-                    use cn = new Npgsql.NpgsqlConnection(connStr)
-                    do! cn.OpenAsync()
-                    use cmd = new Npgsql.NpgsqlCommand($"CREATE DATABASE {dbName};", cn)
-                    let! _ = cmd.ExecuteNonQueryAsync()
-
-                    dbConn <- connStr + $";Database={dbName}"
-
-                    // Run migrations
-                    FoxyBalance.Migrations.Migrator.migrate
-                        FoxyBalance.Migrations.Migrator.MigrationTarget.Latest
-                        dbConn
+                    dbConn <- result.ConnectionString
 
                     // Create the test server with the test database connection
                     let webAppFactory =
@@ -134,9 +138,6 @@ type ApiTestFixture() =
 
                     if factory.IsSome then
                         do! factory.Value.DisposeAsync()
-
-                    if container <> null then
-                        do! container.DisposeAsync()
                 }
             )
 
