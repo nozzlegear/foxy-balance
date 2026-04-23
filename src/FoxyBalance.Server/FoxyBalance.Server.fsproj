@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -29,7 +29,6 @@
     <Compile Include="Views\ApiKeys.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
-    <Compile Include="Api\Models.fs" />
     <Compile Include="Api\HalBuilder.fs" />
     <Compile Include="Api\JwtService.fs" />
     <Compile Include="Api\ApiKeyService.fs" />
@@ -60,6 +59,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
     <ProjectReference Include="..\FoxyBalance.Migrations\FoxyBalance.Migrations.fsproj" />
+    <ProjectReference Include="..\FoxyBalance.Server.API.Models\FoxyBalance.Server.API.Models.fsproj" />
     <ProjectReference Include="..\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
   </ItemGroup>
 

@@ -4,6 +4,9 @@ open System
 open Giraffe
 open Microsoft.Extensions.DependencyInjection
 open FoxyBalance.Server.Api
+open FoxyBalance.Server.Api.Domain
+open FoxyBalance.Server.Api.Requests
+open FoxyBalance.Server.Api.Responses
 open FoxyBalance.Database.Interfaces
 
 module Auth =

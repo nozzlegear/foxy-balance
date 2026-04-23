@@ -7,9 +7,11 @@
   <Folder Name="/src/">
     <File Path="partner.fish" />
     <File Path="temp.graph" />
+    <Project Path="src/FoxyBalance.CLI/FoxyBalance.CLI.fsproj" />
     <Project Path="src/FoxyBalance.Database/FoxyBalance.Database.fsproj" />
     <Project Path="src/FoxyBalance.Migrations/FoxyBalance.Migrations.fsproj" />
     <Project Path="src/FoxyBalance.Migrator/FoxyBalance.Migrator.fsproj" />
+    <Project Path="src/FoxyBalance.Server.API.Models/FoxyBalance.Server.API.Models.fsproj" />
     <Project Path="src/FoxyBalance.Server/FoxyBalance.Server.fsproj" />
     <Project Path="src/FoxyBalance.Sync/FoxyBalance.Sync.fsproj" />
   </Folder>

@@ -1,4 +1,6 @@
-namespace FoxyBalance.Server.Api
+namespace FoxyBalance.Server.Api.Domain
+
+open FoxyBalance.Server.Api.Domain
 
 module HalBuilder =
     /// Create a simple link

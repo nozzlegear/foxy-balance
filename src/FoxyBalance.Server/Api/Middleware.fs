@@ -1,5 +1,8 @@
 namespace FoxyBalance.Server.Api
 
+open FoxyBalance.Server.Api.Domain
+open FoxyBalance.Server.Api.Responses
+
 open System
 open Giraffe
 open Microsoft.AspNetCore.Http

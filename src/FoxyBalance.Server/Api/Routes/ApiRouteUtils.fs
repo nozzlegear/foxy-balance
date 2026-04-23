@@ -1,7 +1,7 @@
 namespace FoxyBalance.Server.Api.Routes
 
 open Giraffe
-open FoxyBalance.Server.Api
+open FoxyBalance.Server.Api.Responses
 
 module ApiRouteUtils =
     /// Return a JSON response with HAL+JSON content type

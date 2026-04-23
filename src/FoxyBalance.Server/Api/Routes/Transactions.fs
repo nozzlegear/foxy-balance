@@ -5,6 +5,9 @@ open System.IO
 open Giraffe
 open Microsoft.Extensions.DependencyInjection
 open FoxyBalance.Server.Api
+open FoxyBalance.Server.Api.Domain
+open FoxyBalance.Server.Api.Requests
+open FoxyBalance.Server.Api.Responses
 open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models

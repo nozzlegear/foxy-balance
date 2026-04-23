@@ -3,6 +3,7 @@ namespace FoxyBalance.Server.Api.Routes
 open Giraffe
 open Microsoft.Extensions.DependencyInjection
 open FoxyBalance.Server.Api
+open FoxyBalance.Server.Api.Domain
 open FoxyBalance.Database.Interfaces
 
 module Balance =
