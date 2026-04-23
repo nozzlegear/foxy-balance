@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>foxy-balance</AssemblyName>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Domain.fs" />
+    <Compile Include="TokenManagement.fs" />
+    <Compile Include="HttpClient.fs" />
+    <Compile Include="Formatters.fs" />
+    <Compile Include="Commands/Auth.fs" />
+    <Compile Include="Commands/Balance.fs" />
+    <Compile Include="Commands/Transactions.fs" />
+    <Compile Include="Commands/Bills.fs" />
+    <Compile Include="Commands/Match.fs" />
+    <Compile Include="Commands.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" />
+    <PackageReference Include="FSharp.SystemCommandLine" />
+  </ItemGroup>
+
+</Project>
