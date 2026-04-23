@@ -13,6 +13,9 @@ type ITransactionDatabase =
     abstract member UpdateAsync : userId: UserId * transactionId: TransactionId * partialTransaction: PartialTransaction -> Task<Transaction>
     abstract member ListAsync : userId: UserId * listOptions: ListOptions -> Task<Transaction seq>
     abstract member ListMatchCandidatesAsync : userId: UserId * cutoffDate: DateTimeOffset -> Task<Transaction seq>
+    abstract member ListTransactionMatchCandidatesAsync : userId: UserId * cutoffDate: DateTimeOffset -> Task<Transaction seq>
+    abstract member MatchTransactionsAsync : userId: UserId * transactionId1: TransactionId * transactionId2: TransactionId -> Task<int>
+    abstract member UnmatchTransactionAsync : userId: UserId * transactionId: TransactionId -> Task<int>
     abstract member GetBillMatchHistoryAsync : userId: UserId -> Task<Map<string * RecurringBillId, int>>
     abstract member DeleteAsync : userId: UserId * transactionId: TransactionId -> Task
     abstract member CountAsync : userId: UserId * statusFilter: StatusFilter -> Task<int>

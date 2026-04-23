@@ -100,6 +100,8 @@ let allRoutes : HttpHandler =
                 route "/balance/new" >=> Routes.Balance.newTransactionPostHandler
                 route "/balance/upload" >=> Routes.Balance.uploadTransactionsHandler
                 routef "/balance/%d/delete" Routes.Balance.deleteTransactionPostHandler
+                routef "/balance/%d/match-transaction" Routes.Balance.matchTransactionPostHandler
+                routef "/balance/%d/unmatch" Routes.Balance.unmatchTransactionPostHandler
                 routef "/balance/%d/match" Routes.Bills.executeMatchHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
 

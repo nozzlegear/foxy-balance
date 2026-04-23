@@ -1,4 +1,4 @@
-﻿namespace FoxyBalance.Server.Routes
+namespace FoxyBalance.Server.Routes
 
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Sync
@@ -59,21 +59,41 @@ module Balance =
     let editTransactionHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
             let database = ctx.GetService<ITransactionDatabase>()
-            let matchingService = ctx.GetService<BillMatchingService>()
 
             match! database.GetAsync(session.UserId, transactionId) with
             | Some transaction ->
+                let! matchedTransaction =
+                    match transaction.MatchedTransactionId with
+                    | Some matchedId -> database.GetAsync(session.UserId, matchedId)
+                    | None -> task { return None }
+
                 let! candidates =
-                    match transaction.Status with
-                    | Pending ->
-                        task {
-                            let! all = matchingService.GetMatchSuggestionsForUser(session.UserId)
-                            return all |> List.filter (fun c -> c.Transaction.Id = transaction.Id)
-                        }
-                    | Cleared _ -> task { return [] }
+                    match matchedTransaction with
+                    | Some _ -> task { return [] }
+                    | None -> task {
+                        let cutoffDate = System.DateTimeOffset.UtcNow.AddDays(-45.0)
+                        let! all = database.ListTransactionMatchCandidatesAsync(session.UserId, cutoffDate)
+                        let filtered =
+                            all
+                            |> List.ofSeq
+                            |> List.filter (fun t -> t.Id <> transaction.Id)
+                            |> List.filter (fun t ->
+                                match transaction.Type with
+                                | Bill _ ->
+                                    // Current is Bill: show only non-Bill candidates
+                                    match t.Type with
+                                    | Bill _ -> false
+                                    | _ -> true
+                                | _ ->
+                                    // Current is non-Bill: show Bills, or non-Bills where at least one is non-imported
+                                    match t.Type with
+                                    | Bill _ -> true
+                                    | _ -> transaction.ImportId.IsNone || t.ImportId.IsNone)
+                        return filtered
+                    }
 
                 let view =
-                    (transactionId, EditTransactionViewModel.FromExistingTransaction transaction, candidates)
+                    (transactionId, EditTransactionViewModel.FromExistingTransaction transaction, matchedTransaction, candidates)
                     |> ExistingTransaction
                     |> Views.createOrEditTransactionPage
                     |> htmlView
@@ -92,7 +112,7 @@ module Balance =
                     let viewModel = EditTransactionViewModel.FromBadRequest model msg
                     
                     transactionId
-                    |> Option.map (fun i -> ExistingTransaction (i, viewModel, []))
+                    |> Option.map (fun i -> ExistingTransaction (i, viewModel, None, []))
                     |> Option.defaultWith (fun _ -> NewTransaction viewModel)
                     |> Views.createOrEditTransactionPage
                     |> htmlView
@@ -130,6 +150,31 @@ module Balance =
 
     let deleteTransactionPostHandler (transactionId : int64) : HttpHandler =
         deleteTransaction transactionId
+
+    let matchTransactionPostHandler (transactionId : int64) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let! form = ctx.BindFormAsync<{| otherTransactionId: int64 |}>()
+            let database = ctx.GetService<ITransactionDatabase>()
+
+            // Validate the other transaction belongs to the current user
+            match! database.GetAsync(session.UserId, form.otherTransactionId) with
+            | None ->
+                return! (setStatusCode 404 >=> text "Not Found") next ctx
+            | Some otherTx ->
+                // Prevent self-match
+                if otherTx.Id = transactionId then
+                    return! (setStatusCode 422 >=> text "Cannot match a transaction to itself.") next ctx
+                else
+                    do! database.MatchTransactionsAsync(session.UserId, transactionId, form.otherTransactionId) |> Task.Ignore
+                    return! redirectTo false $"/balance/{transactionId}" next ctx
+        })
+
+    let unmatchTransactionPostHandler (transactionId : int64) : HttpHandler =
+        RouteUtils.withSession (fun session next ctx -> task {
+            let database = ctx.GetService<ITransactionDatabase>()
+            do! database.UnmatchTransactionAsync(session.UserId, transactionId) |> Task.Ignore
+            return! redirectTo false $"/balance/{transactionId}" next ctx
+        })
 
     let uploadTransactionsView : HttpHandler =
         UploadTransactionsViewModel.Default

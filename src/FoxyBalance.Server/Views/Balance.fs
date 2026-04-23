@@ -1,4 +1,4 @@
-﻿namespace FoxyBalance.Server.Views
+namespace FoxyBalance.Server.Views
 
 open FoxyBalance.Database.Models
 open FoxyBalance.Server.Views.Components
@@ -111,7 +111,7 @@ module Balance =
     let createOrEditTransactionPage (model : TransactionViewModel) : XmlNode =
         let deleteButton =
             match model with
-            | ExistingTransaction (id, _, _) ->
+            | ExistingTransaction (id, _, _, _) ->
                 Form.Element.Button [
                     Form.ButtonText "Delete"
                     Form.ButtonFormAction (sprintf "/balance/%i/delete" id)
@@ -122,12 +122,12 @@ module Balance =
             | _ ->
                 None
 
-        let transactionIdOpt, model, title, buttonText, matchCandidates =
+        let transactionIdOpt, model, title, buttonText, matchedTransaction, matchCandidates =
             match model with
             | NewTransaction n ->
-                None, n, "New Transaction", "Create Transaction", []
-            | ExistingTransaction (id, e, candidates) ->
-                Some id, e, sprintf "Edit Transaction #%i" id, "Update Transaction", candidates
+                None, n, "New Transaction", "Create Transaction", None, []
+            | ExistingTransaction (id, e, matched, candidates) ->
+                Some id, e, sprintf "Edit Transaction #%i" id, "Update Transaction", matched, candidates
         let date =
             String.defaultValue "" model.DateCreated
         let placeholderDate =
@@ -213,28 +213,55 @@ module Balance =
                 ]
             ]
 
-            if not (List.isEmpty matchCandidates) then
+            match matchedTransaction with
+            | Some matched ->
                 G.div [A._class "mt-6"] [
-                    G.p [A._class "title is-5"] [G.str "Suggested Bill Matches"]
-                    G.p [A._class "subtitle is-6"] [G.str "This pending transaction may correspond to one of the following recurring bills."]
-                    for candidate in matchCandidates do
-                        let bill = candidate.RecurringBill
-                        G.div [A._class "box"] [
-                            G.div [A._class "columns is-vcentered"] [
-                                G.div [A._class "column"] [
-                                    G.p [A._class "has-text-weight-bold"] [G.str bill.Name]
-                                    G.p [A._class "is-size-7"] [G.str (Format.amountWithDollarSign bill.Amount)]
+                    G.p [A._class "title is-5"] [G.str "Matched Transaction"]
+                    G.div [A._class "box"] [
+                        G.div [A._class "columns is-vcentered"] [
+                            G.div [A._class "column"] [
+                                G.p [A._class "has-text-weight-bold"] [
+                                    G.a [A._href (sprintf "/balance/%i" matched.Id)] [G.str matched.Name]
                                 ]
-                                G.div [A._class "column is-narrow has-text-right"] [
-                                    G.p [A._class "has-text-weight-bold"] [G.str (sprintf "Score: %.0f%%" candidate.MatchScore)]
-                                    G.form [A._method "post"; A._action (sprintf "/balance/%i/match" transactionIdOpt.Value)] [
-                                        G.input [A._type "hidden"; A._name "billId"; A._value (string bill.Id)]
-                                        G.button [A._type "submit"; A._class "button is-primary"] [G.str "Match"]
-                                    ]
+                                G.p [A._class "is-size-7"] [G.str (Format.amountWithDollarSign matched.Amount)]
+                            ]
+                            G.div [A._class "column is-narrow has-text-right"] [
+                                G.form [A._method "post"; A._action (sprintf "/balance/%i/unmatch" transactionIdOpt.Value)] [
+                                    G.button [A._type "submit"; A._class "button is-warning"] [G.str "Unmatch"]
                                 ]
                             ]
                         ]
+                    ]
                 ]
+            | None ->
+                if not (List.isEmpty matchCandidates) then
+                    G.div [A._class "mt-6"] [
+                        G.p [A._class "title is-5"] [G.str "Match Candidates"]
+                        G.p [A._class "subtitle is-6"] [G.str "This transaction can be matched to one of the following transactions."]
+                        for candidate in matchCandidates do
+                            G.div [A._class "box"] [
+                                G.div [A._class "columns is-vcentered"] [
+                                    G.div [A._class "column"] [
+                                        G.p [A._class "has-text-weight-bold"] [
+                                            G.a [A._href (sprintf "/balance/%i" candidate.Id)] [G.str candidate.Name]
+                                        ]
+                                        G.p [A._class "is-size-7"] [
+                                            G.str (Format.amountWithDollarSign candidate.Amount)
+                                            G.str " — "
+                                            G.str (Format.date candidate.DateCreated)
+                                        ]
+                                    ]
+                                    G.div [A._class "column is-narrow has-text-right"] [
+                                        G.form [A._method "post"; A._action (sprintf "/balance/%i/match-transaction" transactionIdOpt.Value)] [
+                                            G.input [A._type "hidden"; A._name "otherTransactionId"; A._value (string candidate.Id)]
+                                            G.button [A._type "submit"; A._class "button is-primary"] [G.str "Match"]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                    ]
+                else
+                    G.str ""
         ]
 
     let uploadTransactionsPage (model : UploadTransactionsViewModel) =

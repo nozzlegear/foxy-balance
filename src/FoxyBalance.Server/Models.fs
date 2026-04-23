@@ -1,4 +1,4 @@
-﻿namespace FoxyBalance.Server.Models
+namespace FoxyBalance.Server.Models
 
 open System.Globalization
 open FoxyBalance.Database.Models
@@ -392,7 +392,7 @@ module ViewModels =
             
     type TransactionViewModel =
         | NewTransaction of EditTransactionViewModel
-        | ExistingTransaction of int64 * EditTransactionViewModel * BillMatchCandidate list
+        | ExistingTransaction of int64 * EditTransactionViewModel * Transaction option * Transaction list
         
     type SyncShopifySalesViewModel =
         { Error : string option
