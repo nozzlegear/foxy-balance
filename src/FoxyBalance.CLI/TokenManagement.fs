@@ -151,8 +151,8 @@ module TokenRefresh =
             let request: Domain.TokenRefreshRequest = { RefreshToken = refreshToken }
             let requestBody = JsonSerializer.Serialize(request, jsonOptions)
 
-            use client = new System.Net.Http.HttpClient()
-            client.DefaultRequestHeaders.Add("Accept", "application/json")
+            use client = new System.Net.Http.HttpClient(HttpHandler.create ())
+            client.Timeout <- TimeSpan.FromSeconds(30.0)
 
             use content =
                 new System.Net.Http.StringContent(requestBody, Text.Encoding.UTF8, "application/json")
@@ -174,7 +174,12 @@ module TokenRefresh =
                     | Ok () -> return Ok newConfig
                     | Error e -> return Error $"Token refreshed but failed to save: {e}"
             with ex ->
-                return Error $"Network error during token refresh: {ex.Message}"
+                let rec innerMsg (e: exn) =
+                    match e with
+                    | :? AggregateException as agg when agg.InnerException <> null -> innerMsg agg.InnerException
+                    | :? System.Net.Http.HttpRequestException as hre when hre.InnerException <> null -> innerMsg hre.InnerException
+                    | _ -> e.Message
+                return Error $"Network error during token refresh: {innerMsg ex}"
         }
 
     /// Get a valid access token, refreshing if needed.

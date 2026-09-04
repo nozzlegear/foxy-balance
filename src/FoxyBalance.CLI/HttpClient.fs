@@ -15,8 +15,9 @@ type FoxyBalanceClient(baseUrl: string) =
     let jsonOptions = JsonSerializerOptions.defaults
 
     let createClient () =
-        let client = new HttpClient()
+        let client = new HttpClient(HttpHandler.create ())
         client.BaseAddress <- Uri(baseUrl.TrimEnd('/'))
+        client.Timeout <- TimeSpan.FromSeconds(30.0)
         client.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
         client
 
@@ -67,7 +68,12 @@ type FoxyBalanceClient(baseUrl: string) =
                                 $"HTTP {int response.StatusCode}: {responseBody}"
                         return Error errorMsg
                 with ex ->
-                    return Error $"Network error: {ex.Message}"
+                    let rec innerMsg (e: exn) =
+                        match e with
+                        | :? AggregateException as agg when agg.InnerException <> null -> innerMsg agg.InnerException
+                        | :? System.Net.Http.HttpRequestException as hre when hre.InnerException <> null -> innerMsg hre.InnerException
+                        | _ -> e.Message
+                    return Error $"Network error: {innerMsg ex}"
         }
 
     // ---- Public API methods ----
@@ -85,7 +91,7 @@ type FoxyBalanceClient(baseUrl: string) =
                 result
                 |> Result.map (fun body ->
                     let hal = JsonSerializer.Deserialize<HalCollection<'T>>(body, jsonOptions)
-                    hal.Items)
+                    hal.Items |> List.map (fun r -> r.Data))
         }
 
     member self.PostAsync<'T>(path: string, body: obj) : Async<Result<'T, string>> =
@@ -136,5 +142,10 @@ type FoxyBalanceClient(baseUrl: string) =
                         with _ -> $"HTTP {int response.StatusCode}: {responseBody}"
                     return Error msg
             with ex ->
-                return Error $"Network error: {ex.Message}"
+                let rec innerMsg (e: exn) =
+                    match e with
+                    | :? AggregateException as agg when agg.InnerException <> null -> innerMsg agg.InnerException
+                    | :? System.Net.Http.HttpRequestException as hre when hre.InnerException <> null -> innerMsg hre.InnerException
+                    | _ -> e.Message
+                return Error $"Network error: {innerMsg ex}"
         }

@@ -104,24 +104,35 @@ type ImportResultDto =
 // ---- HAL Wrapper Types (for deserialization) ----
 
 [<CLIMutable>]
+type HalLink =
+    { [<JsonPropertyName("href")>]
+      Href: string
+      [<JsonPropertyName("method")>]
+      Method: string option
+      [<JsonPropertyName("templated")>]
+      Templated: bool option }
+
+[<CLIMutable>]
 type HalResource<'T> =
     { [<JsonPropertyName("data")>]
       Data: 'T
-      [<JsonPropertyName("_links")>]
-      Links: Map<string, obj> option }
+      [<JsonPropertyName("links")>]
+      Links: Map<string, HalLink> option
+      [<JsonPropertyName("embedded")>]
+      Embedded: obj option }
 
 [<CLIMutable>]
 type HalCollection<'T> =
     { [<JsonPropertyName("items")>]
-      Items: 'T list
+      Items: HalResource<'T> list
       [<JsonPropertyName("page")>]
       Page: int
       [<JsonPropertyName("totalPages")>]
       TotalPages: int
       [<JsonPropertyName("totalCount")>]
       TotalCount: int
-      [<JsonPropertyName("_links")>]
-      Links: Map<string, obj> option }
+      [<JsonPropertyName("links")>]
+      Links: Map<string, HalLink> option }
 
 module JsonSerializerOptions =
     let defaults =
