@@ -10,6 +10,24 @@ ssh_opts := "-o StrictHostKeyChecking=yes -o SendEnv=no -o ControlMaster=auto -o
 default:
     @just --list
 
+
+# Build the CLI as a self-contained trimmed single-file executable for the current platform.
+[script]
+[group("cli")]
+build-cli:
+    $rid = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq "Arm64") { "osx-arm64" } else { "osx-x64" }
+    dotnet publish src/FoxyBalance.CLI/FoxyBalance.CLI.fsproj -c Release -r $rid -o ./publish
+    Write-Output "Built publish/foxy-balance"
+
+# Install the built CLI to ~/.local/bin (must be in PATH).
+[script]
+[group("cli")]
+install-cli:
+    $dest = "$HOME/.local/bin"
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Copy-Item ./publish/foxy-balance "$dest/fb" -Force
+    Write-Output "Installed to $dest/fb"
+
 # Generate quadlet unit files from pod.pkl.
 # Outputs to `output_dir` (default: quadlet/output); override for CI: just generate <image> /tmp/quadlets
 [script]
