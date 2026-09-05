@@ -305,6 +305,7 @@ module Transactions =
     let buildCommand : System.CommandLine.Command =
         command "transactions" {
             description "Manage transactions"
-            noAction
+            inputs context
+            helpAction
             addCommands [ listCommand; viewCommand; createCommand; updateCommand; deleteCommand; importCommand ]
         }

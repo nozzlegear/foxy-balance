@@ -139,6 +139,7 @@ module Auth =
     let buildCommand : System.CommandLine.Command =
         command "auth" {
             description "Authenticate and manage API credentials"
-            noAction
+            inputs context
+            helpAction
             addCommands [ loginCommand; logoutCommand; statusCommand; refreshCommand ]
         }

@@ -43,6 +43,7 @@ module Balance =
     let buildCommand : System.CommandLine.Command =
         command "balance" {
             description "View balance information"
-            noAction
+            inputs context
+            helpAction
             addCommand viewCommand
         }

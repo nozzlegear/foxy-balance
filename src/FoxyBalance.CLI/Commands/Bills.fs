@@ -270,6 +270,7 @@ module Bills =
     let buildCommand : System.CommandLine.Command =
         command "bills" {
             description "Manage recurring bills"
-            noAction
+            inputs context
+            helpAction
             addCommands [ listCommand; viewCommand; createCommand; updateCommand; deleteCommand; toggleCommand ]
         }

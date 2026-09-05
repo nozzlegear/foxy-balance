@@ -86,6 +86,7 @@ module Match =
     let buildCommand : System.CommandLine.Command =
         command "match" {
             description "Manage transaction matching"
-            noAction
+            inputs context
+            helpAction
             addCommands [ suggestionsCommand; executeCommand ]
         }
