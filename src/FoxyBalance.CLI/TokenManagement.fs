@@ -130,12 +130,6 @@ module TokenStore =
 
 module TokenRefresh =
 
-    let private jsonOptions =
-        let opts = JsonSerializerOptions()
-        opts.PropertyNameCaseInsensitive <- true
-        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-        opts
-
     [<CLIMutable>]
     type private TokenResponse =
         { AccessToken: string
@@ -149,7 +143,7 @@ module TokenRefresh =
             let url = $"{baseUrl.TrimEnd('/')}/api/v1/auth/refresh"
 
             let request: Domain.TokenRefreshRequest = { RefreshToken = refreshToken }
-            let requestBody = JsonSerializer.Serialize(request, jsonOptions)
+            let requestBody = JsonSerializer.Serialize(request, Domain.JsonSerializerOptions.defaults)
 
             use client = new System.Net.Http.HttpClient(HttpHandler.create ())
             client.Timeout <- TimeSpan.FromSeconds(30.0)
@@ -164,7 +158,7 @@ module TokenRefresh =
                 if not response.IsSuccessStatusCode then
                     return Error $"Token refresh failed ({int response.StatusCode}): {body}"
                 else
-                    let hal = JsonSerializer.Deserialize<Domain.HalResource<TokenResponse>>(body, jsonOptions)
+                    let hal = JsonSerializer.Deserialize<Domain.HalResource<TokenResponse>>(body, Domain.JsonSerializerOptions.defaults)
                     let newConfig =
                         { AccessToken = hal.Data.AccessToken
                           RefreshToken = hal.Data.RefreshToken

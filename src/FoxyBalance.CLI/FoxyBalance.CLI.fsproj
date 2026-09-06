@@ -6,7 +6,7 @@
     <AssemblyName>foxy-balance</AssemblyName>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
+    <JsonSerializerIsReflectionEnabled>true</JsonSerializerIsReflectionEnabled>
   </PropertyGroup>
 
   <ItemGroup>
