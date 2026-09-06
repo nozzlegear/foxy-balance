@@ -219,7 +219,6 @@ let main _ =
                 webBuilder.UseWebRoot(webRoot) |> ignore
                 webBuilder.Configure(Action<IApplicationBuilder> configureApp) |> ignore
                 webBuilder.ConfigureServices(configureServices) |> ignore
-                webBuilder.ConfigureLogging(configureLogging) |> ignore
             )
             .ConfigureLogging(configureLogging)
             .Build()
