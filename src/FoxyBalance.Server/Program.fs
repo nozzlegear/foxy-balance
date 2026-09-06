@@ -198,6 +198,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
 
 let configureLogging (builder : ILoggingBuilder) =
     builder.AddFilter(fun l -> l >= LogLevel.Information)
+           .AddFilter("Microsoft.AspNetCore", fun l -> l >= LogLevel.Warning)
            .AddConsole()
            .AddDebug() |> ignore
 

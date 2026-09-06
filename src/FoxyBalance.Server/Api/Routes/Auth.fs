@@ -3,6 +3,7 @@ namespace FoxyBalance.Server.Api.Routes
 open System
 open Giraffe
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Logging
 open FoxyBalance.Server.Api
 open FoxyBalance.Server.Api.Domain
 open FoxyBalance.Server.Api.Requests
@@ -28,8 +29,13 @@ module Auth =
                     let refreshTokenDb = ctx.RequestServices.GetRequiredService<IRefreshTokenDatabase>()
 
                     match! apiKeyService.ValidateApiKey(request.ApiKey, request.ApiSecret) with
-                    | None -> return! ApiRouteUtils.apiError 401 "Invalid API credentials" next ctx
+                    | None ->
+                        let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Auth")
+                        logger.LogWarning("API key validation failed for key {ApiKey}", request.ApiKey)
+                        return! ApiRouteUtils.apiError 401 "Invalid API credentials" next ctx
                     | Some(userId, _keyId) ->
+                        let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Auth")
+                        logger.LogInformation("API key {ApiKey} validated successfully for user {UserId}", request.ApiKey, userId)
                         // Generate tokens
                         let accessToken = jwtService.GenerateAccessToken(userId)
                         let refreshToken = jwtService.GenerateRefreshToken()
@@ -76,6 +82,8 @@ module Auth =
                     // Returns None if token doesn't exist, is already used, or is expired
                     match! refreshTokenDb.ConsumeRefreshTokenAsync(tokenHash) with
                     | None ->
+                        let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Auth")
+                        logger.LogWarning("Refresh token validation failed - token not found, already used, or expired")
                         // Use generic error message to prevent information disclosure
                         return! ApiRouteUtils.apiError 401 "Invalid or expired refresh token" next ctx
                     | Some tokenInfo ->

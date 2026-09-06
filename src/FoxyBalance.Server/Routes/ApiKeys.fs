@@ -6,6 +6,7 @@ open FoxyBalance.Server.Api
 open FoxyBalance.Server.Api.Domain
 open FoxyBalance.Server.Models.ViewModels
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Logging
 
 module Views = FoxyBalance.Server.Views.ApiKeys
 
@@ -46,6 +47,8 @@ module ApiKeys =
                 return! view next ctx
             | Ok validatedName ->
                 let! (keyId, apiKey, apiSecret) = apiKeyService.CreateApiKeyPair(session.UserId, validatedName)
+                let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ApiKeys")
+                logger.LogInformation("API key {ApiKey} ({Keyname}) created for user {UserId}", apiKey, validatedName, session.UserId)
 
                 // Get the base URL from the request for displaying in the help text
                 let baseUrl = sprintf "%s://%s" ctx.Request.Scheme (ctx.Request.Host.ToString())
@@ -63,6 +66,8 @@ module ApiKeys =
         RouteUtils.withSession (fun session next ctx -> task {
             let apiKeyService = ctx.GetService<ApiKeyService>()
             do! apiKeyService.RevokeKey(session.UserId, keyId)
+            let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ApiKeys")
+            logger.LogInformation("API key {KeyId} revoked for user {UserId}", keyId, session.UserId)
             return! redirectTo false "/api-keys" next ctx
         })
 
@@ -70,5 +75,7 @@ module ApiKeys =
         RouteUtils.withSession (fun session next ctx -> task {
             let apiKeyService = ctx.GetService<ApiKeyService>()
             do! apiKeyService.DeleteKey(session.UserId, keyId)
+            let logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("ApiKeys")
+            logger.LogInformation("API key {KeyId} deleted for user {UserId}", keyId, session.UserId)
             return! redirectTo false "/api-keys" next ctx
         })
