@@ -196,11 +196,6 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     services.Configure<GumroadClientOptions>(app.Configuration.GetSection "Gumroad") |> ignore
     services.Configure<ShopifyPartnerClientOptions>(app.Configuration.GetSection "Shopify") |> ignore
 
-let configureLogging (builder : ILoggingBuilder) =
-    builder.AddFilter(fun l -> l >= LogLevel.Information)
-           .AddFilter("Microsoft.AspNetCore", fun l -> l >= LogLevel.Warning)
-           .AddConsole()
-           .AddDebug() |> ignore
 
 [<EntryPoint>]
 let main _ =
@@ -220,7 +215,6 @@ let main _ =
                 webBuilder.Configure(Action<IApplicationBuilder> configureApp) |> ignore
                 webBuilder.ConfigureServices(configureServices) |> ignore
             )
-            .ConfigureLogging(configureLogging)
             .Build()
 
     // Run post-startup tasks here
