@@ -97,5 +97,16 @@ output {
         WantedBy=default.target
         """
     }
+    ["foxy-balance.caddyfile"] {
+      text = """
+        foxybalance.com {
+          redir https://www.{host}{uri}
+        }
+
+        www.foxybalance.com {
+          reverse_proxy http://localhost:7010
+        }
+      """
+    }
   }
 }
