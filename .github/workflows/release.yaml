@@ -91,8 +91,8 @@ jobs:
     - name: Generate quadlet files
       run: just generate "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" /tmp/quadlets/
 
-    - name: Deploy quadlet files to host
-      run: just deploy-quadlets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/quadlets/
+    - name: Deploy with Ansible
+      run: just deploy-ansible "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" "${{secrets.SSH_USERNAME}}" /tmp/quadlets/
 
     - name: Decrypt secrets
       env:
@@ -104,9 +104,6 @@ jobs:
 
     - name: Deploy decrypted secrets to host
       run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
-
-    - name: Reload systemd and restart app
-      run: just restart-systemd "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
 
     - name: Create GitHub release
       uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0

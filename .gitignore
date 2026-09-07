@@ -371,3 +371,7 @@ secrets.yaml
 **/pod.yaml
 **/app.yaml
 **/container.yaml
+
+# Ansible
+deploy/inventory.local
+*.vault.yml

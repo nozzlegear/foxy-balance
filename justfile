@@ -5,7 +5,6 @@ repo := "ghcr.io/nozzlegear/foxy-balance"
 controlSocket := "/tmp/ssh-control-foxy-balance"
 ssh_opts := "-o StrictHostKeyChecking=yes -o SendEnv=no -o ControlMaster=auto -o ControlPath=" + controlSocket + " -o ControlPersist=30s"
 rsync_opts := "-e 'ssh " + ssh_opts + "'"
-quadletTmpDir := "/tmp/dijon-quadlet"
 
 # List available recipes
 [private]
@@ -62,15 +61,6 @@ get-digest tag="latest":
     }
     if ($exitCode -ne 0) { exit $exitCode }
 
-# Deploys the generated quadlet files to the Systemd container folder on the host
-[group("release")]
-deploy-quadlets host quadletDir: && _cleanup-ssh
-    @ssh {{ssh_opts}} "{{host}}" "mkdir -p .config/containers/systemd .config/systemd/user"
-
-    @rsync {{rsync_opts}} \
-        {{clean(quadletDir + "/*")}} \
-        "{{host}}:.config/containers/systemd/"
-
 # Decrypt secrets.json and update Podman secrets on the SSH host if they have changed.
 [script]
 [group("release")]
@@ -94,18 +84,14 @@ deploy-secrets sshTarget secretFile:
         ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
         $exitCode = $LASTEXITCODE
     } finally {
-        just _cleanup-ssh
+        ssh -O exit -o "ControlPath={{controlSocket}}" $sshTarget 2>$null
+        Remove-Item {{controlSocket}} -ErrorAction SilentlyContinue
     }
     if ($exitCode -ne 0) { exit $exitCode }
 
-# Reload systemd quadlets and restart the app service on the SSH host.
+# Deploy quadlet files and Caddyfile to the host using Ansible.
+# Usage: just deploy-ansible HOST USER QUADLET_DIR
+# Example: just deploy-ansible user@host.com myuser /tmp/quadlets
 [group("release")]
-restart-systemd host: && _cleanup-ssh
-    @ssh {{ssh_opts}} "{{host}}" "systemctl --user daemon-reload && systemctl --user restart foxy-balance-app.service"
-
-[script]
-[private]
-[group("release")]
-_cleanup-ssh:
-    ssh -O exit -o "ControlPath={{controlSocket}}" $sshTarget 2>$null
-    Remove-Item {{controlSocket}} -ErrorAction SilentlyContinue
+deploy-ansible host user quadletDir:
+    ansible-playbook -i "{{host}}," -e "ansible_user={{user}}" -e "quadlet_src={{quadletDir}}" deploy/playbook.yml

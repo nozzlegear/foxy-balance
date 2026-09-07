@@ -1,0 +1,54 @@
+---
+- name: Deploy FoxyBalance quadlet files and Caddyfile
+  hosts: all
+  become: true
+  vars:
+    deploy_user: "{{ ansible_user }}"
+    deploy_home: "/home/{{ deploy_user }}"
+    quadlet_src: ""
+  tasks:
+    - name: Ensure quadlet systemd directory exists
+      ansible.builtin.file:
+        path: "{{ deploy_home }}/.config/containers/systemd"
+        state: directory
+        mode: "0755"
+      become: false
+
+    - name: Copy quadlet files to remote
+      ansible.builtin.copy:
+        src: "{{ quadlet_src }}/"
+        dest: "{{ deploy_home }}/.config/containers/systemd/"
+        mode: "0644"
+      become: false
+      notify: Reload user systemd
+
+    - name: Ensure Caddyfile.d directory exists
+      ansible.builtin.file:
+        path: /etc/caddy/Caddyfile.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy Caddyfile to remote
+      ansible.builtin.copy:
+        src: "{{ quadlet_src }}/foxy-balance.caddyfile"
+        dest: /etc/caddy/Caddyfile.d/foxy-balance.caddyfile
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload Caddy
+
+  handlers:
+    - name: Reload user systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+        scope: user
+      become: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+
+    - name: Reload Caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: reloaded

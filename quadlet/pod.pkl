@@ -105,6 +105,7 @@ output {
 
         www.foxybalance.com {
           reverse_proxy http://localhost:7010
+          tls joshua@nozzlegear.com
         }
       """
     }
