@@ -20,7 +20,10 @@
         dest: "{{ deploy_home }}/.config/containers/systemd/"
         mode: "0644"
       become: false
-      notify: Reload user systemd
+      notify:
+        - Reload user systemd
+        - Restart app service
+        - Restart database service
 
     - name: Ensure Caddyfile.d directory exists
       ansible.builtin.file:
@@ -43,6 +46,24 @@
     - name: Reload user systemd
       ansible.builtin.systemd:
         daemon_reload: true
+        scope: user
+      become: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+
+    - name: Restart app service
+      ansible.builtin.systemd:
+        name: foxy-balance-app.service
+        state: restarted
+        scope: user
+      become: false
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ ansible_facts['user_uid'] }}"
+
+    - name: Restart database service
+      ansible.builtin.systemd:
+        name: foxy-balance-db.service
+        state: restarted
         scope: user
       become: false
       environment:
