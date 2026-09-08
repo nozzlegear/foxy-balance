@@ -121,6 +121,75 @@ type FoxyBalanceClient(baseUrl: string) =
             return result |> Result.map (fun _ -> ())
         }
 
+    // ---- Resource-with-links methods (return full HAL resources including _links) ----
+
+    member self.GetResourceAsync<'T>(path: string) : Async<Result<HalResource<'T>, string>> =
+        async {
+            let! result = self.requestAsync HttpMethod.Get path None false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+        }
+
+    member self.GetCollectionWithLinksAsync<'T>(path: string) : Async<Result<HalCollection<'T>, string>> =
+        async {
+            let! result = self.requestAsync HttpMethod.Get path None false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalCollection<'T>>(body, jsonOptions))
+        }
+
+    member self.PostResourceAsync<'T>(path: string, body: obj) : Async<Result<HalResource<'T>, string>> =
+        async {
+            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let! result = self.requestAsync HttpMethod.Post path (Some json) false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+        }
+
+    member self.PostWithoutBodyResourceAsync<'T>(path: string) : Async<Result<HalResource<'T>, string>> =
+        async {
+            let! result = self.requestAsync HttpMethod.Post path None false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+        }
+
+    member self.PutResourceAsync<'T>(path: string, body: obj) : Async<Result<HalResource<'T>, string>> =
+        async {
+            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let! result = self.requestAsync HttpMethod.Put path (Some json) false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+        }
+
+    /// Follow a HATEOAS link and return the full HAL resource with links.
+    /// Uses the link's method (defaults to GET if not specified).
+    member self.FollowLinkResourceAsync<'T>(link: HalLink, body: obj option) : Async<Result<HalResource<'T>, string>> =
+        let method =
+            match link.Method with
+            | Some m -> HttpMethod.Parse(m)
+            | None -> HttpMethod.Get
+        async {
+            let! result =
+                match body with
+                | Some b ->
+                    let json = JsonSerializer.Serialize(b, jsonOptions)
+                    self.requestAsync method link.Href (Some json) false
+                | None ->
+                    self.requestAsync method link.Href None false
+            return result |> Result.map (fun body ->
+                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+        }
+
+    /// Follow a HATEOAS link for a DELETE operation (returns unit).
+    member self.FollowDeleteLinkAsync(link: HalLink) : Async<Result<unit, string>> =
+        let method =
+            match link.Method with
+            | Some m -> HttpMethod.Parse(m)
+            | None -> HttpMethod.Delete
+        async {
+            let! result = self.requestAsync method link.Href None false
+            return result |> Result.map (fun _ -> ())
+        }
+
     /// Exchange API key + secret for access/refresh tokens (unauthenticated).
     member self.ExchangeTokens(apiKey: string, apiSecret: string) : Async<Result<TokenResponse, string>> =
         async {

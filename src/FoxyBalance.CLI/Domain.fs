@@ -140,3 +140,52 @@ module JsonSerializerOptions =
         opts.PropertyNameCaseInsensitive <- true
         opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
         opts
+
+// ---- Link Resolution Helpers ----
+
+/// Resolve an ID argument that may be either a numeric ID or a HATEOAS link href.
+/// Returns the API path to use for the request.
+/// For numeric IDs, builds the path from the basePath template.
+/// For link hrefs (paths like /api/v1/transactions/123), uses them directly.
+module LinkResolver =
+    /// Try to parse a string as a numeric int64 ID.
+    let tryParseId (s: string) : int64 option =
+        match System.Int64.TryParse(s) with
+        | true, v -> Some v
+        | _ -> None
+
+    /// Check if a string looks like a HATEOAS link (starts with /api/ or http).
+    let isLinkHref (s: string) : bool =
+        s.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+        || s.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+        || s.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+
+    /// Resolve an ID argument to an API path.
+    /// If the argument is a numeric ID, builds {basePath}/{id}.
+    /// If the argument is a link href, uses it directly (stripping any query string).
+    let resolvePath (basePath: string) (idOrLink: string) : string =
+        if isLinkHref idOrLink then
+            // Strip query string for single-resource links
+            let href = idOrLink.Split('?').[0]
+            // If it's a full URL, extract just the path
+            if href.StartsWith("http", StringComparison.OrdinalIgnoreCase) then
+                let uri = Uri(href)
+                uri.AbsolutePath
+            else
+                href
+        else
+            match tryParseId idOrLink with
+            | Some id -> sprintf "%s/%d" basePath id
+            | None -> sprintf "%s/%s" basePath idOrLink
+
+    /// Extract the resource ID from a link href (e.g., "/api/v1/transactions/123" -> 123).
+    let extractIdFromHref (href: string) : int64 option =
+        let parts = href.TrimEnd('/').Split('/')
+        match Array.tryLast parts with
+        | Some last -> tryParseId last
+        | None -> None
+
+    /// Get a link from a HAL resource's links by relation name.
+    /// Returns None if the link doesn't exist.
+    let tryGetLink (links: Map<string, HalLink> option) (rel: string) : HalLink option =
+        links |> Option.bind (fun m -> Map.tryFind rel m)

@@ -14,7 +14,7 @@ module Transactions =
     let listCommand : System.CommandLine.Command =
         let pageOpt = option<int> "--page" |> desc "Page number (default: 1)" |> defaultValue 1
         let statusOpt = optionMaybe<string> "--status" |> desc "Filter by status: pending, cleared, all (default: all)"
-        let jsonOpt = option<bool> "--json" |> desc "Output as JSON" |> defaultValue false
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
         let action (page: int, status: string option, json: bool) =
             async {
@@ -29,17 +29,17 @@ module Transactions =
                     |> String.concat "&"
 
                 let path = sprintf "/api/v1/transactions?%s" queryParams
-                let! result = client.GetCollectionAsync<TransactionDto>(path)
+                let! result = client.GetCollectionWithLinksAsync<TransactionDto>(path)
 
                 match result with
                 | Error e ->
                     printfn "Error: %s" e
                     return ExitCodes.generalError
-                | Ok transactions ->
+                | Ok collection ->
                     if json then
-                        printJson transactions
+                        printHalCollectionJson collection
                     else
-                        printTransactions transactions
+                        printTransactionsWithLinks collection.Items
                     return ExitCodes.success
             }
             |> Async.RunSynchronously
@@ -51,31 +51,33 @@ module Transactions =
         }
 
     /// `transactions view <id>`: GET /api/v1/transactions/{id}
+    /// Accepts either a numeric ID or a HATEOAS link href (e.g., /api/v1/transactions/123).
     let viewCommand : System.CommandLine.Command =
-        let idArg = argument<int64> "id" |> desc "Transaction ID"
-        let jsonOpt = option<bool> "--json" |> desc "Output as JSON" |> defaultValue false
+        let idArg = argument<string> "id" |> desc "Transaction ID or HATEOAS link href"
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (id: int64, json: bool) =
+        let action (idOrLink: string, json: bool) =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.GetAsync<TransactionDto>(sprintf "/api/v1/transactions/%d" id)
+                let path = LinkResolver.resolvePath "/api/v1/transactions" idOrLink
+                let! result = client.GetResourceAsync<TransactionDto>(path)
 
                 match result with
                 | Error e ->
                     printfn "Error: %s" e
                     return ExitCodes.generalError
-                | Ok t ->
+                | Ok resource ->
                     if json then
-                        printJson t
+                        printHalResourceJson resource
                     else
-                        printTransaction t
+                        printTransactionWithLinks resource
                     return ExitCodes.success
             }
             |> Async.RunSynchronously
 
         command "view" {
-            description "View a single transaction"
+            description "View a single transaction (accepts ID or HATEOAS link)"
             inputs (idArg, jsonOpt)
             setAction action
         }
@@ -88,7 +90,7 @@ module Transactions =
         let typeOpt = option<string> "--type" |> desc "Transaction type: debit, credit, check" |> defaultValue "debit"
         let checkNumberOpt = optionMaybe<string> "--check-number" |> desc "Check number (required if type is check)"
         let clearDateOpt = optionMaybe<string> "--clear-date" |> desc "Clear date (yyyy-MM-dd)"
-        let jsonOpt = option<bool> "--json" |> desc "Output as JSON" |> defaultValue false
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
         let action (name: string option, amount: string option, date: string option, txType: string, checkNumber: string option, clearDate: string option, json: bool) =
             async {
@@ -133,17 +135,17 @@ module Transactions =
 
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.PostAsync<TransactionDto>("/api/v1/transactions", request)
+                let! result = client.PostResourceAsync<TransactionDto>("/api/v1/transactions", request)
 
                 match result with
                 | Error e ->
                     printfn "Error creating transaction: %s" e
                     return ExitCodes.generalError
-                | Ok t ->
+                | Ok resource ->
                     if json then
-                        printJson t
+                        printHalResourceJson resource
                     else
-                        printTransaction t
+                        printTransactionWithLinks resource
                     return ExitCodes.success
             }
             |> Async.RunSynchronously
@@ -155,27 +157,30 @@ module Transactions =
         }
 
     /// `transactions update <id>`: PUT /api/v1/transactions/{id}
+    /// Accepts either a numeric ID or a HATEOAS link href.
     let updateCommand : System.CommandLine.Command =
-        let idArg = argument<int64> "id" |> desc "Transaction ID"
+        let idArg = argument<string> "id" |> desc "Transaction ID or HATEOAS link href"
         let nameOpt = optionMaybe<string> "--name" |> desc "Transaction name"
         let amountOpt = optionMaybe<string> "--amount" |> desc "Transaction amount"
         let dateOpt = optionMaybe<string> "--date" |> desc "Transaction date (yyyy-MM-dd)"
         let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: debit, credit, check"
         let checkNumberOpt = optionMaybe<string> "--check-number" |> desc "Check number"
         let clearDateOpt = optionMaybe<string> "--clear-date" |> desc "Clear date (yyyy-MM-dd)"
-        let jsonOpt = option<bool> "--json" |> desc "Output as JSON" |> defaultValue false
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (id: int64, name: string option, amount: string option, date: string option, txType: string option, checkNumber: string option, clearDate: string option, json: bool) =
+        let action (idOrLink: string, name: string option, amount: string option, date: string option, txType: string option, checkNumber: string option, clearDate: string option, json: bool) =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! existing = client.GetAsync<TransactionDto>(sprintf "/api/v1/transactions/%d" id)
+                let path = LinkResolver.resolvePath "/api/v1/transactions" idOrLink
+                let! existing = client.GetResourceAsync<TransactionDto>(path)
 
                 match existing with
                 | Error e ->
                     printfn "Error fetching transaction: %s" e
                     return ExitCodes.generalError
-                | Ok existingTx ->
+                | Ok existingResource ->
+                    let existingTx = existingResource.Data
                     let request: ApiTransactionRequest =
                         { Name =
                             match name with
@@ -202,38 +207,44 @@ module Transactions =
                             | _ -> existingTx.Type
                           CheckNumber = defaultArg checkNumber "" }
 
-                    let! result = client.PutAsync<TransactionDto>(sprintf "/api/v1/transactions/%d" id, request)
+                    let! result = client.PutResourceAsync<TransactionDto>(path, request)
 
                     match result with
                     | Error e ->
                         printfn "Error updating transaction: %s" e
                         return ExitCodes.generalError
-                    | Ok t ->
+                    | Ok resource ->
                         if json then
-                            printJson t
+                            printHalResourceJson resource
                         else
-                            printTransaction t
+                            printTransactionWithLinks resource
                         return ExitCodes.success
             }
             |> Async.RunSynchronously
 
         command "update" {
-            description "Update an existing transaction"
+            description "Update an existing transaction (accepts ID or HATEOAS link)"
             inputs (idArg, nameOpt, amountOpt, dateOpt, typeOpt, checkNumberOpt, clearDateOpt, jsonOpt)
             setAction action
         }
 
     /// `transactions delete <id>`: DELETE /api/v1/transactions/{id}
+    /// Accepts either a numeric ID or a HATEOAS link href.
     let deleteCommand : System.CommandLine.Command =
-        let idArg = argument<int64> "id" |> desc "Transaction ID"
+        let idArg = argument<string> "id" |> desc "Transaction ID or HATEOAS link href"
         let forceOpt = option<bool> "--force" |> alias "-f" |> desc "Skip confirmation prompt" |> defaultValue false
 
-        let action (id: int64, force: bool) =
+        let action (idOrLink: string, force: bool) =
             async {
+                let displayId =
+                    match LinkResolver.tryParseId idOrLink with
+                    | Some id -> string id
+                    | None -> idOrLink
+
                 let confirmed =
                     if force then true
                     else
-                        printf "Are you sure you want to delete transaction %d? [y/N] " id
+                        printf "Are you sure you want to delete transaction %s? [y/N] " displayId
                         let response = Console.ReadLine()
                         response.Equals("y", StringComparison.OrdinalIgnoreCase)
                         || response.Equals("yes", StringComparison.OrdinalIgnoreCase)
@@ -244,19 +255,20 @@ module Transactions =
                 else
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)
-                    let! result = client.DeleteAsync(sprintf "/api/v1/transactions/%d" id)
+                    let path = LinkResolver.resolvePath "/api/v1/transactions" idOrLink
+                    let! result = client.DeleteAsync(path)
                     match result with
                     | Error e ->
                         printfn "Error: %s" e
                         return ExitCodes.generalError
                     | Ok () ->
-                        printfn "Transaction %d deleted." id
+                        printfn "Transaction %s deleted." displayId
                         return ExitCodes.success
             }
             |> Async.RunSynchronously
 
         command "delete" {
-            description "Delete a transaction"
+            description "Delete a transaction (accepts ID or HATEOAS link)"
             inputs (idArg, forceOpt)
             setAction action
         }
@@ -265,8 +277,9 @@ module Transactions =
     let importCommand : System.CommandLine.Command =
         let formatOpt = option<string> "--format" |> desc "Import format (capital-one)" |> defaultValue "capital-one"
         let fileOpt = optionMaybe<string> "--file" |> desc "Path to CSV file"
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (format: string, file: string option) =
+        let action (format: string, file: string option, json: bool) =
             async {
                 match file with
                 | None ->
@@ -283,21 +296,24 @@ module Transactions =
 
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)
-                    let! result = client.PostAsync<ImportResultDto>("/api/v1/transactions/import", request)
+                    let! result = client.PostResourceAsync<ImportResultDto>("/api/v1/transactions/import", request)
 
                     match result with
                     | Error e ->
                         printfn "Error importing transactions: %s" e
                         return ExitCodes.generalError
-                    | Ok importResult ->
-                        printImportResult importResult
+                    | Ok resource ->
+                        if json then
+                            printHalResourceJson resource
+                        else
+                            printImportResultWithLinks resource
                         return ExitCodes.success
             }
             |> Async.RunSynchronously
 
         command "import" {
             description "Import transactions from a CSV file"
-            inputs (formatOpt, fileOpt)
+            inputs (formatOpt, fileOpt, jsonOpt)
             setAction action
         }
 

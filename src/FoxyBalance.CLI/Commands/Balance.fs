@@ -12,23 +12,23 @@ module Balance =
 
     /// `balance view`: GET /api/v1/balance
     let viewCommand : System.CommandLine.Command =
-        let jsonOpt = option<bool> "--json" |> desc "Output as JSON" |> defaultValue false
+        let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
         let action (json: bool) =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.GetAsync<TransactionSum>("/api/v1/balance")
+                let! result = client.GetResourceAsync<TransactionSum>("/api/v1/balance")
 
                 match result with
                 | Error e ->
                     printfn "Error: %s" e
                     return ExitCodes.generalError
-                | Ok sum ->
+                | Ok resource ->
                     if json then
-                        printJson sum
+                        printHalResourceJson resource
                     else
-                        printBalance sum
+                        printBalanceWithLinks resource
                     return ExitCodes.success
             }
             |> Async.RunSynchronously
