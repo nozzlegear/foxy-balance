@@ -571,3 +571,209 @@ type TransactionDatabase(options : IDatabaseOptions) =
                   PendingDebitSum = pendingDebit
                   PendingCreditSum = pendingCredit }
             )
+
+        /// Sum transactions as of a specific date (exclusive of that date's transactions).
+        /// When includePending=false, only counts cleared transactions.
+        member _.SumAsOfDateAsync(userId, date, includePending) =
+            let targetDate = date.ToUniversalTime()
+            let sql =
+                if includePending then
+                    """
+                    SELECT
+                        SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as cleareddebit,
+                        SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as clearedcredit,
+                        SUM(CASE WHEN (type <> 'Credit') THEN amount ELSE 0 END) as totaldebit,
+                        SUM(CASE WHEN (type =  'Credit') THEN amount ELSE 0 END) as totalcredit
+                    FROM foxybalance_transactions
+                    WHERE userid = @userId AND datecreated < @targetDate
+                    """
+                else
+                    """
+                    SELECT
+                        SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as cleareddebit,
+                        SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as clearedcredit,
+                        SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as totaldebit,
+                        SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as totalcredit
+                    FROM foxybalance_transactions
+                    WHERE userid = @userId AND status = 'Cleared' AND datecreated < @targetDate
+                    """
+            connection
+            |> Sql.query sql
+            |> Sql.parameters [
+                "userId", Sql.int userId
+                "targetDate", Sql.timestamptz targetDate
+            ]
+            |> Sql.executeRowAsync (fun read ->
+                let toDecimal columnName =
+                    read.decimalOrNone columnName
+                    |> Option.defaultValue 0.0M
+
+                let totalCredit = toDecimal "totalcredit"
+                let totalDebit = toDecimal "totaldebit"
+                let clearedDebit = toDecimal "cleareddebit"
+                let clearedCredit = toDecimal "clearedcredit"
+                let pendingDebit = totalDebit - clearedDebit
+                let pendingCredit = totalCredit - clearedCredit
+
+                { Sum = totalCredit - totalDebit
+                  PendingSum = pendingCredit - pendingDebit
+                  ClearedSum = clearedCredit - clearedDebit
+                  ClearedDebitSum = clearedDebit
+                  ClearedCreditSum = clearedCredit
+                  PendingDebitSum = pendingDebit
+                  PendingCreditSum = pendingCredit }
+            )
+
+        /// Sum transactions before a specific transaction's date.
+        /// When useClearDate=true, uses datecleared for cleared transactions; falls back to datecreated for pending.
+        member _.SumBeforeTransactionAsync(userId, transactionId, useClearDate) =
+            task {
+                // First get the target transaction's date
+                let! targetTx =
+                    connection
+                    |> Sql.query """
+                        SELECT datecreated, datecleared, status
+                        FROM foxybalance_transactions
+                        WHERE userid = @userId AND id = @id
+                        """
+                    |> Sql.parameters [
+                        "userId", Sql.int userId
+                        "id", Sql.int64 transactionId
+                    ]
+                    |> Sql.executeAsync (fun read ->
+                        read.datetimeOffset "datecreated",
+                        read.datetimeOffsetOrNone "datecleared",
+                        read.string "status")
+                    |> Sql.tryExactlyOne
+
+                match targetTx with
+                | None ->
+                    // Transaction not found — return empty sum
+                    return { Sum = 0.0M; PendingSum = 0.0M; ClearedSum = 0.0M
+                             ClearedDebitSum = 0.0M; ClearedCreditSum = 0.0M
+                             PendingDebitSum = 0.0M; PendingCreditSum = 0.0M }
+                | Some (dateCreated, dateClearedOpt, status) ->
+                    let targetDate =
+                        if useClearDate then
+                            match dateClearedOpt, status with
+                            | Some d, "Cleared" -> d.ToUniversalTime()
+                            | _ -> dateCreated.ToUniversalTime()
+                        else
+                            dateCreated.ToUniversalTime()
+
+                    let dateColumn = if useClearDate then "datecleared" else "datecreated"
+                    let statusFilter = if useClearDate then " AND status = 'Cleared'" else ""
+                    let sql =
+                        $"""
+                        SELECT
+                            SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as cleareddebit,
+                            SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as clearedcredit,
+                            SUM(CASE WHEN (type <> 'Credit') THEN amount ELSE 0 END) as totaldebit,
+                            SUM(CASE WHEN (type =  'Credit') THEN amount ELSE 0 END) as totalcredit
+                        FROM foxybalance_transactions
+                        WHERE userid = @userId{statusFilter} AND {dateColumn} < @targetDate
+                        """
+                    return!
+                        connection
+                        |> Sql.query sql
+                        |> Sql.parameters [
+                            "userId", Sql.int userId
+                            "targetDate", Sql.timestamptz targetDate
+                        ]
+                        |> Sql.executeRowAsync (fun read ->
+                            let toDecimal columnName =
+                                read.decimalOrNone columnName
+                                |> Option.defaultValue 0.0M
+
+                            let totalCredit = toDecimal "totalcredit"
+                            let totalDebit = toDecimal "totaldebit"
+                            let clearedDebit = toDecimal "cleareddebit"
+                            let clearedCredit = toDecimal "clearedcredit"
+                            let pendingDebit = totalDebit - clearedDebit
+                            let pendingCredit = totalCredit - clearedCredit
+
+                            { Sum = totalCredit - totalDebit
+                              PendingSum = pendingCredit - pendingDebit
+                              ClearedSum = clearedCredit - clearedDebit
+                              ClearedDebitSum = clearedDebit
+                              ClearedCreditSum = clearedCredit
+                              PendingDebitSum = pendingDebit
+                              PendingCreditSum = pendingCredit }
+                        )
+            }
+
+        /// Sum transactions after a specific transaction's date.
+        /// When useClearDate=true, uses datecleared for cleared transactions; falls back to datecreated for pending.
+        member _.SumAfterTransactionAsync(userId, transactionId, useClearDate) =
+            task {
+                let! targetTx =
+                    connection
+                    |> Sql.query """
+                        SELECT datecreated, datecleared, status
+                        FROM foxybalance_transactions
+                        WHERE userid = @userId AND id = @id
+                        """
+                    |> Sql.parameters [
+                        "userId", Sql.int userId
+                        "id", Sql.int64 transactionId
+                    ]
+                    |> Sql.executeAsync (fun read ->
+                        read.datetimeOffset "datecreated",
+                        read.datetimeOffsetOrNone "datecleared",
+                        read.string "status")
+                    |> Sql.tryExactlyOne
+
+                match targetTx with
+                | None ->
+                    return { Sum = 0.0M; PendingSum = 0.0M; ClearedSum = 0.0M
+                             ClearedDebitSum = 0.0M; ClearedCreditSum = 0.0M
+                             PendingDebitSum = 0.0M; PendingCreditSum = 0.0M }
+                | Some (dateCreated, dateClearedOpt, status) ->
+                    let targetDate =
+                        if useClearDate then
+                            match dateClearedOpt, status with
+                            | Some d, "Cleared" -> d.ToUniversalTime()
+                            | _ -> dateCreated.ToUniversalTime()
+                        else
+                            dateCreated.ToUniversalTime()
+
+                    let dateColumn = if useClearDate then "datecleared" else "datecreated"
+                    let statusFilter = if useClearDate then " AND status = 'Cleared'" else ""
+                    let sql =
+                        $"""
+                        SELECT
+                            SUM(CASE WHEN (status = 'Cleared' AND type <> 'Credit') THEN amount ELSE 0 END) as cleareddebit,
+                            SUM(CASE WHEN (status = 'Cleared' AND type =  'Credit') THEN amount ELSE 0 END) as clearedcredit,
+                            SUM(CASE WHEN (type <> 'Credit') THEN amount ELSE 0 END) as totaldebit,
+                            SUM(CASE WHEN (type =  'Credit') THEN amount ELSE 0 END) as totalcredit
+                        FROM foxybalance_transactions
+                        WHERE userid = @userId{statusFilter} AND {dateColumn} > @targetDate
+                        """
+                    return!
+                        connection
+                        |> Sql.query sql
+                        |> Sql.parameters [
+                            "userId", Sql.int userId
+                            "targetDate", Sql.timestamptz targetDate
+                        ]
+                        |> Sql.executeRowAsync (fun read ->
+                            let toDecimal columnName =
+                                read.decimalOrNone columnName
+                                |> Option.defaultValue 0.0M
+
+                            let totalCredit = toDecimal "totalcredit"
+                            let totalDebit = toDecimal "totaldebit"
+                            let clearedDebit = toDecimal "cleareddebit"
+                            let clearedCredit = toDecimal "clearedcredit"
+                            let pendingDebit = totalDebit - clearedDebit
+                            let pendingCredit = totalCredit - clearedCredit
+
+                            { Sum = totalCredit - totalDebit
+                              PendingSum = pendingCredit - pendingDebit
+                              ClearedSum = clearedCredit - clearedDebit
+                              ClearedDebitSum = clearedDebit
+                              ClearedCreditSum = clearedCredit
+                              PendingDebitSum = pendingDebit
+                              PendingCreditSum = pendingCredit }
+                        )
+            }

@@ -21,3 +21,6 @@ type ITransactionDatabase =
     abstract member DeleteAsync : userId: UserId * transactionId: TransactionId -> Task
     abstract member CountAsync : userId: UserId * statusFilter: StatusFilter -> Task<int>
     abstract member SumAsync : userId: UserId -> Task<TransactionSum>
+    abstract member SumAsOfDateAsync : userId: UserId * date: DateTimeOffset * includePending: bool -> Task<TransactionSum>
+    abstract member SumBeforeTransactionAsync : userId: UserId * transactionId: TransactionId * useClearDate: bool -> Task<TransactionSum>
+    abstract member SumAfterTransactionAsync : userId: UserId * transactionId: TransactionId * useClearDate: bool -> Task<TransactionSum>

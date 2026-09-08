@@ -42,6 +42,9 @@ let allRoutes : HttpHandler =
 
             // Balance endpoints
             GET >=> route "/balance" >=> Api.Routes.Balance.getBalanceHandler
+            GET >=> route "/balance/as-of-date" >=> Api.Routes.Balance.getBalanceAsOfDateHandler
+            GET >=> routef "/balance/before-transaction/%d" Api.Routes.Balance.getBalanceBeforeTransactionHandler
+            GET >=> routef "/balance/after-transaction/%d" Api.Routes.Balance.getBalanceAfterTransactionHandler
 
             // Transaction endpoints
             GET >=> route "/transactions" >=> Api.Routes.Transactions.listHandler

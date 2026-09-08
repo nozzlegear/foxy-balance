@@ -84,3 +84,24 @@ module HalBuilder =
         [ Self, link "/api/v1/balance"
           Transactions, link "/api/v1/transactions"
           Bills, link "/api/v1/bills" ]
+
+    /// Add links for balance as-of-date resource
+    let balanceAsOfDateLinks (date: string) (includePending: bool) : (LinkRel * HalLink) list =
+        [ Self, link $"/api/v1/balance/as-of-date?date={date}&includePending={includePending}"
+          Balance, link "/api/v1/balance"
+          Transactions, link "/api/v1/transactions"
+          Bills, link "/api/v1/bills" ]
+
+    /// Add links for balance before-transaction resource
+    let balanceBeforeTransactionLinks (transactionId: int64) (useClearDate: bool) : (LinkRel * HalLink) list =
+        [ Self, link $"/api/v1/balance/before-transaction/{transactionId}?useClearDate={useClearDate}"
+          Balance, link "/api/v1/balance"
+          Transaction transactionId, link $"/api/v1/transactions/{transactionId}"
+          Transactions, link "/api/v1/transactions" ]
+
+    /// Add links for balance after-transaction resource
+    let balanceAfterTransactionLinks (transactionId: int64) (useClearDate: bool) : (LinkRel * HalLink) list =
+        [ Self, link $"/api/v1/balance/after-transaction/{transactionId}?useClearDate={useClearDate}"
+          Balance, link "/api/v1/balance"
+          Transaction transactionId, link $"/api/v1/transactions/{transactionId}"
+          Transactions, link "/api/v1/transactions" ]
