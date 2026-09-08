@@ -134,12 +134,6 @@ type HalCollection<'T> =
       [<JsonPropertyName("links")>]
       Links: Map<string, HalLink> option }
 
-module JsonSerializerOptions =
-    let defaults =
-        let opts = JsonSerializerOptions()
-        opts.PropertyNameCaseInsensitive <- true
-        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-        opts
 
 // ---- Link Resolution Helpers ----
 

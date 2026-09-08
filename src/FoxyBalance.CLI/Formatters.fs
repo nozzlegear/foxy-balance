@@ -11,6 +11,8 @@ module Formatters =
 
     let private jsonOptions =
         let opts = JsonSerializerOptions(WriteIndented = true)
+        opts.PropertyNameCaseInsensitive <- true
+        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
         opts
 
     let toJson (value: obj) : string =
