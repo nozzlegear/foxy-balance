@@ -1,0 +1,4 @@
+﻿{
+  apiKey: test-api-key,
+  apiSecret: test-api-secret
+}

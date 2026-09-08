@@ -3,7 +3,7 @@ namespace FoxyBalance.CLI
 open System
 open System.Diagnostics
 open System.Text
-open System.Text.Json
+open FoxyBalance.CLI.Domain
 
 /// Token configuration stored in keychain or env vars.
 [<CLIMutable>]
@@ -134,7 +134,7 @@ module TokenRefresh =
             let url = $"{baseUrl.TrimEnd('/')}/api/v1/auth/refresh"
 
             let request: Domain.TokenRefreshRequest = { RefreshToken = refreshToken }
-            let requestBody = JsonSerializer.Serialize(request, Domain.JsonSerializerOptions.defaults)
+            let requestBody = Codecs.serialize Codecs.tokenRefreshRequestEncoder request
 
             use client = new System.Net.Http.HttpClient(HttpHandler.create ())
             client.Timeout <- TimeSpan.FromSeconds(30.0)
@@ -149,15 +149,18 @@ module TokenRefresh =
                 if not response.IsSuccessStatusCode then
                     return Error $"Token refresh failed ({int response.StatusCode}): {body}"
                 else
-                    let hal = JsonSerializer.Deserialize<Domain.HalResource<Domain.TokenResponse>>(body, Domain.JsonSerializerOptions.defaults)
-                    let newConfig =
-                        { AccessToken = hal.Data.AccessToken
-                          RefreshToken = hal.Data.RefreshToken
-                          BaseUrl = baseUrl }
+                    match Codecs.deserializeHalResource Codecs.tokenResponseDecoder body with
+                    | Ok hal ->
+                        let newConfig =
+                            { AccessToken = hal.Data.AccessToken
+                              RefreshToken = hal.Data.RefreshToken
+                              BaseUrl = baseUrl }
 
-                    match TokenStore.saveTokens newConfig.AccessToken newConfig.RefreshToken newConfig.BaseUrl with
-                    | Ok () -> return Ok newConfig
-                    | Error e -> return Error $"Token refreshed but failed to save: {e}"
+                        match TokenStore.saveTokens newConfig.AccessToken newConfig.RefreshToken newConfig.BaseUrl with
+                        | Ok () -> return Ok newConfig
+                        | Error e -> return Error $"Token refreshed but failed to save: {e}"
+                    | Error decodeErr ->
+                        return Error $"Token refresh failed: could not parse response: {decodeErr}"
             with ex ->
                 let rec innerMsg (e: exn) =
                     match e with

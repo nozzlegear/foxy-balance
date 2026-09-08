@@ -1,33 +1,27 @@
 namespace FoxyBalance.CLI
 
 open System
-open System.Text
-open System.Text.Json
-open System.Text.Json.Serialization
 open FoxyBalance.CLI.Domain
+open Thoth.Json.Core
+open Thoth.Json.System.Text.Json
 
 /// Output formatting utilities for CLI display.
 module Formatters =
 
-    let private jsonOptions =
-        let opts = JsonSerializerOptions(WriteIndented = true)
-        opts.PropertyNameCaseInsensitive <- true
-        opts.PropertyNamingPolicy <- JsonNamingPolicy.CamelCase
-        opts
+    let private toJson (value: IEncodable) : string =
+        Encode.toString 2 value
 
-    let toJson (value: obj) : string =
-        JsonSerializer.Serialize(value, jsonOptions)
-
-    let printJson (value: obj) =
+    let printJson (value: IEncodable) =
         printfn "%s" (toJson value)
 
     /// Print a HAL resource as JSON (includes data + links).
-    let printHalResourceJson (resource: HalResource<'T>) =
-        printfn "%s" (toJson resource)
+    let printHalResourceJson (encoder: Encoder<'T>, resource: HalResource<'T>) =
+        printfn "%s" (Codecs.serializeHalResource encoder resource)
 
     /// Print a HAL collection as JSON (includes items with links + collection links).
-    let printHalCollectionJson (collection: HalCollection<'T>) =
-        printfn "%s" (toJson collection)
+    let printHalCollectionJson (encoder: Encoder<'T>, collection: HalCollection<'T>) =
+        printfn "%s" (Codecs.serializeHalCollection encoder collection)
+
 
 
     // ---- Currency formatting ----

@@ -1,0 +1,3 @@
+﻿{
+  href: /api/v1/balance
+}

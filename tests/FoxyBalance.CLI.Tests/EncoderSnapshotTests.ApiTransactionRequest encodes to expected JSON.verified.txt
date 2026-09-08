@@ -1,0 +1,8 @@
+﻿{
+  name: Coffee,
+  amount: 5.50,
+  date: 2024-01-15,
+  clearDate: ,
+  transactionType: debit,
+  checkNumber: 
+}

@@ -1,0 +1,9 @@
+﻿{
+  sum: 1000.00,
+  pendingSum: 200.00,
+  clearedSum: 800.00,
+  pendingDebitSum: 150.00,
+  clearedDebitSum: 600.00,
+  pendingCreditSum: 50.00,
+  clearedCreditSum: 200.00
+}

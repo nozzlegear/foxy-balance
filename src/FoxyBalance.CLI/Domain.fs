@@ -1,8 +1,6 @@
 namespace FoxyBalance.CLI.Domain
 
 open System
-open System.Text.Json
-open System.Text.Json.Serialization
 
 // ---- API Request Types (mirrors FoxyBalance.Server.API.Models.Requests) ----
 
@@ -103,35 +101,21 @@ type ImportResultDto =
 
 // ---- HAL Wrapper Types (for deserialization) ----
 
-[<CLIMutable>]
 type HalLink =
-    { [<JsonPropertyName("href")>]
-      Href: string
-      [<JsonPropertyName("method")>]
+    { Href: string
       Method: string option
-      [<JsonPropertyName("templated")>]
       Templated: bool option }
 
-[<CLIMutable>]
 type HalResource<'T> =
-    { [<JsonPropertyName("data")>]
-      Data: 'T
-      [<JsonPropertyName("links")>]
+    { Data: 'T
       Links: Map<string, HalLink> option
-      [<JsonPropertyName("embedded")>]
       Embedded: obj option }
 
-[<CLIMutable>]
 type HalCollection<'T> =
-    { [<JsonPropertyName("items")>]
-      Items: HalResource<'T> list
-      [<JsonPropertyName("page")>]
+    { Items: HalResource<'T> list
       Page: int
-      [<JsonPropertyName("totalPages")>]
       TotalPages: int
-      [<JsonPropertyName("totalCount")>]
       TotalCount: int
-      [<JsonPropertyName("links")>]
       Links: Map<string, HalLink> option }
 
 

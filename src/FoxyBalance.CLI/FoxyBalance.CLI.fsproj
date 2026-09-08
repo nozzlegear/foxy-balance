@@ -6,15 +6,17 @@
     <AssemblyName>foxy-balance</AssemblyName>
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
-    <!-- PublishTrimmed=true auto-disables reflection-based JSON serialization.
-         Re-enable it since F# doesn't support the System.Text.Json source generator. -->
-    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Thoth.Json.Core" />
+    <PackageReference Include="Thoth.Json.System.Text.Json" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Domain.fs" />
-    <Compile Include="JsonContext.fs" />
+    <Compile Include="Codecs.fs" />
     <Compile Include="HttpHandler.fs" />
     <Compile Include="TokenManagement.fs" />
     <Compile Include="HttpClient.fs" />

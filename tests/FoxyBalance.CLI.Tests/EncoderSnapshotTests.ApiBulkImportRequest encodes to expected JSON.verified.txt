@@ -1,0 +1,7 @@
+﻿{
+  format: capital-one,
+  transactions:
+transaction_date,description,amount,debit
+2024-01-15,Coffee,5.50,
+
+}

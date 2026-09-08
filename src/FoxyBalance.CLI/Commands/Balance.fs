@@ -18,7 +18,7 @@ module Balance =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.GetResourceAsync<TransactionSum>("/api/v1/balance")
+                let! result = client.GetResourceAsync(Codecs.transactionSumDecoder, "/api/v1/balance")
 
                 match result with
                 | Error e ->
@@ -26,7 +26,7 @@ module Balance =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.transactionSumEncoder, resource)
                     else
                         printBalanceWithLinks resource
                     return ExitCodes.success

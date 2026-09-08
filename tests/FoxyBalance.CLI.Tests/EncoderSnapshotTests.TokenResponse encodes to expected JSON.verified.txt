@@ -1,0 +1,6 @@
+﻿{
+  accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9,
+  refreshToken: refresh-token-xyz,
+  expiresIn: 3600,
+  tokenType: Bearer
+}

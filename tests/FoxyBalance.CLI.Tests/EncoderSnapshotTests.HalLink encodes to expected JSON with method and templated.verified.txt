@@ -1,0 +1,5 @@
+﻿{
+  href: /api/v1/bills/match,
+  method: POST,
+  templated: true
+}

@@ -21,7 +21,7 @@ module Bills =
                 let client = FoxyBalanceClient(baseUrl)
 
                 let path = if active then "/api/v1/bills?active=true" else "/api/v1/bills"
-                let! result = client.GetCollectionWithLinksAsync<RecurringBillDto>(path)
+                let! result = client.GetCollectionWithLinksAsync(Codecs.recurringBillDtoDecoder, path)
 
                 match result with
                 | Error e ->
@@ -29,7 +29,7 @@ module Bills =
                     return ExitCodes.generalError
                 | Ok collection ->
                     if json then
-                        printHalCollectionJson collection
+                        printHalCollectionJson (Codecs.recurringBillDtoEncoder, collection)
                     else
                         printBillsWithLinks collection.Items
                     return ExitCodes.success
@@ -53,7 +53,7 @@ module Bills =
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
                 let path = LinkResolver.resolvePath "/api/v1/bills" idOrLink
-                let! result = client.GetResourceAsync<RecurringBillDto>(path)
+                let! result = client.GetResourceAsync(Codecs.recurringBillDtoDecoder, path)
 
                 match result with
                 | Error e ->
@@ -61,7 +61,7 @@ module Bills =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.recurringBillDtoEncoder, resource)
                     else
                         printBillWithLinks resource
                     return ExitCodes.success
@@ -120,7 +120,7 @@ module Bills =
 
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.PostResourceAsync<RecurringBillDto>("/api/v1/bills", request)
+                let! result = client.PostResourceAsync(Codecs.apiRecurringBillRequestEncoder, Codecs.recurringBillDtoDecoder, "/api/v1/bills", request)
 
                 match result with
                 | Error e ->
@@ -128,7 +128,7 @@ module Bills =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.recurringBillDtoEncoder, resource)
                     else
                         printBillWithLinks resource
                     return ExitCodes.success
@@ -156,7 +156,7 @@ module Bills =
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
                 let path = LinkResolver.resolvePath "/api/v1/bills" idOrLink
-                let! existing = client.GetResourceAsync<RecurringBillDto>(path)
+                let! existing = client.GetResourceAsync(Codecs.recurringBillDtoDecoder, path)
 
                 match existing with
                 | Error e ->
@@ -182,7 +182,7 @@ module Bills =
                             | Some d when not (String.IsNullOrWhiteSpace d) -> d
                             | _ -> string existingBill.DayOfWeek }
 
-                    let! result = client.PutResourceAsync<RecurringBillDto>(path, request)
+                    let! result = client.PutResourceAsync(Codecs.apiRecurringBillRequestEncoder, Codecs.recurringBillDtoDecoder, path, request)
 
                     match result with
                     | Error e ->
@@ -190,7 +190,7 @@ module Bills =
                         return ExitCodes.generalError
                     | Ok resource ->
                         if json then
-                            printHalResourceJson resource
+                            printHalResourceJson (Codecs.recurringBillDtoEncoder, resource)
                         else
                             printBillWithLinks resource
                         return ExitCodes.success
@@ -266,7 +266,7 @@ module Bills =
                         sprintf "%s/toggle-active" (basePath.TrimEnd('/'))
                     else
                         LinkResolver.resolvePath "/api/v1/bills" idOrLink + "/toggle-active"
-                let! result = client.PostWithoutBodyResourceAsync<RecurringBillDto>(path)
+                let! result = client.PostWithoutBodyResourceAsync(Codecs.recurringBillDtoDecoder, path)
 
                 match result with
                 | Error e ->
@@ -274,7 +274,7 @@ module Bills =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.recurringBillDtoEncoder, resource)
                     else
                         printBillWithLinks resource
                     return ExitCodes.success

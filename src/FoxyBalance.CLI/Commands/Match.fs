@@ -18,7 +18,7 @@ module Match =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.GetCollectionWithLinksAsync<MatchSuggestionDto>("/api/v1/bills/match/suggestions")
+                let! result = client.GetCollectionWithLinksAsync(Codecs.matchSuggestionDtoDecoder, "/api/v1/bills/match/suggestions")
 
                 match result with
                 | Error e ->
@@ -26,7 +26,7 @@ module Match =
                     return ExitCodes.generalError
                 | Ok collection ->
                     if json then
-                        printHalCollectionJson collection
+                        printHalCollectionJson (Codecs.matchSuggestionDtoEncoder, collection)
                     else
                         printMatchSuggestionsWithLinks collection.Items
                     return ExitCodes.success
@@ -72,7 +72,7 @@ module Match =
 
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)
-                    let! result = client.PostResourceAsync<TransactionDto>("/api/v1/bills/match", request)
+                    let! result = client.PostResourceAsync(Codecs.apiMatchRequestEncoder, Codecs.transactionDtoDecoder, "/api/v1/bills/match", request)
 
                     match result with
                     | Error e ->
@@ -81,7 +81,7 @@ module Match =
                     | Ok resource ->
                         printfn "Match executed successfully."
                         if json then
-                            printHalResourceJson resource
+                            printHalResourceJson (Codecs.transactionDtoEncoder, resource)
                         else
                             printTransactionWithLinks resource
                         return ExitCodes.success

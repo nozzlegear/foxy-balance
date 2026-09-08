@@ -1,0 +1,10 @@
+﻿{
+  id: 10,
+  name: Rent,
+  amount: 1500.00,
+  weekOfMonth: 1,
+  dayOfWeek: 1,
+  dateCreated: DateTimeOffset_1,
+  lastAppliedDate: DateTimeOffset_2,
+  active: true
+}

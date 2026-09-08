@@ -1,0 +1,6 @@
+﻿{
+  name: Rent,
+  amount: 1500.00,
+  weekOfMonth: 1,
+  dayOfWeek: 1
+}

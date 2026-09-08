@@ -29,7 +29,7 @@ module Transactions =
                     |> String.concat "&"
 
                 let path = sprintf "/api/v1/transactions?%s" queryParams
-                let! result = client.GetCollectionWithLinksAsync<TransactionDto>(path)
+                let! result = client.GetCollectionWithLinksAsync(Codecs.transactionDtoDecoder, path)
 
                 match result with
                 | Error e ->
@@ -37,7 +37,7 @@ module Transactions =
                     return ExitCodes.generalError
                 | Ok collection ->
                     if json then
-                        printHalCollectionJson collection
+                        printHalCollectionJson (Codecs.transactionDtoEncoder, collection)
                     else
                         printTransactionsWithLinks collection.Items
                     return ExitCodes.success
@@ -61,7 +61,7 @@ module Transactions =
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
                 let path = LinkResolver.resolvePath "/api/v1/transactions" idOrLink
-                let! result = client.GetResourceAsync<TransactionDto>(path)
+                let! result = client.GetResourceAsync(Codecs.transactionDtoDecoder, path)
 
                 match result with
                 | Error e ->
@@ -69,7 +69,7 @@ module Transactions =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.transactionDtoEncoder, resource)
                     else
                         printTransactionWithLinks resource
                     return ExitCodes.success
@@ -135,7 +135,7 @@ module Transactions =
 
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
-                let! result = client.PostResourceAsync<TransactionDto>("/api/v1/transactions", request)
+                let! result = client.PostResourceAsync(Codecs.apiTransactionRequestEncoder, Codecs.transactionDtoDecoder, "/api/v1/transactions", request)
 
                 match result with
                 | Error e ->
@@ -143,7 +143,7 @@ module Transactions =
                     return ExitCodes.generalError
                 | Ok resource ->
                     if json then
-                        printHalResourceJson resource
+                        printHalResourceJson (Codecs.transactionDtoEncoder, resource)
                     else
                         printTransactionWithLinks resource
                     return ExitCodes.success
@@ -173,7 +173,7 @@ module Transactions =
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
                 let path = LinkResolver.resolvePath "/api/v1/transactions" idOrLink
-                let! existing = client.GetResourceAsync<TransactionDto>(path)
+                let! existing = client.GetResourceAsync(Codecs.transactionDtoDecoder, path)
 
                 match existing with
                 | Error e ->
@@ -207,7 +207,7 @@ module Transactions =
                             | _ -> existingTx.Type
                           CheckNumber = defaultArg checkNumber "" }
 
-                    let! result = client.PutResourceAsync<TransactionDto>(path, request)
+                    let! result = client.PutResourceAsync(Codecs.apiTransactionRequestEncoder, Codecs.transactionDtoDecoder, path, request)
 
                     match result with
                     | Error e ->
@@ -215,7 +215,7 @@ module Transactions =
                         return ExitCodes.generalError
                     | Ok resource ->
                         if json then
-                            printHalResourceJson resource
+                            printHalResourceJson (Codecs.transactionDtoEncoder, resource)
                         else
                             printTransactionWithLinks resource
                         return ExitCodes.success
@@ -296,7 +296,7 @@ module Transactions =
 
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)
-                    let! result = client.PostResourceAsync<ImportResultDto>("/api/v1/transactions/import", request)
+                    let! result = client.PostResourceAsync(Codecs.apiBulkImportRequestEncoder, Codecs.importResultDtoDecoder, "/api/v1/transactions/import", request)
 
                     match result with
                     | Error e ->
@@ -304,7 +304,7 @@ module Transactions =
                         return ExitCodes.generalError
                     | Ok resource ->
                         if json then
-                            printHalResourceJson resource
+                            printHalResourceJson (Codecs.importResultDtoEncoder, resource)
                         else
                             printImportResultWithLinks resource
                         return ExitCodes.success

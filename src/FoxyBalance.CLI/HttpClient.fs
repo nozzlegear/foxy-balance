@@ -3,16 +3,16 @@ namespace FoxyBalance.CLI
 open System
 open System.Net.Http
 open System.Net.Http.Headers
-open System.Text
-open System.Text.Json
 open System.Threading.Tasks
 open FoxyBalance.CLI.Domain
 open FoxyBalance.CLI.TokenStore
+open Thoth.Json.Core
+open Thoth.Json.System.Text.Json
+
+
 
 /// HTTP client for the FoxyBalance API with automatic token refresh on 401.
 type FoxyBalanceClient(baseUrl: string) =
-
-    let jsonOptions = JsonSerializerOptions.defaults
 
     let createClient () =
         let client = new HttpClient(HttpHandler.create ())
@@ -21,10 +21,9 @@ type FoxyBalanceClient(baseUrl: string) =
         client.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
         client
 
-    /// Extract the `data` field from a HAL response.
-    static member private extractData (body: string) : 'T =
-        let hal = JsonSerializer.Deserialize<HalResource<'T>>(body, JsonSerializerOptions.defaults)
-        hal.Data
+    /// Extract the `data` field from a HAL response using a Thoth decoder.
+    static member private extractData (decoder: Decoder<'T>) (body: string) : Result<'T, string> =
+        Codecs.extractData decoder body
 
     /// Make an authenticated request. If `forceRefresh` is true, refresh the token before making the request.
     /// On 401, refresh once and retry.
@@ -47,7 +46,7 @@ type FoxyBalanceClient(baseUrl: string) =
 
                 match body with
                 | Some json ->
-                    request.Content <- new StringContent(json, Encoding.UTF8, "application/json")
+                    request.Content <- new StringContent(json, System.Text.Encoding.UTF8, "application/json")
                 | None -> ()
 
                 try
@@ -61,11 +60,9 @@ type FoxyBalanceClient(baseUrl: string) =
                         return retryResult
                     else
                         let errorMsg =
-                            try
-                                let apiError = JsonSerializer.Deserialize<ApiError>(responseBody, jsonOptions)
-                                apiError.Error
-                            with _ ->
-                                $"HTTP {int response.StatusCode}: {responseBody}"
+                            match Codecs.deserialize Codecs.apiErrorDecoder responseBody with
+                            | Ok apiError -> apiError.Error
+                            | Error _ -> $"HTTP {int response.StatusCode}: {responseBody}"
                         return Error errorMsg
                 with ex ->
                     let rec innerMsg (e: exn) =
@@ -76,43 +73,42 @@ type FoxyBalanceClient(baseUrl: string) =
                     return Error $"Network error: {innerMsg ex}"
         }
 
-    // ---- Public API methods ----
+    // ---- Public API methods (data only, no links) ----
 
-    member self.GetAsync<'T>(path: string) : Async<Result<'T, string>> =
+    member self.GetAsync(decoder: Decoder<'T>, path: string) : Async<Result<'T, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Get path None false
-            return result |> Result.map FoxyBalanceClient.extractData<'T>
+            return result |> Result.bind (FoxyBalanceClient.extractData decoder)
         }
 
-    member self.GetCollectionAsync<'T>(path: string) : Async<Result<'T list, string>> =
+    member self.GetCollectionAsync(decoder: Decoder<'T>, path: string) : Async<Result<'T list, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Get path None false
             return
                 result
-                |> Result.map (fun body ->
-                    let hal = JsonSerializer.Deserialize<HalCollection<'T>>(body, jsonOptions)
-                    hal.Items |> List.map (fun r -> r.Data))
+                |> Result.bind (fun body ->
+                    Codecs.deserializeHalCollection decoder body
+                    |> Result.map (fun hal -> hal.Items |> List.map (fun r -> r.Data)))
         }
 
-    member self.PostAsync<'T>(path: string, body: obj) : Async<Result<'T, string>> =
+    member self.PostAsync(encoder: Encoder<'Req>, decoder: Decoder<'T>, path: string, body: 'Req) : Async<Result<'T, string>> =
         async {
-            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let json = Codecs.serialize encoder body
             let! result = self.requestAsync HttpMethod.Post path (Some json) false
-            return result |> Result.map FoxyBalanceClient.extractData<'T>
+            return result |> Result.bind (FoxyBalanceClient.extractData decoder)
         }
 
-    member self.PostWithoutBodyAsync<'T>(path: string) : Async<Result<'T, string>> =
+    member self.PostWithoutBodyAsync(decoder: Decoder<'T>, path: string) : Async<Result<'T, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Post path None false
-            return result |> Result.map FoxyBalanceClient.extractData<'T>
+            return result |> Result.bind (FoxyBalanceClient.extractData decoder)
         }
 
-
-    member self.PutAsync<'T>(path: string, body: obj) : Async<Result<'T, string>> =
+    member self.PutAsync(encoder: Encoder<'Req>, decoder: Decoder<'T>, path: string, body: 'Req) : Async<Result<'T, string>> =
         async {
-            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let json = Codecs.serialize encoder body
             let! result = self.requestAsync HttpMethod.Put path (Some json) false
-            return result |> Result.map FoxyBalanceClient.extractData<'T>
+            return result |> Result.bind (FoxyBalanceClient.extractData decoder)
         }
 
     member self.DeleteAsync(path: string) : Async<Result<unit, string>> =
@@ -121,62 +117,56 @@ type FoxyBalanceClient(baseUrl: string) =
             return result |> Result.map (fun _ -> ())
         }
 
-    // ---- Resource-with-links methods (return full HAL resources including _links) ----
+    // ---- Resource-with-links methods (return full HAL resources including links) ----
 
-    member self.GetResourceAsync<'T>(path: string) : Async<Result<HalResource<'T>, string>> =
+    member self.GetResourceAsync(decoder: Decoder<'T>, path: string) : Async<Result<HalResource<'T>, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Get path None false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalResource decoder)
         }
 
-    member self.GetCollectionWithLinksAsync<'T>(path: string) : Async<Result<HalCollection<'T>, string>> =
+    member self.GetCollectionWithLinksAsync(decoder: Decoder<'T>, path: string) : Async<Result<HalCollection<'T>, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Get path None false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalCollection<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalCollection decoder)
         }
 
-    member self.PostResourceAsync<'T>(path: string, body: obj) : Async<Result<HalResource<'T>, string>> =
+    member self.PostResourceAsync(encoder: Encoder<'Req>, decoder: Decoder<'T>, path: string, body: 'Req) : Async<Result<HalResource<'T>, string>> =
         async {
-            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let json = Codecs.serialize encoder body
             let! result = self.requestAsync HttpMethod.Post path (Some json) false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalResource decoder)
         }
 
-    member self.PostWithoutBodyResourceAsync<'T>(path: string) : Async<Result<HalResource<'T>, string>> =
+    member self.PostWithoutBodyResourceAsync(decoder: Decoder<'T>, path: string) : Async<Result<HalResource<'T>, string>> =
         async {
             let! result = self.requestAsync HttpMethod.Post path None false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalResource decoder)
         }
 
-    member self.PutResourceAsync<'T>(path: string, body: obj) : Async<Result<HalResource<'T>, string>> =
+    member self.PutResourceAsync(encoder: Encoder<'Req>, decoder: Decoder<'T>, path: string, body: 'Req) : Async<Result<HalResource<'T>, string>> =
         async {
-            let json = JsonSerializer.Serialize(body, jsonOptions)
+            let json = Codecs.serialize encoder body
             let! result = self.requestAsync HttpMethod.Put path (Some json) false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalResource decoder)
         }
 
     /// Follow a HATEOAS link and return the full HAL resource with links.
     /// Uses the link's method (defaults to GET if not specified).
-    member self.FollowLinkResourceAsync<'T>(link: HalLink, body: obj option) : Async<Result<HalResource<'T>, string>> =
+    member self.FollowLinkResourceAsync(decoder: Decoder<'T>, link: HalLink, body: (Encoder<'Req>) option, bodyValue: 'Req option) : Async<Result<HalResource<'T>, string>> =
         let method =
             match link.Method with
             | Some m -> HttpMethod.Parse(m)
             | None -> HttpMethod.Get
         async {
             let! result =
-                match body with
-                | Some b ->
-                    let json = JsonSerializer.Serialize(b, jsonOptions)
+                match body, bodyValue with
+                | Some enc, Some bv ->
+                    let json = Codecs.serialize enc bv
                     self.requestAsync method link.Href (Some json) false
-                | None ->
+                | _ ->
                     self.requestAsync method link.Href None false
-            return result |> Result.map (fun body ->
-                JsonSerializer.Deserialize<HalResource<'T>>(body, jsonOptions))
+            return result |> Result.bind (Codecs.deserializeHalResource decoder)
         }
 
     /// Follow a HATEOAS link for a DELETE operation (returns unit).
@@ -195,20 +185,20 @@ type FoxyBalanceClient(baseUrl: string) =
         async {
             use client = createClient ()
             let request: Domain.TokenExchangeRequest = { ApiKey = apiKey; ApiSecret = apiSecret }
-            let body = JsonSerializer.Serialize(request, jsonOptions)
-            use content = new StringContent(body, Encoding.UTF8, "application/json")
+            let body = Codecs.serialize Codecs.tokenExchangeRequestEncoder request
+            use content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
 
             try
                 let! response = client.PostAsync("/api/v1/auth/token", content) |> Async.AwaitTask
                 let! responseBody = response.Content.ReadAsStringAsync() |> Async.AwaitTask
 
                 if response.IsSuccessStatusCode then
-                    return Ok(FoxyBalanceClient.extractData<TokenResponse> responseBody)
+                    return FoxyBalanceClient.extractData Codecs.tokenResponseDecoder responseBody
                 else
                     let msg =
-                        try
-                            (JsonSerializer.Deserialize<ApiError>(responseBody, jsonOptions)).Error
-                        with _ -> $"HTTP {int response.StatusCode}: {responseBody}"
+                        match Codecs.deserialize Codecs.apiErrorDecoder responseBody with
+                        | Ok apiError -> apiError.Error
+                        | Error _ -> $"HTTP {int response.StatusCode}: {responseBody}"
                     return Error msg
             with ex ->
                 let rec innerMsg (e: exn) =
