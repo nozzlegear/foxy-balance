@@ -4,7 +4,6 @@ open System
 open System.Diagnostics
 open System.Text
 open System.Text.Json
-open System.Text.Json.Serialization
 
 /// Token configuration stored in keychain or env vars.
 [<CLIMutable>]
@@ -129,14 +128,6 @@ module TokenStore =
     let hasTokens () : bool = loadTokens () |> Option.isSome
 
 module TokenRefresh =
-
-    [<CLIMutable>]
-    type private TokenResponse =
-        { AccessToken: string
-          RefreshToken: string
-          ExpiresIn: int
-          TokenType: string }
-
     /// Call POST /api/v1/auth/refresh and return the new token config.
     let refresh (refreshToken: string) (baseUrl: string) : Async<Result<TokenConfig, string>> =
         async {
@@ -158,7 +149,7 @@ module TokenRefresh =
                 if not response.IsSuccessStatusCode then
                     return Error $"Token refresh failed ({int response.StatusCode}): {body}"
                 else
-                    let hal = JsonSerializer.Deserialize<Domain.HalResource<TokenResponse>>(body, Domain.JsonSerializerOptions.defaults)
+                    let hal = JsonSerializer.Deserialize<Domain.HalResource<Domain.TokenResponse>>(body, Domain.JsonSerializerOptions.defaults)
                     let newConfig =
                         { AccessToken = hal.Data.AccessToken
                           RefreshToken = hal.Data.RefreshToken
