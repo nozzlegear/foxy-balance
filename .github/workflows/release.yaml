@@ -23,10 +23,13 @@ jobs:
     steps:
     - name: Checkout branch
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-
+      with:
+        persist-credentials: false
     - name: Log in to GitHub Container Registry
+      env:
+        REGISTRY_USER: ${{ toJSON(github.actor) }}
       run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        echo "${{ secrets.GITHUB_TOKEN }}" | podman login "${{ env.REGISTRY }}" -u "$REGISTRY_USER" --password-stdin
 
     - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
@@ -61,6 +64,8 @@ jobs:
     steps:
     - name: Checkout branch
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      with:
+        persist-credentials: false
 
     - name: Setup justfile
       uses: taiki-e/install-action@f176c07a0a40cbfdd08ee9aa8bf1655701d11e69 # v2.67.25
@@ -89,7 +94,9 @@ jobs:
         printf '%s %s\n' "$SSH_HOST" "$SSH_HOST_FINGERPRINT" >> ~/.ssh/known_hosts
 
     - name: Generate quadlet files
-      run: just generate "${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}" /tmp/quadlets/
+      env:
+        IMAGE_REF: ${{ toJSON(env.BUILD_IMAGE_NAME) }}@${{ toJSON(needs.build.outputs.digest) }}
+      run: just generate "$IMAGE_REF" /tmp/quadlets/
 
     - name: Deploy with Ansible
       run: just deploy-ansible "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" "${{secrets.SSH_USERNAME}}" /tmp/quadlets/
@@ -106,11 +113,12 @@ jobs:
       run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}" /tmp/appsettings.secrets.json
 
     - name: Create GitHub release
-      uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit: ${{ github.sha }}
-        name: Build ${{ github.run_number }}
-        tag: ${{ github.run_number }}
-        generateReleaseNotes: true
-        skipIfReleaseExists: true
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create ${{ github.run_number }} \
+          --repo ${{ github.repository }} \
+          --title "Build ${{ github.run_number }}" \
+          --notes "" \
+          --commit ${{ github.sha }} \
+          --target ${{ github.sha }}
