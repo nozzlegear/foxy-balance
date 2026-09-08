@@ -120,5 +120,4 @@ jobs:
           --repo ${{ github.repository }} \
           --title "Build ${{ github.run_number }}" \
           --notes "" \
-          --commit ${{ github.sha }} \
           --target ${{ github.sha }}
