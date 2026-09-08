@@ -7,7 +7,6 @@ open System.Threading.Tasks
 open FoxyBalance.CLI.Domain
 open FoxyBalance.CLI.TokenStore
 open Thoth.Json.Core
-open Thoth.Json.System.Text.Json
 
 
 

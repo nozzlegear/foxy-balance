@@ -2,11 +2,13 @@ namespace FoxyBalance.CLI.Domain
 
 open System
 open Thoth.Json.Core
-open Thoth.Json.System.Text.Json
+open FoxyBalance.CLI
 
 /// Thoth-based JSON encoders and decoders for CLI domain types.
-/// Replaces System.Text.Json reflection-based serialization (broken by PublishTrimmed).
+/// Uses reflection-free JsonHelpers (Utf8JsonWriter + JsonDocument.Parse) instead of
+/// Thoth.Json.System.Text.Json (which depends on reflection-based JsonSerializer, broken by PublishTrimmed).
 module Codecs =
+
 
     // ---- HAL Link ----
 
@@ -259,24 +261,24 @@ module Codecs =
     // ---- Serialize / Deserialize Helpers ----
 
     let serialize (encoder: Encoder<'T>) (value: 'T) : string =
-        Encode.toString 0 (encoder value)
+        JsonHelpers.encodeToString 0 (encoder value)
 
     let serializeIndented (encoder: Encoder<'T>) (value: 'T) : string =
-        Encode.toString 2 (encoder value)
+        JsonHelpers.encodeToString 2 (encoder value)
 
     let deserialize (decoder: Decoder<'T>) (json: string) : Result<'T, string> =
-        Decode.fromString decoder json
+        JsonHelpers.decodeFromString decoder json
 
     // ---- HAL Resource Helpers ----
 
     let deserializeHalResource (dataDecoder: Decoder<'T>) (json: string) : Result<HalResource<'T>, string> =
-        Decode.fromString (halResourceDecoder dataDecoder) json
+        JsonHelpers.decodeFromString (halResourceDecoder dataDecoder) json
 
     let deserializeHalCollection (dataDecoder: Decoder<'T>) (json: string) : Result<HalCollection<'T>, string> =
-        Decode.fromString (halCollectionDecoder dataDecoder) json
+        JsonHelpers.decodeFromString (halCollectionDecoder dataDecoder) json
 
     let deserializeData (dataDecoder: Decoder<'T>) (json: string) : Result<'T, string> =
-        Decode.fromString dataDecoder json
+        JsonHelpers.decodeFromString dataDecoder json
         |> Result.bind (fun data ->
             // The API wraps data in a HAL resource: { "data": {...}, ... }
             // But if we got a direct object, use it
@@ -285,17 +287,17 @@ module Codecs =
     /// Deserialize the `data` field from a HAL response, discarding links.
     let extractData (dataDecoder: Decoder<'T>) (json: string) : Result<'T, string> =
         // Try decoding as HAL resource first, extract .Data
-        let halResult = Decode.fromString (halResourceDecoder dataDecoder) json
+        let halResult = JsonHelpers.decodeFromString (halResourceDecoder dataDecoder) json
         match halResult with
         | Ok hal -> Ok hal.Data
         | Error _ ->
             // Fall back to direct decode (for non-HAL responses)
-            Decode.fromString dataDecoder json
+            JsonHelpers.decodeFromString dataDecoder json
 
     // ---- Typed HAL Resource Serializers (for --json output) ----
 
     let serializeHalResource (dataEncoder: Encoder<'T>) (resource: HalResource<'T>) : string =
-        Encode.toString 2 (halResourceEncoder dataEncoder resource)
+        JsonHelpers.encodeToString 2 (halResourceEncoder dataEncoder resource)
 
     let serializeHalCollection (dataEncoder: Encoder<'T>) (collection: HalCollection<'T>) : string =
-        Encode.toString 2 (halCollectionEncoder dataEncoder collection)
+        JsonHelpers.encodeToString 2 (halCollectionEncoder dataEncoder collection)

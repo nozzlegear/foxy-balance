@@ -3,13 +3,12 @@ namespace FoxyBalance.CLI
 open System
 open FoxyBalance.CLI.Domain
 open Thoth.Json.Core
-open Thoth.Json.System.Text.Json
 
 /// Output formatting utilities for CLI display.
 module Formatters =
 
     let private toJson (value: IEncodable) : string =
-        Encode.toString 2 value
+        JsonHelpers.encodeToString 2 value
 
     let printJson (value: IEncodable) =
         printfn "%s" (toJson value)

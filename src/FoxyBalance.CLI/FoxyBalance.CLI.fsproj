@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <PackageReference Include="Thoth.Json.Core" />
-    <PackageReference Include="Thoth.Json.System.Text.Json" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="JsonHelpers.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Codecs.fs" />
     <Compile Include="HttpHandler.fs" />
