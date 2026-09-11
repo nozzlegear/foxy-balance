@@ -5,6 +5,7 @@ repo := "ghcr.io/nozzlegear/foxy-balance"
 controlSocket := "/tmp/ssh-control-foxy-balance"
 ssh_opts := "-o StrictHostKeyChecking=yes -o SendEnv=no -o ControlMaster=auto -o ControlPath=" + controlSocket + " -o ControlPersist=30s"
 rsync_opts := "-e 'ssh " + ssh_opts + "'"
+secretsFile := "secrets.json"
 
 # List available recipes
 [private]
@@ -62,32 +63,27 @@ get-digest tag="latest":
     if ($exitCode -ne 0) { exit $exitCode }
 
 # Decrypt secrets.json and update Podman secrets on the SSH host if they have changed.
-[script]
 [group("release")]
-deploy-secrets sshTarget secretFile:
-    $secretFile = "{{secretFile}}"
-    $sshTarget = "{{sshTarget}}"
+deploy-secrets host:
+    @sops exec-file "{{secretsFile}}" 'just _deploy-decrypted-secrets {{host}} {}'
 
-    try {
-        scp {{ssh_opts}} $secretFile "${sshTarget}:/tmp/appsettings.secrets.json"
-        rsync -e "ssh {{ssh_opts}}" "$secretFile" "${sshTarget}:/tmp/appsettings.secrets.json"
+[script("fish")]
+[group("release")]
+_deploy-decrypted-secrets host decryptedSecretsFile: &&_cleanup-ssh
+    # The decrypted file can only be read once by default (sops uses a fifo instead of a regular file)
+    set -l secretContent (cat {{decryptedSecretsFile}})
 
-        # Create the full secrets file as a podman secret for the app container
-        ssh {{ssh_opts}} $sshTarget 'podman secret rm foxybalance_secrets 2>/dev/null || true'
-        ssh {{ssh_opts}} $sshTarget 'podman secret create foxybalance_secrets /tmp/appsettings.secrets.json'
+    # Create the full secrets file as a podman secret for the app container
+    echo -n $secretContent | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_secrets -
 
-        # Create individual podman secrets for PostgreSQL from the Postgres section
-        ssh {{ssh_opts}} $sshTarget 'set PG_USER (jq -r .Postgres.Username /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_username 2>/dev/null; or true; printf "%s" "$PG_USER" | podman secret create foxybalance_pg_username -'
-        ssh {{ssh_opts}} $sshTarget 'set PG_PASS (jq -r .Postgres.Password /tmp/appsettings.secrets.json); podman secret rm foxybalance_pg_password 2>/dev/null; or true; printf "%s" "$PG_PASS" | podman secret create foxybalance_pg_password -'
+    # Create individual podman secrets for PostgreSQL from the Postgres section
+    echo -n $secretContent | jq -r ".Postgres.Username" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_username -
+    echo -n $secretContent | jq -r ".Postgres.Password" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_password -
 
-        # Clean up
-        ssh {{ssh_opts}} $sshTarget 'rm /tmp/appsettings.secrets.json'
-        $exitCode = $LASTEXITCODE
-    } finally {
-        ssh -O exit -o "ControlPath={{controlSocket}}" $sshTarget 2>$null
-        Remove-Item {{controlSocket}} -ErrorAction SilentlyContinue
-    }
-    if ($exitCode -ne 0) { exit $exitCode }
+[script("pwsh")]
+_cleanup-ssh:
+    ssh -O exit -o "ControlPath={{controlSocket}}" $sshTarget 2>$null
+    Remove-Item {{controlSocket}} -ErrorAction SilentlyContinue
 
 # Deploy quadlet files and Caddyfile to the host using Ansible.
 # Usage: just deploy-ansible HOST USER QUADLET_DIR
