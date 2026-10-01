@@ -40,3 +40,114 @@ iframe.shopify-data-frame.loaded {
 a[disabled] {
     pointer-events: none;
 }
+:root {
+    --navbar-popover-duration: 0.15s;
+    --navbar-popover-easing: ease-out;
+    --navbar-popover-border-color: #e0e0e0;
+    --navbar-popover-backdrop-color: rgba(0, 0, 0, 0.2);
+}
+
+/* The burger button is the anchor for the popover menu positioning. */
+.navbar-burger {
+    anchor-name: --navbar-burger;
+}
+
+/* Reset the <button> element's default UA styling so the burger looks
+   like Bulma's intended burger icon, not a Win95-style button. */
+button.navbar-burger {
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+}
+
+button.navbar-burger:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Desktop (>=1024px): menu is always visible inline, burger is hidden. */
+@media screen and (min-width: 1024px) {
+    #navbar {
+        display: flex !important;
+        position: static !important;
+        inset: auto !important;
+        margin: 0 !important;
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    .navbar-burger {
+        display: none !important;
+    }
+}
+
+/* Mobile (<=1023px): popover menu anchored under the burger, full-width,
+   thin bottom border, slide-down animation, body shade. */
+@media screen and (max-width: 1023px) {
+    #navbar {
+        /* Anchor to the burger button for vertical positioning. */
+        position-anchor: --navbar-burger;
+        /* Reset UA popover inset, then set explicit positions. */
+        inset: auto;
+        /* Position directly below the burger, full width of the viewport. */
+        top: anchor(bottom);
+        left: 0;
+        right: 0;
+        width: 100vw;
+        margin: 0;
+        /* Remove Bulma's box-shadow and borders; thin bottom border only. */
+        box-shadow: none;
+        border: none;
+        border-bottom: 1px solid var(--navbar-popover-border-color);
+        /* Slide-down animation on open + slide-up on close. */
+        transition: transform var(--navbar-popover-duration) var(--navbar-popover-easing),
+                    opacity var(--navbar-popover-duration) var(--navbar-popover-easing),
+                    overlay var(--navbar-popover-duration) var(--navbar-popover-easing) allow-discrete,
+                    display var(--navbar-popover-duration) var(--navbar-popover-easing) allow-discrete;
+    }
+
+    /* Open: visible at resting position. */
+    #navbar:popover-open {
+        display: block !important;
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    /* Before-open: start slid up and transparent. */
+    @starting-style {
+        #navbar:popover-open {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+    }
+
+    /* Closed: slide up and fade out. */
+    #navbar:not(:popover-open) {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    #navbar:not(:popover-open)::backdrop {
+        opacity: 0;
+    }
+
+    /* Shade the body when the popover is open (native ::backdrop). */
+    #navbar::backdrop {
+        background-color: var(--navbar-popover-backdrop-color);
+        transition: opacity var(--navbar-popover-duration) var(--navbar-popover-easing),
+                    overlay var(--navbar-popover-duration) var(--navbar-popover-easing) allow-discrete,
+                    display var(--navbar-popover-duration) var(--navbar-popover-easing) allow-discrete;
+    }
+
+    @starting-style {
+        #navbar::backdrop {
+            opacity: 0;
+        }
+    }
+}
