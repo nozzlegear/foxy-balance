@@ -1,0 +1,15 @@
+Account Number,Transaction Description,Transaction Date,Transaction Type,Transaction Amount,Balance
+1234,Deposit from Nozzlegear Software 1234XXXX7652,09/28/26,Credit,200,468.12
+1234,Withdrawal from CITI AUTOPAY PAYMENT,09/28/26,Debit,65,268.12
+1234,Withdrawal from CITY OF SIBLEY UTILITY BPF_DSS_0_0925115502.txt,09/25/26,Debit,259.73,333.12
+1234,Withdrawal from PREMIER COMM Retry PYMT,09/24/26,Debit,108.18,592.85
+1234,Random Merchant Purchase,09/24/26,Credit,901.03,701.03
+1234,Withdrawal from IDAHO HOUSING MTGPMT,09/17/26,Debit,923,-200
+1234,Online Store Transaction,09/17/26,Debit,77,723
+1234,ATM Withdrawal,09/16/26,Credit,145,800
+1234,Point of Sale Payment,09/16/26,Credit,90,655
+1234,Withdrawal from ATT PAYMENT,09/14/26,Debit,163.83,565
+1234,Withdrawal from CHASE CREDIT CRD AUTOPAY,09/14/26,Debit,107,728.83
+1234,Random Merchant Purchase,09/10/26,Credit,972.57,835.83
+1234,Withdrawal from PROG NORTHERN INS PREM,09/03/26,Debit,138.16,-136.74
+1234,Withdrawal from TRANSFER TO LAURA,09/01/26,Debit,1,1.42
