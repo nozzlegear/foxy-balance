@@ -34,9 +34,9 @@
     <PackageVersion Include="System.Text.Json" Version="10.0.0" />
     <PackageVersion Include="Verify.XunitV3" Version="31.28.0" />
     <PackageVersion Include="Thoth.Json.Core" Version="0.9.1" />
-    <PackageVersion Include="Testcontainers" Version="4.9.0" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.9.0" />
-    <PackageVersion Include="Testcontainers.XunitV3" Version="4.9.0" />
+    <PackageVersion Include="Testcontainers" Version="4.15.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageVersion Include="Testcontainers.XunitV3" Version="4.15.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
