@@ -96,7 +96,7 @@ jobs:
 
     - name: Generate quadlet files
       env:
-        IMAGE_REF: ${{ toJSON(env.BUILD_IMAGE_NAME) }}@${{ toJSON(needs.build.outputs.digest) }}
+        IMAGE_REF: ${{ env.BUILD_IMAGE_NAME }}@${{ needs.build.outputs.digest }}
       run: just generate "$IMAGE_REF" /tmp/quadlets/
 
     - name: Deploy with Ansible
