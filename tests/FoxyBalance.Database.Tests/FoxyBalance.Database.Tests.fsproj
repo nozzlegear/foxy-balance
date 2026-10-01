@@ -17,6 +17,10 @@
     <Content Include="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\..\assets\capital-one-october-2026-cleaned.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>assets\capital-one-october-2026-cleaned.csv</Link>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -52,7 +56,7 @@
     <ProjectReference Include="..\..\src\FoxyBalance.Database\FoxyBalance.Database.fsproj" />
     <ProjectReference Include="..\..\src\FoxyBalance.Server\FoxyBalance.Server.fsproj" />
     <ProjectReference Include="..\..\src\FoxyBalance.Migrator\FoxyBalance.Migrator.fsproj" />
-    <ProjectReference Include="..\FoxyBalance.Tests.Utils\FoxyBalance.Tests.Utils.fsproj" />
+    <ProjectReference Include="..\..\src\FoxyBalance.Sync\FoxyBalance.Sync.fsproj" />
   </ItemGroup>
 
 </Project>
