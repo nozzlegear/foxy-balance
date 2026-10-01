@@ -97,14 +97,14 @@ module Shared =
                 a [_class "navbar-item"; _href "/"] [
                     img [_src "/Images/logo.png"; _height "28px"]
                 ]
-                a [_roleButton; _class "navbar-burger burger"; _ariaLabel "menu"; _ariaExpanded "false"; _data "target" "navbarBasicExample"] [
+                button [_class "navbar-burger burger"; _ariaLabel "menu"; _ariaExpanded "false"; HtmlElements.attr "popovertarget" "navbar"; HtmlElements.attr "popovertargetaction" "toggle"] [
                     span [_ariaHidden "true"] []
                     span [_ariaHidden "true"] []
                     span [_ariaHidden "true"] []
                 ]
             ]
-            
-            div [_id "navbar"; _class "navbar-menu"] [
+
+            nav [_id "navbar"; _class "navbar-menu"; HtmlElements.attr "popover" "auto"] [
                 div [_class "navbar-start"] [
                     a [_class "navbar-item"; _href "/balance"] [
                         str "Balance"
@@ -126,7 +126,7 @@ module Shared =
                         str "Open Source"
                     ]
                 ]
-                
+
                 div [_class "navbar-end"] [
                     div [_class "navbar-item"] [
                         div [_class "buttons"] authButtons
