@@ -151,3 +151,26 @@ button.navbar-burger:hover {
         }
     }
 }
+
+/* Forecast: rows toggled off (unchecked "In forecast" checkbox) are dimmed and struck through. */
+tr:has(td input.forecast-toggle:not(:checked)) td {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+/* Forecast: date range + Forecast button share one Bulma `field is-grouped` row; the date
+   fields use `control is-expanded` to fill the container. Bottom-align so the label-less
+   button lines up with the date inputs rather than their labels. */
+.forecast-controls {
+    align-items: flex-end;
+    margin-bottom: 1rem;
+}
+
+/* Forecast: native dialog holding the add-temporary form. */
+dialog#forecast-temp-dialog {
+    padding: 1.5rem;
+    border: 1px solid #dbdbdb;
+    border-radius: 6px;
+    max-width: 32rem;
+    width: calc(100% - 2rem);
+}

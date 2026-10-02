@@ -17,6 +17,8 @@
     <Compile Include="Format.fs" />
     <Compile Include="Task.fs" />
     <Compile Include="Models.fs" />
+    <Compile Include="Services\RecurringSchedule.fs" />
+    <Compile Include="Services\ForecastService.fs" />
     <Compile Include="Services\RecurringBillApplicationService.fs" />
     <Compile Include="Services\BillMatchingService.fs" />
     <Compile Include="Services\RecurringBillBackgroundService.fs" />
@@ -26,6 +28,7 @@
     <Compile Include="Views\Balance.fs" />
     <Compile Include="Views\Bills.fs" />
     <Compile Include="Views\Income.fs" />
+    <Compile Include="Views\Forecast.fs" />
     <Compile Include="Views\ApiKeys.fs" />
     <Compile Include="Hashes.fs" />
     <Compile Include="RouteUtils.fs" />
@@ -44,6 +47,7 @@
     <Compile Include="Routes\Bills.fs" />
     <Compile Include="Routes\Income.fs" />
     <Compile Include="Routes\ApiKeys.fs" />
+    <Compile Include="Routes\Forecast.fs" />
     <Compile Include="Program.fs" />
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

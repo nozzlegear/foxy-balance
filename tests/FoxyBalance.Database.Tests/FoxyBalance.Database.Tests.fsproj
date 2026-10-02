@@ -33,6 +33,7 @@
     <Compile Include="UserDatabaseTests.fs" />
     <Compile Include="IncomeDatabaseTests.fs" />
     <Compile Include="BillMatchingServiceTests.fs" />
+    <Compile Include="ForecastServiceTests.fs" />
     <Compile Include="ApiIntegrationTests.fs" />
     <Compile Include="CapitalOneMonthIntegrationTests.fs" />
   </ItemGroup>

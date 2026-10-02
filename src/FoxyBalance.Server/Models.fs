@@ -1,5 +1,5 @@
 namespace FoxyBalance.Server.Models
-
+open System
 open System.Globalization
 open FoxyBalance.Database.Models
 open FoxyBalance.Database.Interfaces
@@ -463,6 +463,48 @@ module ViewModels =
         static member Default =
             { Error = None
               Name = "" }
+
+    type TempRecurringTransaction =
+        { Name : string
+          Amount : decimal
+          Schedule : ScheduleType }
+
+    type TempRecurringTransactionForm =
+        { Error : string option
+          Name : string
+          Amount : string
+          ScheduleType : string   // "week" | "date"
+          Week : string
+          Day : string
+          Date : string }
+        with
+        static member Empty =
+            { Error = None; Name = ""; Amount = ""; ScheduleType = "week"
+              Week = "1"; Day = "0"; Date = "1" }
+
+    type ForecastRow =
+        { Date : DateTimeOffset
+          Label : string
+          Description : string
+          Amount : decimal option
+          RunningBalance : decimal
+          EventId : string option
+          IsToggledOff : bool
+          IsTemporary : bool }
+
+    type ForecastViewModel =
+        { Error : string option
+          StartDateStr : string
+          EndDateStr : string
+          StartDate : DateTimeOffset
+          EndDate : DateTimeOffset
+          StartingBalance : decimal
+          Rows : ForecastRow list
+          ChartDates : string list
+          ChartBalances : decimal list
+          TmpJson : string
+          TempItems : TempRecurringTransaction list
+          TempItemForm : TempRecurringTransactionForm }
 
     type ApiKeyCreatedViewModel =
         { Name : string

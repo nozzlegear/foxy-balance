@@ -92,6 +92,7 @@ let allRoutes : HttpHandler =
                 routef "/income/%d/shopify-details.json" Routes.Income.rawShopifyTransactionHandler
                 routef "/income/tax-rate/%i" Routes.Income.taxRateHandler
 
+                route "/forecast" >=> Routes.Forecast.forecastHandler
                 route "/api-keys" >=> Routes.ApiKeys.listApiKeysHandler
                 route "/api-keys/new" >=> Routes.ApiKeys.newApiKeyHandler
             ]
@@ -177,6 +178,7 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     add (fun _ -> services.AddScoped<IRefreshTokenDatabase, RefreshTokenDatabase>())
     add (fun _ -> services.AddScoped<Services.RecurringTransactionMatchingService>())
     add (fun _ -> services.AddScoped<Services.RecurringTransactionApplicationService>())
+    add (fun _ -> services.AddScoped<Services.ForecastService>())
     add (fun _ -> services.AddHostedService<Services.RecurringTransactionBackgroundService>())
     add (fun _ -> services.AddHealthChecks())
 
