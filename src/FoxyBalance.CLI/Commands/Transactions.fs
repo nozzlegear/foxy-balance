@@ -304,7 +304,7 @@ module Transactions =
                         return ExitCodes.generalError
                     | Ok resource ->
                         if json then
-                            printHalResourceJson (Codecs.importResultDtoEncoder, resource)
+                            printHalResourceJson (Codecs.importResultEncoder, resource)
                         else
                             printImportResultWithLinks resource
                         return ExitCodes.success

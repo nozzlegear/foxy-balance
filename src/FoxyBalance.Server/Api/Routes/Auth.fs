@@ -58,7 +58,7 @@ module Auth =
                                   LinkRel.TokenRefresh, HalBuilder.linkWithMethod "POST" "/api/v1/auth/refresh"
                                   LinkRel.Balance, HalBuilder.link "/api/v1/balance"
                                   LinkRel.Transactions, HalBuilder.link "/api/v1/transactions"
-                                  LinkRel.Bills, HalBuilder.link "/api/v1/bills" ]
+                                  LinkRel.RecurringTransactions, HalBuilder.link "/api/v1/bills" ]
 
                         return! ApiRouteUtils.halJson halResponse next ctx
             }

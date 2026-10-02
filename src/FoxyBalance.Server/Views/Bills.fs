@@ -22,7 +22,17 @@ module Bills =
         | System.DayOfWeek.Thursday -> "Thursday"
         | System.DayOfWeek.Friday -> "Friday"
         | System.DayOfWeek.Saturday -> "Saturday"
-        | _ -> "Unknown"
+
+    let private scheduleTypeLabel (schedule : ScheduleType) =
+        match schedule with
+        | ScheduleType.ByWeekOfMonth sched -> formatWeekOfMonth sched.WeekOfMonth
+        | ScheduleType.ByCalendarDate sched -> $"Date {sched.Date}"
+
+    let private scheduleDayOfWeek (schedule : ScheduleType) =
+        match schedule with
+        | ScheduleType.ByWeekOfMonth sched -> sched.DayOfWeek
+        | ScheduleType.ByCalendarDate _ -> System.DayOfWeek.Monday
+
 
     let listBillsPage (model : RecurringBillsListViewModel) : XmlNode =
         let title = "Recurring Bills"
@@ -55,7 +65,7 @@ module Bills =
                             yield Shared.TableRow [
                                 Shared.TableCell (G.a [A._href (sprintf "/bills/%i" bill.Id)] [G.str bill.Name])
                                 Shared.TableCell (Format.amountWithDollarSign bill.Amount |> G.str)
-                                Shared.TableCell (G.str $"{formatWeekOfMonth bill.WeekOfMonth} week, {formatDayOfWeek bill.DayOfWeek}")
+                                Shared.TableCell (G.str $"{scheduleTypeLabel bill.Schedule} week, {formatDayOfWeek (scheduleDayOfWeek bill.Schedule)}")
                                 Shared.TableCell (
                                     match bill.LastAppliedDate with
                                     | Some date -> Format.date date |> G.str
@@ -190,7 +200,7 @@ module Bills =
             else
                 for candidate in model.MatchCandidates do
                     let transaction = candidate.Transaction
-                    let bill = candidate.RecurringBill
+                    let rt = candidate.RecurringTransaction
 
                     G.div [A._class "box"] [
                         G.div [A._class "columns is-vcentered"] [
@@ -207,19 +217,23 @@ module Bills =
                                 ]
                             ]
                             G.div [A._class "column is-4"] [
-                                G.p [A._class "has-text-weight-bold"] [G.str "Bill"]
-                                G.p [] [G.str bill.Name]
+                                G.p [A._class "has-text-weight-bold"] [G.str "Recurring Txn"]
+                                G.p [] [G.str rt.Name]
                                 G.p [A._class "is-size-7"] [
+                                    let scheduleInfo =
+                                        match rt.Schedule with
+                                        | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth, sched.DayOfWeek)
+                                        | ScheduleType.ByCalendarDate sched -> (FirstWeek, System.DayOfWeek.Monday)
                                     G.str (sprintf "%s - %s week, %s"
-                                        (Format.amountWithDollarSign bill.Amount)
-                                        (formatWeekOfMonth bill.WeekOfMonth)
-                                        (formatDayOfWeek bill.DayOfWeek))
+                                        (Format.amountWithDollarSign rt.Amount)
+                                        (formatWeekOfMonth (fst scheduleInfo))
+                                        (formatDayOfWeek (snd scheduleInfo)))
                                 ]
                             ]
                             G.div [A._class "column is-2"] [
                                 G.p [A._class "has-text-weight-bold"] [G.str (sprintf "Score: %.0f%%" candidate.MatchScore)]
                                 G.form [A._method "post"; A._action (sprintf "/balance/%i/match" transaction.Id)] [
-                                    G.input [A._type "hidden"; A._name "billId"; A._value (string bill.Id)]
+                                    G.input [A._type "hidden"; A._name "recurringTransactionId"; A._value (string rt.Id)]
                                     G.button [A._type "submit"; A._class "button is-primary"] [G.str "Match"]
                                 ]
                             ]

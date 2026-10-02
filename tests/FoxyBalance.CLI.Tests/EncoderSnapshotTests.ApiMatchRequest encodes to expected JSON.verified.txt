@@ -1,4 +1,4 @@
 ﻿{
   transactionId: 42,
-  billId: 7
+  recurringTransactionId: 7
 }

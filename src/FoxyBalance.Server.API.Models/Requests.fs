@@ -18,17 +18,17 @@ type ApiTransactionRequest =
       TransactionType: string
       CheckNumber: string }
 
-/// Recurring bill request for API
+/// Recurring transaction request for API
 [<CLIMutable>]
-type ApiRecurringBillRequest =
+type ApiRecurringTransactionRequest =
     { Name: string
       Amount: string
-      WeekOfMonth: string
-      DayOfWeek: string }
+      WeekOfMonth: string option
+      DayOfWeek: string option }
 
 /// Match execution request
 [<CLIMutable>]
-type ApiMatchRequest = { TransactionId: int64; BillId: int64 }
+type ApiMatchRequest = { TransactionId: int64; RecurringTransactionId: int64 }
 
 /// Bulk import request
 [<CLIMutable>]

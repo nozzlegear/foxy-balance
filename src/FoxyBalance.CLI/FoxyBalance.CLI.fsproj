@@ -24,7 +24,7 @@
     <Compile Include="Commands/Auth.fs" />
     <Compile Include="Commands/Balance.fs" />
     <Compile Include="Commands/Transactions.fs" />
-    <Compile Include="Commands/Bills.fs" />
+    <Compile Include="Commands/RecurringTransactions.fs" />
     <Compile Include="Commands/Match.fs" />
     <Compile Include="Commands.fs" />
     <Compile Include="Program.fs" />

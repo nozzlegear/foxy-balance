@@ -18,7 +18,7 @@ let entry argv =
     rootCmd.Add(Auth.buildCommand)
     rootCmd.Add(Balance.buildCommand)
     rootCmd.Add(Transactions.buildCommand)
-    rootCmd.Add(Bills.buildCommand)
+    rootCmd.Add(RecurringTransactions.buildCommand)
     rootCmd.Add(Match.buildCommand)
 
     // Set help action for when no subcommand is provided

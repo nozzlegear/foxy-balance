@@ -72,25 +72,25 @@ module HalBuilder =
           Delete, linkWithMethod "DELETE" $"/api/v1/transactions/{transactionId}"
           ExecuteMatch, linkWithMethod "POST" "/api/v1/bills/match" ]
 
-    /// Add links for a recurring bill resource
-    let billLinks (billId: int64) : (LinkRel * HalLink) list =
-        [ Self, link $"/api/v1/bills/{billId}"
-          Update, linkWithMethod "PUT" $"/api/v1/bills/{billId}"
-          Delete, linkWithMethod "DELETE" $"/api/v1/bills/{billId}"
-          ToggleActive, linkWithMethod "POST" $"/api/v1/bills/{billId}/toggle-active" ]
+    /// Add links for a recurring transaction resource
+    let recurringTransactionLinks (recurringTransactionId: int64) : (LinkRel * HalLink) list =
+        [ Self, link $"/api/v1/bills/{recurringTransactionId}"
+          Update, linkWithMethod "PUT" $"/api/v1/bills/{recurringTransactionId}"
+          Delete, linkWithMethod "DELETE" $"/api/v1/bills/{recurringTransactionId}"
+          ToggleActive, linkWithMethod "POST" $"/api/v1/bills/{recurringTransactionId}/toggle-active" ]
 
     /// Add links for balance resource
     let balanceLinks () : (LinkRel * HalLink) list =
         [ Self, link "/api/v1/balance"
           Transactions, link "/api/v1/transactions"
-          Bills, link "/api/v1/bills" ]
+          RecurringTransactions, link "/api/v1/bills" ]
 
     /// Add links for balance as-of-date resource
     let balanceAsOfDateLinks (date: string) (includePending: bool) : (LinkRel * HalLink) list =
         [ Self, link $"/api/v1/balance/as-of-date?date={date}&includePending={includePending}"
           Balance, link "/api/v1/balance"
           Transactions, link "/api/v1/transactions"
-          Bills, link "/api/v1/bills" ]
+          RecurringTransactions, link "/api/v1/bills" ]
 
     /// Add links for balance before-transaction resource
     let balanceBeforeTransactionLinks (transactionId: int64) (useClearDate: bool) : (LinkRel * HalLink) list =

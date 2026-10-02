@@ -14,11 +14,11 @@ module Views = FoxyBalance.Server.Views.Bills
 module Bills =
     let listBillsHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let database = ctx.GetService<IRecurringBillDatabase>()
-            let! bills = database.ListAsync(session.UserId, false)
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
+            let! recurringTransactions = database.ListAsync(session.UserId, false)
 
             let model : RecurringBillsListViewModel =
-                { Bills = bills }
+                { Bills = recurringTransactions }
 
             return! (Views.listBillsPage model |> htmlView) next ctx
         })
@@ -31,12 +31,12 @@ module Bills =
 
     let editBillHandler (billId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let database = ctx.GetService<IRecurringBillDatabase>()
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
 
             match! database.GetAsync(session.UserId, billId) with
-            | Some bill ->
+            | Some t ->
                 let view =
-                    (billId, EditRecurringBillViewModel.FromExistingBill bill)
+                    (billId, EditRecurringBillViewModel.FromExistingTransaction t)
                     |> ExistingBill
                     |> Views.createOrEditBillPage
                     |> htmlView
@@ -47,17 +47,17 @@ module Bills =
 
     let newBillPostHandler : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let! request = ctx.BindFormAsync<EditRecurringBillRequest>()
-            let database = ctx.GetService<IRecurringBillDatabase>()
+            let! request = ctx.BindFormAsync<EditRecurringTransactionRequest>()
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
 
-            match EditRecurringBillRequest.Validate request with
+            match EditRecurringTransactionRequest.Validate request with
             | Error msg ->
                 let model =
                     { Error = Some msg
                       Name = request.Name
                       Amount = request.Amount
-                      WeekOfMonth = request.WeekOfMonth
-                      DayOfWeek = request.DayOfWeek }
+                      WeekOfMonth = request.WeekOfMonth |> Option.defaultValue "1"
+                      DayOfWeek = request.DayOfWeek |> Option.defaultValue "0" }
 
                 let view =
                     model
@@ -67,24 +67,24 @@ module Bills =
                     >=> setStatusCode 422
 
                 return! view next ctx
-            | Ok partialBill ->
-                let! _createdBill = database.CreateAsync(session.UserId, partialBill)
+            | Ok partialTransaction ->
+                let! _created = database.CreateAsync(session.UserId, partialTransaction)
                 return! redirectTo false "/bills" next ctx
         })
 
     let existingBillPostHandler (billId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let! request = ctx.BindFormAsync<EditRecurringBillRequest>()
-            let database = ctx.GetService<IRecurringBillDatabase>()
+            let! request = ctx.BindFormAsync<EditRecurringTransactionRequest>()
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
 
-            match EditRecurringBillRequest.Validate request with
+            match EditRecurringTransactionRequest.Validate request with
             | Error msg ->
                 let model =
                     { Error = Some msg
                       Name = request.Name
                       Amount = request.Amount
-                      WeekOfMonth = request.WeekOfMonth
-                      DayOfWeek = request.DayOfWeek }
+                      WeekOfMonth = request.WeekOfMonth |> Option.defaultValue "1"
+                      DayOfWeek = request.DayOfWeek |> Option.defaultValue "0" }
 
                 let view =
                     (billId, model)
@@ -94,35 +94,35 @@ module Bills =
                     >=> setStatusCode 422
 
                 return! view next ctx
-            | Ok partialBill ->
-                let! _updatedBill = database.UpdateAsync(session.UserId, billId, partialBill)
+            | Ok partialTransaction ->
+                let! _updated = database.UpdateAsync(session.UserId, billId, partialTransaction)
                 return! redirectTo false "/bills" next ctx
         })
 
     let deleteBillPostHandler (billId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let database = ctx.GetService<IRecurringBillDatabase>()
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
             do! database.DeleteAsync(session.UserId, billId)
             return! redirectTo false "/bills" next ctx
         })
 
     let toggleActiveBillPostHandler (billId : int64) : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
-            let database = ctx.GetService<IRecurringBillDatabase>()
+            let database = ctx.GetService<IRecurringTransactionDatabase>()
 
-            // Get the current bill to check its active status
+            // Get the current transaction to check its active status
             match! database.GetAsync(session.UserId, billId) with
-            | Some bill ->
+            | Some t ->
                 // Toggle the active status
-                do! database.SetActiveAsync(session.UserId, billId, not bill.Active)
+                do! database.SetActiveAsync(session.UserId, billId, not t.Active)
                 return! redirectTo false "/bills" next ctx
             | None ->
-                return! (setStatusCode 404 >=> text "Bill not found") next ctx
+                return! (setStatusCode 404 >=> text "Not found") next ctx
         })
 
     let matchingInterfaceHandler : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let matchingService = ctx.GetService<BillMatchingService>()
+            let matchingService = ctx.GetService<RecurringTransactionMatchingService>()
             let! suggestions = matchingService.GetMatchSuggestionsForUser(session.UserId)
 
             let model : BillMatchingViewModel =
@@ -133,13 +133,13 @@ module Bills =
 
     let executeMatchHandler (transactionId : int64) : HttpHandler =
         RouteUtils.withSession(fun session next ctx -> task {
-            let! request = ctx.BindFormAsync<MatchBillRequest>()
-            let matchingService = ctx.GetService<BillMatchingService>()
+            let! request = ctx.BindFormAsync<MatchTransactionRequest>()
+            let matchingService = ctx.GetService<RecurringTransactionMatchingService>()
 
-            let! result = matchingService.MatchTransactionToBill(
+            let! result = matchingService.MatchTransactionToRecurringTransaction(
                 session.UserId,
                 transactionId,
-                request.BillId)
+                request.RecurringTransactionId)
 
             match result with
             | Ok _ ->

@@ -24,8 +24,8 @@ type LinkRel =
     | Balance
     | Transactions
     | Transaction of TransactionId
-    | Bills
-    | Bill of RecurringBillId
+    | RecurringTransactions
+    | RecurringTransaction of RecurringTransactionId
     | MatchSuggestions
     | ExecuteMatch
     | ToggleActive
@@ -48,8 +48,8 @@ type LinkRel =
         | Balance -> "balance"
         | Transactions -> "transactions"
         | Transaction _ -> "transaction"
-        | Bills -> "bills"
-        | Bill _ -> "bill"
+        | RecurringTransactions -> "recurring-transactions"
+        | RecurringTransaction _ -> "recurring-transaction"
         | MatchSuggestions -> "match-suggestions"
         | ExecuteMatch -> "execute-match"
         | ToggleActive -> "toggle-active"

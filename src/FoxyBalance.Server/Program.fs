@@ -54,15 +54,15 @@ let allRoutes : HttpHandler =
             PUT >=> routef "/transactions/%d" Api.Routes.Transactions.updateHandler
             DELETE >=> routef "/transactions/%d" Api.Routes.Transactions.deleteHandler
 
-            // Recurring bills endpoints
-            GET >=> route "/bills" >=> Api.Routes.RecurringBills.listHandler
+            // Recurring transaction endpoints
+            GET >=> route "/bills" >=> Api.Routes.RecurringTransactions.listHandler
             GET >=> route "/bills/match/suggestions" >=> Api.Routes.BillMatching.getSuggestionsHandler
-            GET >=> routef "/bills/%d" Api.Routes.RecurringBills.getHandler
-            POST >=> route "/bills" >=> Api.Routes.RecurringBills.createHandler
+            GET >=> routef "/bills/%d" Api.Routes.RecurringTransactions.getHandler
+            POST >=> route "/bills" >=> Api.Routes.RecurringTransactions.createHandler
             POST >=> route "/bills/match" >=> Api.Routes.BillMatching.executeMatchHandler
-            POST >=> routef "/bills/%d/toggle-active" Api.Routes.RecurringBills.toggleActiveHandler
-            PUT >=> routef "/bills/%d" Api.Routes.RecurringBills.updateHandler
-            DELETE >=> routef "/bills/%d" Api.Routes.RecurringBills.deleteHandler
+            POST >=> routef "/bills/%d/toggle-active" Api.Routes.RecurringTransactions.toggleActiveHandler
+            PUT >=> routef "/bills/%d" Api.Routes.RecurringTransactions.updateHandler
+            DELETE >=> routef "/bills/%d" Api.Routes.RecurringTransactions.deleteHandler
         ])
 
         // Web UI routes
@@ -171,13 +171,13 @@ let configureServices (app : WebHostBuilderContext) (services : IServiceCollecti
     // add (fun _ -> services.AddSingleton<Json.ISerializer>(jsonSerializer()))
     add (fun _ -> services.AddScoped<IUserDatabase, UserDatabase>())
     add (fun _ -> services.AddScoped<ITransactionDatabase, TransactionDatabase>())
-    add (fun _ -> services.AddScoped<IRecurringBillDatabase, RecurringBillDatabase>())
+    add (fun _ -> services.AddScoped<IRecurringTransactionDatabase, RecurringTransactionDatabase>())
     add (fun _ -> services.AddScoped<IIncomeDatabase, IncomeDatabase>())
     add (fun _ -> services.AddScoped<IApiKeyDatabase, ApiKeyDatabase>())
     add (fun _ -> services.AddScoped<IRefreshTokenDatabase, RefreshTokenDatabase>())
-    add (fun _ -> services.AddScoped<Services.BillMatchingService>())
-    add (fun _ -> services.AddScoped<Services.RecurringBillApplicationService>())
-    add (fun _ -> services.AddHostedService<Services.RecurringBillBackgroundService>())
+    add (fun _ -> services.AddScoped<Services.RecurringTransactionMatchingService>())
+    add (fun _ -> services.AddScoped<Services.RecurringTransactionApplicationService>())
+    add (fun _ -> services.AddHostedService<Services.RecurringTransactionBackgroundService>())
     add (fun _ -> services.AddHealthChecks())
 
     // API authentication services

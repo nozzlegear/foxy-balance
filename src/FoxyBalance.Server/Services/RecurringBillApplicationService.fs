@@ -5,77 +5,84 @@ open FoxyBalance.Database.Interfaces
 open FoxyBalance.Database.Models
 open Microsoft.Extensions.Logging
 
-type RecurringBillApplicationService(
-    logger: ILogger<RecurringBillApplicationService>,
-    recurringBillDb: IRecurringBillDatabase,
+type RecurringTransactionApplicationService(
+    logger: ILogger<RecurringTransactionApplicationService>,
+    recurringTransactionDb: IRecurringTransactionDatabase,
     transactionDb: ITransactionDatabase) =
 
     /// Calculate the target date for a given week and day
-    let calculateTargetDateForWeek (weekOfMonth: WeekOfMonth) (dayOfWeek: DayOfWeek) (referenceDate: DateTimeOffset) =
+    let calculateTargetDateForWeek (sched: WeekOfMonthScheduleDef) (referenceDate: DateTimeOffset) =
         let firstDayOfMonth = DateTimeOffset(referenceDate.Year, referenceDate.Month, 1, 0, 0, 0, referenceDate.Offset)
 
         // Find the first occurrence of the target day of week in the month
-        let daysUntilTargetDay = (int dayOfWeek - int firstDayOfMonth.DayOfWeek + 7) % 7
+        let daysUntilTargetDay = (int sched.DayOfWeek - int firstDayOfMonth.DayOfWeek + 7) % 7
         let firstTargetDayOfMonth = firstDayOfMonth.AddDays(float daysUntilTargetDay)
 
         // Add weeks to get to the target week
-        let weeksToAdd = weekOfMonth.ToInt() - 1
+        let weeksToAdd = sched.WeekOfMonth.ToInt() - 1
         firstTargetDayOfMonth.AddDays(float (weeksToAdd * 7))
 
-    /// Check if we're in the correct week to apply a bill
-    let shouldApplyBillNow (bill: RecurringBill) (currentDate: DateTimeOffset) =
-        let targetDate = calculateTargetDateForWeek bill.WeekOfMonth bill.DayOfWeek currentDate
+    /// Check if we're in the correct week to apply a transaction
+    let shouldApplyNow (rt: RecurringTransaction) (currentDate: DateTimeOffset) =
+        let targetDate =
+            match rt.Schedule with
+            | ScheduleType.ByWeekOfMonth sched -> calculateTargetDateForWeek sched currentDate
+            | ScheduleType.ByCalendarDate sched -> DateTimeOffset(currentDate.Year, currentDate.Month, sched.Date, 0, 0, 0, currentDate.Offset)
 
         // Apply if we're on or after the target date but haven't applied this month
         let isAfterTargetDate = currentDate.Date >= targetDate.Date
         let notAppliedThisMonth =
-            match bill.LastAppliedDate with
+            match rt.LastAppliedDate with
             | None -> true
             | Some lastApplied ->
                 lastApplied.Year < currentDate.Year || lastApplied.Month < currentDate.Month
 
         isAfterTargetDate && notAppliedThisMonth
 
-    member this.ApplyBillsForAllUsers() =
+    member this.ApplyRecurringTransactionsForAllUsers() =
         task {
             let currentDate = DateTimeOffset.UtcNow
-            logger.LogInformation("Starting recurring bill application process at {CurrentDate}", currentDate)
+            logger.LogInformation("Starting recurring transaction application process at {CurrentDate}", currentDate)
 
-            let! billsDue = recurringBillDb.GetBillsDueForApplicationAsync(currentDate)
-            let billsDueList = List.ofSeq billsDue
+            let! transactionsDue = recurringTransactionDb.GetRecurringTransactionsDueForApplicationAsync(currentDate)
+            let transactionsDueList = List.ofSeq transactionsDue
 
-            logger.LogInformation("Found {BillCount} bills to evaluate", List.length billsDueList)
+            logger.LogInformation("Found {TransactionCount} recurring transactions to evaluate", List.length transactionsDueList)
 
             let mutable appliedCount = 0
 
-            for (userId, bill) in billsDueList do
-                if shouldApplyBillNow bill currentDate then
+            for (userId, rt) in transactionsDueList do
+                if shouldApplyNow rt currentDate then
                     try
-                        // Create a pending transaction from this bill
-                        let targetDate = calculateTargetDateForWeek bill.WeekOfMonth bill.DayOfWeek currentDate
+                        // Create a pending transaction from this recurring transaction
+                        let targetDate =
+                            match rt.Schedule with
+                            | ScheduleType.ByWeekOfMonth sched -> calculateTargetDateForWeek sched currentDate
+                            | ScheduleType.ByCalendarDate sched -> DateTimeOffset(currentDate.Year, currentDate.Month, sched.Date, 0, 0, 0, currentDate.Offset)
+
                         let partialTransaction : PartialTransaction =
-                            { Name = bill.Name
+                            { Name = rt.Name
                               DateCreated = targetDate
-                              Amount = bill.Amount
+                              Amount = rt.Amount
                               Status = Pending
                               Type = Bill { Recurring = true }
                               ImportId = None
-                              RecurringBillId = Some bill.Id
+                              RecurringTransactionId = Some rt.Id
                               AutoGenerated = true
                               MatchedTransactionId = None }
 
                         // Create the transaction
                         let! _createdTransaction = transactionDb.CreateAsync(userId, partialTransaction)
 
-                        // Update the bill's last applied date
-                        do! recurringBillDb.UpdateLastAppliedDateAsync(userId, bill.Id, currentDate)
+                        // Update the recurring transaction's last applied date
+                        do! recurringTransactionDb.UpdateLastAppliedDateAsync(userId, rt.Id, currentDate)
 
-                        logger.LogInformation("Applied recurring bill {BillId} ({BillName}) for user {UserId} with amount {Amount}",
-                            bill.Id, bill.Name, userId, bill.Amount)
+                        logger.LogInformation("Applied recurring transaction {TransactionId} ({TransactionName}) for user {UserId} with amount {Amount}",
+                            rt.Id, rt.Name, userId, rt.Amount)
 
                         appliedCount <- appliedCount + 1
                     with ex ->
-                        logger.LogError(ex, "Failed to apply recurring bill {BillId} for user {UserId}", bill.Id, userId)
+                        logger.LogError(ex, "Failed to apply recurring transaction {TransactionId} for user {UserId}", rt.Id, userId)
 
-            logger.LogInformation("Completed recurring bill application. Applied {AppliedCount} bills", appliedCount)
+            logger.LogInformation("Completed recurring transaction application. Applied {AppliedCount} transactions", appliedCount)
         }

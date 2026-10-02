@@ -43,10 +43,10 @@ module Match =
     /// Accepts either numeric IDs or HATEOAS link hrefs for --transaction-id and --bill-id.
     let executeCommand : System.CommandLine.Command =
         let txIdOpt = option<string> "--transaction-id" |> desc "Transaction ID or HATEOAS link href (must be positive)" |> defaultValue "0"
-        let billIdOpt = option<string> "--bill-id" |> desc "Bill ID or HATEOAS link href (must be positive)" |> defaultValue "0"
+        let recurringTransactionIdOpt = option<string> "--recurring-transaction-id" |> desc "Recurring Transaction ID or HATEOAS link href (must be positive)" |> defaultValue "0"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (txIdOrLink: string, billIdOrLink: string, json: bool) =
+        let action (txIdOrLink: string, recurringTransactionIdOrLink: string, json: bool) =
             async {
                 // Resolve IDs: accept either numeric IDs or HATEOAS link hrefs
                 let txId =
@@ -54,21 +54,21 @@ module Match =
                     | Some id -> id
                     | None -> LinkResolver.extractIdFromHref txIdOrLink |> Option.defaultValue 0L
 
-                let billId =
-                    match LinkResolver.tryParseId billIdOrLink with
+                let recurringTransactionId =
+                    match LinkResolver.tryParseId recurringTransactionIdOrLink with
                     | Some id -> id
-                    | None -> LinkResolver.extractIdFromHref billIdOrLink |> Option.defaultValue 0L
+                    | None -> LinkResolver.extractIdFromHref recurringTransactionIdOrLink |> Option.defaultValue 0L
 
                 if txId <= 0L then
                     printfn "Error: --transaction-id is required and must be positive"
                     return ExitCodes.generalError
-                elif billId <= 0L then
-                    printfn "Error: --bill-id is required and must be positive"
+                elif recurringTransactionId <= 0L then
+                    printfn "Error: --recurring-transaction-id is required and must be positive"
                     return ExitCodes.generalError
                 else
                     let request: ApiMatchRequest =
                         { TransactionId = txId
-                          BillId = billId }
+                          RecurringTransactionId = recurringTransactionId }
 
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)
@@ -90,7 +90,7 @@ module Match =
 
         command "execute" {
             description "Match a transaction to a recurring bill (accepts IDs or HATEOAS links)"
-            inputs (txIdOpt, billIdOpt, jsonOpt)
+            inputs (txIdOpt, recurringTransactionIdOpt, jsonOpt)
             setAction action
         }
 

@@ -10,15 +10,14 @@ open FoxyBalance.Server.Api.Responses
 open FoxyBalance.Server.Models.RequestModels
 open FoxyBalance.Database.Interfaces
 
-module RecurringBills =
-    let private toEditBillRequest (req: ApiRecurringBillRequest) : EditRecurringBillRequest =
+module RecurringTransactions =
+    let private toEditTransactionRequest (req: ApiRecurringTransactionRequest) : EditRecurringTransactionRequest =
         { Name = req.Name
           Amount = req.Amount
           WeekOfMonth = req.WeekOfMonth
           DayOfWeek = req.DayOfWeek }
 
-    /// GET /api/v1/bills
-    /// List recurring bills
+    /// GET /api/v1/bills  (recurring transactions)
     let listHandler: HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
@@ -27,15 +26,15 @@ module RecurringBills =
                     |> Option.map (fun v -> v.ToLowerInvariant() = "true")
                     |> Option.defaultValue false
 
-                let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
-                let! bills = billDb.ListAsync(session.UserId, activeOnly)
+                let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
+                let! recurringTransactions = recTxDb.ListAsync(session.UserId, activeOnly)
 
-                let billList = bills |> Seq.toList
+                let rtList = recurringTransactions |> Seq.toList
 
                 let itemLinks =
-                    billList
-                    |> List.map (fun b ->
-                        HalBuilder.resource (ApiDtos.fromRecurringBill b) (HalBuilder.billLinks b.Id))
+                    rtList
+                    |> List.map (fun t ->
+                        HalBuilder.resource (ApiDtos.fromRecurringTransaction t) (HalBuilder.recurringTransactionLinks t.Id))
 
                 let activeQuery = if activeOnly then "&active=true" else ""
 
@@ -46,101 +45,96 @@ module RecurringBills =
                       LinkRel.Balance, HalBuilder.link "/api/v1/balance" ]
 
                 let response =
-                    HalBuilder.collection itemLinks 1 1 (List.length billList) collectionLinks
+                    HalBuilder.collection itemLinks 1 1 (List.length rtList) collectionLinks
 
                 return! ApiRouteUtils.halJson response next ctx
             })
 
     /// GET /api/v1/bills/{id}
-    /// Get a single recurring bill
-    let getHandler (billId: int64) : HttpHandler =
+    let getHandler (recurringTransactionId: int64) : HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
-                let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
+                let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
 
-                match! billDb.GetAsync(session.UserId, billId) with
-                | None -> return! ApiRouteUtils.notFound "Bill" next ctx
-                | Some bill ->
+                match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
+                | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
+                | Some t ->
                     let halResponse =
-                        HalBuilder.resource (ApiDtos.fromRecurringBill bill) (HalBuilder.billLinks billId)
+                        HalBuilder.resource (ApiDtos.fromRecurringTransaction t) (HalBuilder.recurringTransactionLinks recurringTransactionId)
 
                     return! ApiRouteUtils.halJson halResponse next ctx
             })
 
     /// POST /api/v1/bills
-    /// Create a new recurring bill
     let createHandler: HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
-                let! request = ctx.BindJsonAsync<ApiRecurringBillRequest>()
+                let! request = ctx.BindJsonAsync<ApiRecurringTransactionRequest>()
 
-                match EditRecurringBillRequest.Validate(toEditBillRequest request) with
+                match EditRecurringTransactionRequest.Validate(toEditTransactionRequest request) with
                 | Error msg -> return! ApiRouteUtils.validationError msg next ctx
-                | Ok partialBill ->
-                    let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
-                    let! created = billDb.CreateAsync(session.UserId, partialBill)
+                | Ok partialTransaction ->
+                    let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
+                    let! created = recTxDb.CreateAsync(session.UserId, partialTransaction)
 
                     let halResponse =
-                        HalBuilder.resource (ApiDtos.fromRecurringBill created) (HalBuilder.billLinks created.Id)
+                        HalBuilder.resource (ApiDtos.fromRecurringTransaction created) (HalBuilder.recurringTransactionLinks created.Id)
 
                     return! ApiRouteUtils.created halResponse next ctx
             })
 
     /// PUT /api/v1/bills/{id}
-    /// Update an existing recurring bill
-    let updateHandler (billId: int64) : HttpHandler =
+    let updateHandler (recurringTransactionId: int64) : HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
-                let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
+                let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
 
-                match! billDb.GetAsync(session.UserId, billId) with
-                | None -> return! ApiRouteUtils.notFound "Bill" next ctx
+                match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
+                | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
                 | Some _ ->
-                    let! request = ctx.BindJsonAsync<ApiRecurringBillRequest>()
+                    let! request = ctx.BindJsonAsync<ApiRecurringTransactionRequest>()
 
-                    match EditRecurringBillRequest.Validate(toEditBillRequest request) with
+                    match EditRecurringTransactionRequest.Validate(toEditTransactionRequest request) with
                     | Error msg -> return! ApiRouteUtils.validationError msg next ctx
-                    | Ok partialBill ->
-                        let! updated = billDb.UpdateAsync(session.UserId, billId, partialBill)
+                    | Ok partialTransaction ->
+                        let! updated = recTxDb.UpdateAsync(session.UserId, recurringTransactionId, partialTransaction)
 
                         let halResponse =
-                            HalBuilder.resource (ApiDtos.fromRecurringBill updated) (HalBuilder.billLinks billId)
+                            HalBuilder.resource (ApiDtos.fromRecurringTransaction updated) (HalBuilder.recurringTransactionLinks recurringTransactionId)
 
                         return! ApiRouteUtils.halJson halResponse next ctx
             })
 
     /// DELETE /api/v1/bills/{id}
-    /// Delete a recurring bill
-    let deleteHandler (billId: int64) : HttpHandler =
+    let deleteHandler (recurringTransactionId: int64) : HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
-                let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
+                let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
 
-                match! billDb.GetAsync(session.UserId, billId) with
-                | None -> return! ApiRouteUtils.notFound "Bill" next ctx
+                match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
+                | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
                 | Some _ ->
-                    do! billDb.DeleteAsync(session.UserId, billId)
+                    do! recTxDb.DeleteAsync(session.UserId, recurringTransactionId)
                     return! ApiRouteUtils.noContent next ctx
             })
 
     /// POST /api/v1/bills/{id}/toggle-active
-    /// Toggle a bill's active status
-    let toggleActiveHandler (billId: int64) : HttpHandler =
+    let toggleActiveHandler (recurringTransactionId: int64) : HttpHandler =
         Middleware.withApiSession (fun session next ctx ->
             task {
-                let billDb = ctx.RequestServices.GetRequiredService<IRecurringBillDatabase>()
+                let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
 
-                match! billDb.GetAsync(session.UserId, billId) with
-                | None -> return! ApiRouteUtils.notFound "Bill" next ctx
-                | Some bill ->
-                    do! billDb.SetActiveAsync(session.UserId, billId, not bill.Active)
-                    let! updated = billDb.GetAsync(session.UserId, billId)
+                match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
+                | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
+                | Some t ->
+                    do! recTxDb.SetActiveAsync(session.UserId, recurringTransactionId, not t.Active)
+                    let! updated = recTxDb.GetAsync(session.UserId, recurringTransactionId)
 
                     match updated with
-                    | Some updatedBill ->
+                    | Some updatedT ->
                         let halResponse =
-                            HalBuilder.resource (ApiDtos.fromRecurringBill updatedBill) (HalBuilder.billLinks billId)
+                            HalBuilder.resource (ApiDtos.fromRecurringTransaction updatedT) (HalBuilder.recurringTransactionLinks recurringTransactionId)
 
                         return! ApiRouteUtils.halJson halResponse next ctx
-                    | None -> return! ApiRouteUtils.notFound "Bill" next ctx
+                    | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
             })

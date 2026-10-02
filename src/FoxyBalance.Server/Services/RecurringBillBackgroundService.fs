@@ -7,8 +7,8 @@ open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
 open Microsoft.Extensions.DependencyInjection
 
-type RecurringBillBackgroundService(
-    logger: ILogger<RecurringBillBackgroundService>,
+type RecurringTransactionBackgroundService(
+    logger: ILogger<RecurringTransactionBackgroundService>,
     serviceProvider: IServiceProvider) =
     inherit BackgroundService()
 
@@ -23,9 +23,9 @@ type RecurringBillBackgroundService(
                 try
                     // Create a scope for scoped services
                     use scope = serviceProvider.CreateScope()
-                    let billService = scope.ServiceProvider.GetRequiredService<RecurringBillApplicationService>()
+                    let billService = scope.ServiceProvider.GetRequiredService<RecurringTransactionApplicationService>()
 
-                    do! billService.ApplyBillsForAllUsers()
+                    do! billService.ApplyRecurringTransactionsForAllUsers()
 
                     // Wait 1 hour before next check
                     do! Task.Delay(TimeSpan.FromHours(1.0), stoppingToken)

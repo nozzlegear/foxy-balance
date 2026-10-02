@@ -29,7 +29,7 @@
     <Compile Include="DbContainerFixture.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="TransactionDatabaseTests.fs" />
-    <Compile Include="RecurringBillDatabaseTests.fs" />
+    <Compile Include="RecurringTransactionDatabaseTests.fs" />
     <Compile Include="UserDatabaseTests.fs" />
     <Compile Include="IncomeDatabaseTests.fs" />
     <Compile Include="BillMatchingServiceTests.fs" />

@@ -123,10 +123,10 @@ type TransactionDatabaseCollection() =
 type IncomeDatabaseCollection() =
     interface ICollectionFixture<DbContainerFixture>
 
-[<CollectionDefinition("RecurringBillDatabase")>]
-type RecurringBillDatabaseCollection() =
+ [<CollectionDefinition("RecurringTransactionDatabase")>]
+type RecurringTransactionDatabaseCollection() =
     interface ICollectionFixture<DbContainerFixture>
 
-[<CollectionDefinition("BillMatchingService")>]
-type BillMatchingServiceCollection() =
+ [<CollectionDefinition("RecurringTransactionMatchingService")>]
+type RecurringTransactionMatchingServiceCollection() =
     interface ICollectionFixture<DbContainerFixture>
