@@ -228,7 +228,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                             | None ->
                                 do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Varchar)
 
-                            // recurringbillid
+                            // recurringtransactionid
                             match transaction.RecurringTransactionId with
                             | Some billId ->
                                 do! writer.WriteAsync(billId, NpgsqlTypes.NpgsqlDbType.Bigint)
