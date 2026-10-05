@@ -38,6 +38,14 @@ module Bills =
         | RecurringTransactionType.Bill -> "Bill"
         | RecurringTransactionType.Income -> "Income"
 
+    /// Render the recurring transaction type as a colored Bulma tag (red for bills,
+    /// green for income) instead of plain text.
+    let private recurringTypeBadge (t : RecurringTransactionType) : XmlNode =
+        let css =
+            match t with
+            | RecurringTransactionType.Bill -> "tag is-danger"
+            | RecurringTransactionType.Income -> "tag is-success"
+        G.span [A._class css] [G.str (recurringTypeLabel t)]
 
     let listBillsPage (model : RecurringBillsListViewModel) : XmlNode =
         let title = "Recurring"
@@ -70,9 +78,9 @@ module Bills =
                         for bill in model.Bills do
                             yield Shared.TableRow [
                                 Shared.TableCell (G.a [A._href (sprintf "/recurring/%i" bill.Id)] [G.str bill.Name])
-                                Shared.TableCell (G.str (recurringTypeLabel bill.Type))
+                                Shared.TableCell (recurringTypeBadge bill.Type)
                                 Shared.TableCell (Format.amountWithDollarSign bill.Amount |> G.str)
-                                Shared.TableCell (G.str $"{scheduleTypeLabel bill.Schedule} week, {formatDayOfWeek (scheduleDayOfWeek bill.Schedule)}")
+                                Shared.TableCell (G.str (scheduleLabel bill.Schedule))
                                 Shared.TableCell (
                                     match bill.LastAppliedDate with
                                     | Some date -> Format.date date |> G.str
@@ -83,7 +91,7 @@ module Bills =
                                     Form.create [Form.Method Form.Post; Form.Action (sprintf "/recurring/%i/toggle" bill.Id)] [
                                         Form.Element.Button [
                                             Form.ButtonText (if bill.Active then "Pause" else "Resume")
-                                            Form.Color (if bill.Active then Form.ButtonColor.Warning else Form.ButtonColor.Success)
+                                            Form.Color Form.ButtonColor.PlainLink
                                             Form.Type Form.Submit
                                         ]
                                     ]

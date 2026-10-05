@@ -179,3 +179,10 @@ dialog#forecast-temp-dialog {
 dialog#forecast-temp-dialog::backdrop {
     background-color: rgba(0, 0, 0, 0.2);
 }
+
+/* Recurring transactions: the type column renders Bill/Income as Bulma tags (badges).
+   Give them a little horizontal breathing room inside table cells. */
+td .tag {
+    min-width: 4.5em;
+    text-align: center;
+}
