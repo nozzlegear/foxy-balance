@@ -238,8 +238,12 @@ module RequestModels =
                         Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
                     else
                         Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt week; DayOfWeek = enum<System.DayOfWeek> day })
+                | _ -> Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
 
             match validateName model.Name, validateAmount model.Amount, validateScheduleType model.WeekOfMonth model.DayOfWeek with
+            | Error msg, _, _ -> Error msg
+            | Ok _, Error msg, _ -> Error msg
+            | Ok _, Ok _, Error msg -> Error msg
             | Ok name, Ok amount, Ok schedule ->
                 Ok { Name = name; Amount = amount; Schedule = schedule }
     [<CLIMutable>]

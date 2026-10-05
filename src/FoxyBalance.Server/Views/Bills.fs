@@ -22,6 +22,7 @@ module Bills =
         | System.DayOfWeek.Thursday -> "Thursday"
         | System.DayOfWeek.Friday -> "Friday"
         | System.DayOfWeek.Saturday -> "Saturday"
+        | _ -> failwith "Unexpected DayOfWeek value"
 
     let private scheduleTypeLabel (schedule : ScheduleType) =
         match schedule with

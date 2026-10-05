@@ -73,7 +73,7 @@ module Forecast =
     let forecastHandler : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
             let forecastService = ctx.GetService<ForecastService>()
-            let today = DateTimeOffset.UtcNow.Date
+            let today = DateTimeOffset.UtcNow
 
             // Read query params; fill defaults when absent.
             let startDateStrOpt = ctx.TryGetQueryStringValue "startDate"

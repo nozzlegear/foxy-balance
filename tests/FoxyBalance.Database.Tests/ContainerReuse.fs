@@ -201,10 +201,11 @@ module ContainerReuse =
 
             | TestcontainersStrategy ->
                 // Use Testcontainers (Foxy Balance only uses PostgreSQL)
+                #nowarn "0044"
                 let container : IDatabaseContainer =
-                    upcast Testcontainers.PostgreSql.PostgreSqlBuilder()
+                    upcast (Testcontainers.PostgreSql.PostgreSqlBuilder()
                         .WithImage($"{image}@{digest}")
-                        .Build()
+                        .Build())
 
                 // Start the container
                 match container with

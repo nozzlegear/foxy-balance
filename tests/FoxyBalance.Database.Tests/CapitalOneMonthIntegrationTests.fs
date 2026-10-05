@@ -86,14 +86,14 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
 
             // Setup
             // Create auto-generated pending transactions for ALL bills
-            let! ag1 = createAutoGenTx userId bill1 (match bill1.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
-            let! ag2 = createAutoGenTx userId bill2 (match bill2.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
-            let! ag3 = createAutoGenTx userId bill3 (match bill3.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
-            let! ag4 = createAutoGenTx userId bill4 (match bill4.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
-            let! ag7 = createAutoGenTx userId bill7 (match bill7.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Credit
-            let! ag8 = createAutoGenTx userId bill8 (match bill8.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Credit
-            let! ag5 = createAutoGenTx userId bill5 (match bill5.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
-            let! ag6 = createAutoGenTx userId bill6 (match bill6.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d) Debit
+            let! ag1 = createAutoGenTx userId bill1 (match bill1.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            let! ag2 = createAutoGenTx userId bill2 (match bill2.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            let! ag3 = createAutoGenTx userId bill3 (match bill3.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            let! ag4 = createAutoGenTx userId bill4 (match bill4.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            let! ag7 = createAutoGenTx userId bill7 (match bill7.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Credit
+            let! ag8 = createAutoGenTx userId bill8 (match bill8.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Credit
+            let! ag5 = createAutoGenTx userId bill5 (match bill5.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            let! ag6 = createAutoGenTx userId bill6 (match bill6.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
 
             // Setup
             // Parse and bulk import CSV transactions as Cleared
