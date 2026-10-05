@@ -67,18 +67,18 @@ get-digest tag="latest":
 deploy-secrets host:
     @sops exec-file "{{secretsFile}}" 'just _deploy-decrypted-secrets {{host}} {}'
 
-[script("fish")]
+[script("bash")]
 [group("release")]
 _deploy-decrypted-secrets host decryptedSecretsFile: &&_cleanup-ssh
-    # The decrypted file can only be read once by default (sops uses a fifo instead of a regular file)
-    set -l secretContent (cat {{decryptedSecretsFile}})
+    # sops exec-file passes a single-read FIFO via {}; read once into a shell variable for reuse
+    secretContent=$(cat "{{decryptedSecretsFile}}")
 
     # Create the full secrets file as a podman secret for the app container
-    echo -n $secretContent | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_secrets -
+    echo -n "$secretContent" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_secrets -
 
     # Create individual podman secrets for PostgreSQL from the Postgres section
-    echo -n $secretContent | jq -r ".Postgres.Username" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_username -
-    echo -n $secretContent | jq -r ".Postgres.Password" | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_password -
+    echo -n "$secretContent" | jq -r '.Postgres.Username' | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_username -
+    echo -n "$secretContent" | jq -r '.Postgres.Password' | ssh {{ssh_opts}} "{{host}}" podman secret create --replace foxybalance_pg_password -
 
 [script("pwsh")]
 _cleanup-ssh:

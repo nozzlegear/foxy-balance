@@ -106,6 +106,9 @@ jobs:
       run: |
         printf '%s' ${{ secrets.SOPS_AGE_KEY }} > $SOPS_AGE_KEY_FILE
 
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
     - name: Deploy decrypted secrets to host
       run: just deploy-secrets "${{secrets.SSH_USERNAME}}@${{ secrets.SSH_HOST }}"
 
