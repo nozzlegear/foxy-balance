@@ -15,6 +15,7 @@
     <Compile Include="Migrations\Migration_008_AddScheduleColumnsAndRenameTable.fs" />
     <Compile Include="Migrations\Migration_009_CopyScheduleColumnsToFrozenNames.fs" />
     <Compile Include="Migrations\Migration_010_AddRecurringTransactionType.fs" />
+    <Compile Include="Migrations\Migration_011_RenameScheduledDateColumn.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
