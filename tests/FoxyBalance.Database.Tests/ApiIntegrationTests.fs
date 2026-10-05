@@ -244,7 +244,8 @@ type BillData =
       Amount: decimal
       WeekOfMonth: int
       DayOfWeek: int
-      Active: bool }
+      Active: bool
+      Type: string }
 
 [<CLIMutable>]
 type ErrorResponse = { Error: string }
@@ -1010,7 +1011,8 @@ type ApiBillMatchingTests(fixture: ApiTestFixture) =
         billDatabase.CreateAsync(userId,
             { Name = name
               Amount = amount
-              Schedule = ByWeekOfMonth { WeekOfMonth = weekOfMonth; DayOfWeek = dayOfWeek } }
+              Schedule = ByWeekOfMonth { WeekOfMonth = weekOfMonth; DayOfWeek = dayOfWeek }
+              Type = RecurringTransactionType.Bill }
         )
 
     let createImportedTransaction userId name amount =

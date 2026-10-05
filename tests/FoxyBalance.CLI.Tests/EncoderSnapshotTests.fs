@@ -50,7 +50,8 @@ type EncoderSnapshotTests() =
             { Name = "Rent"
               Amount = "1500.00"
               WeekOfMonth = "1"
-              DayOfWeek = "1" }
+              DayOfWeek = "1"
+              Type = "bill" }
         let json = Codecs.serialize Codecs.apiRecurringTransactionRequestEncoder request
         let! _ = self.VerifyJson(json)
         return ()
@@ -134,7 +135,8 @@ type EncoderSnapshotTests() =
               DayOfWeek = 1
               DateCreated = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
               LastAppliedDate = Some (DateTimeOffset(2024, 9, 1, 0, 0, 0, TimeSpan.Zero))
-              Active = true }
+              Active = true
+              Type = "bill" }
         let json = Codecs.serialize Codecs.recurringTransactionDtoEncoder dto
         let! _ = self.VerifyJson(json)
         return ()

@@ -207,7 +207,8 @@ module RequestModels =
         { Name : string
           Amount : string
           WeekOfMonth : string option
-          DayOfWeek : string option }
+          DayOfWeek : string option
+          Type : string option }
         with
         static member Validate model : Result<PartialRecurringTransaction, string> =
             let validateName name =
@@ -240,12 +241,19 @@ module RequestModels =
                         Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt week; DayOfWeek = enum<System.DayOfWeek> day })
                 | _ -> Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
 
-            match validateName model.Name, validateAmount model.Amount, validateScheduleType model.WeekOfMonth model.DayOfWeek with
-            | Error msg, _, _ -> Error msg
-            | Ok _, Error msg, _ -> Error msg
-            | Ok _, Ok _, Error msg -> Error msg
-            | Ok name, Ok amount, Ok schedule ->
-                Ok { Name = name; Amount = amount; Schedule = schedule }
+            let validateType (typeOpt : string option) =
+                match typeOpt |> Option.defaultValue "bill" with
+                | "bill" -> Ok RecurringTransactionType.Bill
+                | "income" -> Ok RecurringTransactionType.Income
+                | other -> Error (sprintf "Unrecognized recurring transaction type %s." other)
+
+            match validateName model.Name, validateAmount model.Amount, validateScheduleType model.WeekOfMonth model.DayOfWeek, validateType model.Type with
+            | Error msg, _, _, _ -> Error msg
+            | Ok _, Error msg, _, _ -> Error msg
+            | Ok _, Ok _, Error msg, _ -> Error msg
+            | Ok _, Ok _, Ok _, Error msg -> Error msg
+            | Ok name, Ok amount, Ok schedule, Ok rtType ->
+                Ok { Name = name; Amount = amount; Schedule = schedule; Type = rtType }
     [<CLIMutable>]
     type MatchTransactionRequest =
         { RecurringTransactionId : int64 }
@@ -430,14 +438,16 @@ module ViewModels =
           Name : string
           Amount : string
           WeekOfMonth : string
-          DayOfWeek : string }
+          DayOfWeek : string
+          Type : string }
         with
         static member Default =
             { Error = None
               Name = ""
               Amount = ""
               WeekOfMonth = "1"
-              DayOfWeek = "0" }
+              DayOfWeek = "0"
+              Type = "bill" }
 
         static member FromExistingTransaction (t: RecurringTransaction) =
             let weekOfMonth, dayOfWeek =
@@ -448,7 +458,8 @@ module ViewModels =
               Name = t.Name
               Amount = string t.Amount
               WeekOfMonth = string weekOfMonth
-              DayOfWeek = string dayOfWeek }
+              DayOfWeek = string dayOfWeek
+              Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income" }
 
     type BillViewModel =
         | NewBill of EditRecurringBillViewModel
@@ -471,7 +482,8 @@ module ViewModels =
     type TempRecurringTransaction =
         { Name : string
           Amount : decimal
-          Schedule : ScheduleType }
+          Schedule : ScheduleType
+          Type : RecurringTransactionType }
 
     type TempRecurringTransactionForm =
         { Error : string option
@@ -480,11 +492,12 @@ module ViewModels =
           ScheduleType : string   // "week" | "date"
           Week : string
           Day : string
-          Date : string }
+          Date : string
+          Type : string }         // "bill" | "income"
         with
         static member Empty =
             { Error = None; Name = ""; Amount = ""; ScheduleType = "week"
-              Week = "1"; Day = "0"; Date = "1" }
+              Week = "1"; Day = "0"; Date = "1"; Type = "bill" }
 
     type ForecastRow =
         { Date : DateTimeOffset

@@ -105,11 +105,18 @@ type ScheduleType =
     | ByWeekOfMonth of WeekOfMonthScheduleDef
     | ByCalendarDate of ScheduledDateScheduleDef
 
+type RecurringTransactionType =
+    | Bill
+    | Income
+
+type PartialRecurringTransactionType = RecurringTransactionType
+
 type RecurringTransaction =
     { Id : RecurringTransactionId
       Name : string
       Amount : decimal
       Schedule : ScheduleType
+      Type : RecurringTransactionType
       DateCreated : DateTimeOffset
       LastAppliedDate : DateTimeOffset option
       Active : bool }
@@ -118,7 +125,8 @@ type RecurringTransaction =
 type PartialRecurringTransaction =
     { Name : string
       Amount : decimal
-      Schedule : ScheduleType }
+      Schedule : ScheduleType
+      Type : RecurringTransactionType }
 
 type TransactionMatchCandidate =
     { Transaction : Transaction

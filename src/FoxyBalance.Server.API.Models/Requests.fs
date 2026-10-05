@@ -24,7 +24,8 @@ type ApiRecurringTransactionRequest =
     { Name: string
       Amount: string
       WeekOfMonth: string option
-      DayOfWeek: string option }
+      DayOfWeek: string option
+      Type: string option }
 
 /// Match execution request
 [<CLIMutable>]

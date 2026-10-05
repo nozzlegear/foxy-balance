@@ -63,6 +63,7 @@ module ApiDtos =
            Amount = t.Amount
            WeekOfMonth = weekOfMonth
            DayOfWeek = dayOfWeek
+           Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income"
            DateCreated = t.DateCreated
            LastAppliedDate = t.LastAppliedDate
            Active = t.Active |}

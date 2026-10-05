@@ -9,6 +9,10 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
     let connection = Sql.connect options.ConnectionString
 
     let mapRowToRecurringTransaction (read : RowReader) : RecurringTransaction =
+        let recurringType =
+            match read.stringOrNone "recurringtype" with
+            | Some "income" -> RecurringTransactionType.Income
+            | _ -> RecurringTransactionType.Bill
         { Id = read.int64 "id"
           Name = read.string "name"
           Amount = read.decimal "amount"
@@ -23,6 +27,7 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
             | _ -> 
                 let sched : WeekOfMonthScheduleDef = { WeekOfMonth = WeekOfMonth.FromInt(read.int "scheduleweekofmonth"); DayOfWeek = enum<System.DayOfWeek>(read.int "scheduledayofweek") }
                 ScheduleType.ByWeekOfMonth(sched)
+          Type = recurringType
           DateCreated = read.datetimeOffset "datecreated"
           LastAppliedDate = read.datetimeOffsetOrNone "lastapplieddate"
           Active = read.bool "active" }
@@ -68,9 +73,9 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
             connection
             |> Sql.query """
                 INSERT INTO foxybalance_recurringtransactions (
-                    userid, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, datecreated, active
+                    userid, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, recurringtype, datecreated, active
                 ) VALUES (
-                    @userId, @name, @amount, @scheduleType, @weekOfMonth, @dayOfWeek, @scheduledDate, now(), true
+                    @userId, @name, @amount, @scheduleType, @weekOfMonth, @dayOfWeek, @scheduledDate, @recurringType, now(), true
                 )
                 RETURNING *
             """
@@ -82,6 +87,7 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 "weekOfMonth", Sql.int weekOfMonth
                 "dayOfWeek", Sql.int dayOfWeek
                 "scheduledDate", match scheduledDate with Some d -> Sql.int d | None -> Sql.dbnull
+                "recurringType", Sql.string (match recurringTransaction.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income")
             ]
             |> Sql.executeRowAsync mapRowToRecurringTransaction
 
@@ -98,7 +104,8 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                     scheduletype = @scheduleType,
                     scheduleweekofmonth = @weekOfMonth,
                     scheduledayofweek = @dayOfWeek,
-                    scheduleddate = @scheduledDate
+                    scheduleddate = @scheduledDate,
+                    recurringtype = @recurringType
                 WHERE userid = @userId AND id = @recurringTransactionId
                 RETURNING *
             """
@@ -111,6 +118,7 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 "weekOfMonth", Sql.int weekOfMonth
                 "dayOfWeek", Sql.int dayOfWeek
                 "scheduledDate", match scheduledDate with Some d -> Sql.int d | None -> Sql.dbnull
+                "recurringType", Sql.string (match recurringTransaction.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income")
             ]
             |> Sql.executeRowAsync mapRowToRecurringTransaction
 
@@ -170,7 +178,7 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 let! results =
                     connection
                     |> Sql.query """
-                        SELECT userid, id, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, datecreated, lastapplieddate, active
+                        SELECT userid, id, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, recurringtype, datecreated, lastapplieddate, active
                         FROM foxybalance_recurringtransactions
                         WHERE active = true
                         AND (

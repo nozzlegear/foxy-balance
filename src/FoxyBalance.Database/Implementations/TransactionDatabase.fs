@@ -20,7 +20,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
         match read.string "type" with
         | "Debit" -> Debit
         | "Credit" -> Credit
-        | "Bill" -> Bill { Recurring = read.bool "recurring" }
+        | "Bill" -> TransactionType.Bill { Recurring = read.bool "recurring" }
         | "Check" -> Check { CheckNumber = read.string "checknumber" }
         | x ->
             failwith $"""Unrecognized transaction type "{x}"."""
@@ -51,7 +51,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
             {| typeStr = Sql.string "Check"
                checkNumber = Sql.string check.CheckNumber
                recurring = Sql.bool false |}
-        | Bill bill ->
+        | TransactionType.Bill bill ->
             {| typeStr = Sql.string "Bill"
                checkNumber = Sql.dbnull
                recurring = Sql.bool bill.Recurring |}
@@ -199,7 +199,7 @@ type TransactionDatabase(options : IDatabaseOptions) =
                                 do! writer.WriteAsync("Check", NpgsqlTypes.NpgsqlDbType.Text)
                                 do! writer.WriteAsync(false, NpgsqlTypes.NpgsqlDbType.Boolean)
                                 do! writer.WriteAsync(check.CheckNumber, NpgsqlTypes.NpgsqlDbType.Text)
-                            | Bill bill ->
+                            | TransactionType.Bill bill ->
                                 do! writer.WriteAsync("Bill", NpgsqlTypes.NpgsqlDbType.Text)
                                 do! writer.WriteAsync(bill.Recurring, NpgsqlTypes.NpgsqlDbType.Boolean)
                                 do! writer.WriteAsync(DBNull.Value, NpgsqlTypes.NpgsqlDbType.Text)

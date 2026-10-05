@@ -6,5 +6,6 @@
   dayOfWeek: 1,
   dateCreated: DateTimeOffset_1,
   lastAppliedDate: DateTimeOffset_2,
-  active: true
+  active: true,
+  type: bill
 }

@@ -18,7 +18,8 @@ module Forecast =
           Amount : decimal
           Week : int option
           Day : int option
-          Date : int option }
+          Date : int option
+          Type : string }
 
     let private jsonOptions = JsonSerializerOptions()
 
@@ -29,15 +30,21 @@ module Forecast =
                 let dtos = JsonSerializer.Deserialize<TempRecurringTransactionDto list>(tmpJson, jsonOptions)
                 dtos
                 |> List.choose (fun d ->
+                    let tempType =
+                        match d.Type with
+                        | "income" -> RecurringTransactionType.Income
+                        | _ -> RecurringTransactionType.Bill
                     match d.Week, d.Day, d.Date with
                     | Some w, Some day, _ ->
                         Some { Name = d.Name; Amount = d.Amount
                                Schedule = ScheduleType.ByWeekOfMonth
                                    { WeekOfMonth = WeekOfMonth.FromInt w
-                                     DayOfWeek = enum<System.DayOfWeek> day } }
+                                     DayOfWeek = enum<System.DayOfWeek> day }
+                               Type = tempType }
                     | _, _, Some date ->
                         Some { Name = d.Name; Amount = d.Amount
-                               Schedule = ScheduleType.ByCalendarDate { Date = date } }
+                               Schedule = ScheduleType.ByCalendarDate { Date = date }
+                               Type = tempType }
                     | _ -> None)
             with
             | _ -> []
@@ -46,15 +53,18 @@ module Forecast =
         let dtos =
             items
             |> List.map (fun t ->
+                let typeStr = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income"
                 match t.Schedule with
                 | ScheduleType.ByWeekOfMonth sched ->
                     { Name = t.Name; Amount = t.Amount
                       Week = Some (sched.WeekOfMonth.ToInt())
                       Day = Some (int sched.DayOfWeek)
-                      Date = None }
+                      Date = None
+                      Type = typeStr }
                 | ScheduleType.ByCalendarDate sched ->
                     { Name = t.Name; Amount = t.Amount
-                      Week = None; Day = None; Date = Some sched.Date })
+                      Week = None; Day = None; Date = Some sched.Date
+                      Type = typeStr })
         JsonSerializer.Serialize<TempRecurringTransactionDto list>(dtos, jsonOptions)
 
     let private canonicalUrl (startDate : string) (endDate : string) (toggled : bool) (txnValues : string list) (tmpJson : string) : string =
@@ -142,8 +152,9 @@ module Forecast =
                         let tmpWeek = ctx.TryGetQueryStringValue "tmpWeek" |> Option.defaultValue "1"
                         let tmpDay = ctx.TryGetQueryStringValue "tmpDay" |> Option.defaultValue "0"
                         let tmpDate = ctx.TryGetQueryStringValue "tmpDate" |> Option.defaultValue "1"
+                        let tmpType = ctx.TryGetQueryStringValue "tmpType" |> Option.defaultValue "bill"
 
-                        match ForecastService.validateTempItem tmpName tmpAmount tmpScheduleType tmpWeek tmpDay tmpDate with
+                        match ForecastService.validateTempItem tmpName tmpAmount tmpScheduleType tmpWeek tmpDay tmpDate tmpType with
                         | Ok item ->
                             let updated = tmpItems @ [item]
                             let newTmpJson = serializeTempItems updated
@@ -163,7 +174,8 @@ module Forecast =
                                   ScheduleType = tmpScheduleType
                                   Week = tmpWeek
                                   Day = tmpDay
-                                  Date = tmpDate }
+                                  Date = tmpDate
+                                  Type = tmpType }
                             let decoratedModel =
                                 { model with
                                     TmpJson = serializeTempItems tmpItems

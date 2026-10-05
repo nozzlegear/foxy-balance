@@ -29,7 +29,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 125.50M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek
-                 ; DayOfWeek = DayOfWeek.Wednesday } }
+                 ; DayOfWeek = DayOfWeek.Wednesday }
+                  Type = RecurringTransactionType.Bill }
 
             // Act
             let! result = database.CreateAsync(user.Id, partialBill)
@@ -60,7 +61,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                 let partialBill: PartialRecurringTransaction =
                     { Name = $"Bill {weekNumber}-{dayNumber}"
                       Amount = decimal (weekNumber * 10 + dayNumber)
-                      Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day } }
+                      Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day }
+                      Type = RecurringTransactionType.Bill }
 
                 // Act
                 let! result = database.CreateAsync(user.Id, partialBill)
@@ -79,7 +81,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
             let userId = -1
 
             // Act
@@ -104,7 +107,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 45.75M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = ThirdWeek
-                 ; DayOfWeek = DayOfWeek.Friday } }
+                 ; DayOfWeek = DayOfWeek.Friday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -146,7 +150,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user1.Id, partialBill)
 
@@ -165,7 +170,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
             let bills = [1..5] |> List.map (fun i ->
                 { Name = $"Bill {i}"
                   Amount = decimal (i * 10)
-                  Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt((i % 4) + 1); DayOfWeek = enum<DayOfWeek>(i % 7) } })
+                  Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt((i % 4) + 1); DayOfWeek = enum<DayOfWeek>(i % 7) }
+                  Type = RecurringTransactionType.Bill })
 
             for bill in bills do
                 let! _ = database.CreateAsync(user.Id, bill)
@@ -186,13 +192,13 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // Create active bills
             for i in 1..3 do
-                let bill = { Name = $"Active {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday } }
+                let bill = { Name = $"Active {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }; Type = RecurringTransactionType.Bill }
                 let! _ = database.CreateAsync(user.Id, bill)
                 ()
 
             // Create and pause some bills
             for i in 1..2 do
-                let bill = { Name = $"Paused {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday } }
+                let bill = { Name = $"Paused {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday }; Type = RecurringTransactionType.Bill }
                 let! created = database.CreateAsync(user.Id, bill)
                 do! database.SetActiveAsync(user.Id, created.Id, false)
 
@@ -213,7 +219,7 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
             let billNames = ["Zebra Bill"; "Apple Bill"; "Maple Bill"]
 
             for name in billNames do
-                let bill = { Name = name; Amount = 50M; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday } }
+                let bill = { Name = name; Amount = 50M; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }; Type = RecurringTransactionType.Bill }
                 let! _ = database.CreateAsync(user.Id, bill)
                 ()
 
@@ -234,13 +240,13 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
 
             // Create bills for user1
             for i in 1..3 do
-                let bill = { Name = $"User1 Bill {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday } }
+                let bill = { Name = $"User1 Bill {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = DayOfWeek.Monday }; Type = RecurringTransactionType.Bill }
                 let! _ = database.CreateAsync(user1.Id, bill)
                 ()
 
             // Create bills for user2
             for i in 1..2 do
-                let bill = { Name = $"User2 Bill {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday } }
+                let bill = { Name = $"User2 Bill {i}"; Amount = decimal i; Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek; DayOfWeek = DayOfWeek.Tuesday }; Type = RecurringTransactionType.Bill }
                 let! _ = database.CreateAsync(user2.Id, bill)
                 ()
 
@@ -263,7 +269,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, originalBill)
 
@@ -272,7 +279,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 200M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FourthWeek
-                 ; DayOfWeek = DayOfWeek.Saturday } }
+                 ; DayOfWeek = DayOfWeek.Saturday }
+                  Type = RecurringTransactionType.Bill }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedBill)
@@ -295,7 +303,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, originalBill)
 
@@ -309,7 +318,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 200M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = SecondWeek
-                 ; DayOfWeek = DayOfWeek.Tuesday } }
+                 ; DayOfWeek = DayOfWeek.Tuesday }
+                  Type = RecurringTransactionType.Bill }
 
             // Act
             let! result = database.UpdateAsync(user.Id, created.Id, updatedBill)
@@ -331,7 +341,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
             let appliedDate = DateTimeOffset.UtcNow.AddDays(-3.0)
@@ -356,7 +367,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -385,7 +397,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -408,7 +421,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user1.Id, partialBill)
 
@@ -430,7 +444,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -456,7 +471,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -483,7 +499,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
 
@@ -510,7 +527,8 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                   Amount = 100M
                  
                   Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek
-                 ; DayOfWeek = DayOfWeek.Monday } }
+                 ; DayOfWeek = DayOfWeek.Monday }
+                  Type = RecurringTransactionType.Bill }
 
             let! created = database.CreateAsync(user.Id, partialBill)
             do! database.SetActiveAsync(user.Id, created.Id, false)

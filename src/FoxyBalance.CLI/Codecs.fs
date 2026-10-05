@@ -122,7 +122,8 @@ module Codecs =
               DayOfWeek = get.Required.Field "dayOfWeek" Decode.int
               DateCreated = get.Required.Field "dateCreated" Decode.datetimeOffset
               LastAppliedDate = get.Optional.Field "lastAppliedDate" Decode.datetimeOffset
-              Active = get.Required.Field "active" Decode.bool })
+              Active = get.Required.Field "active" Decode.bool
+              Type = get.Optional.Field "type" Decode.string |> Option.defaultValue "bill" })
 
     let transactionSumDecoder : Decoder<TransactionSum> =
         Decode.object (fun get ->
@@ -188,6 +189,7 @@ module Codecs =
             | Some d -> "lastAppliedDate", Encode.datetimeOffset d
             | None -> ()
             "active", Encode.bool b.Active
+            "type", Encode.string b.Type
         ]
 
     let transactionSumEncoder (s: TransactionSum) : IEncodable =
@@ -244,6 +246,7 @@ module Codecs =
             "amount", Encode.string r.Amount
             "weekOfMonth", Encode.string r.WeekOfMonth
             "dayOfWeek", Encode.string r.DayOfWeek
+            "type", Encode.string r.Type
         ]
 
     let apiMatchRequestEncoder (r: ApiMatchRequest) : IEncodable =

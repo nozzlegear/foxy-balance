@@ -27,7 +27,8 @@ type ApiRecurringTransactionRequest =
     { Name: string
       Amount: string
       WeekOfMonth: string
-      DayOfWeek: string }
+      DayOfWeek: string
+      Type: string }
 
 [<CLIMutable>]
 type ApiMatchRequest =
@@ -75,7 +76,8 @@ type RecurringTransactionDto =
       DayOfWeek: int
       DateCreated: DateTimeOffset
       LastAppliedDate: DateTimeOffset option
-      Active: bool }
+      Active: bool
+      Type: string }
 
 [<CLIMutable>]
 type TransactionSum =

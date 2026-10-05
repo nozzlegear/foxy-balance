@@ -42,7 +42,8 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth } }
+                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth }
+                  Type = RecurringTransactionType.Bill }
             return! recurringTransactionDatabase.CreateAsync(userId, partialBill)
         }
 
@@ -310,7 +311,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
             // Temp item: bill on the 25th.
             let tempItems : TempRecurringTransaction list =
-                [ { Name = "New bill"; Amount = 100M; Schedule = ScheduleType.ByCalendarDate { Date = 25 } } ]
+                [ { Name = "New bill"; Amount = 100M; Schedule = ScheduleType.ByCalendarDate { Date = 25 }; Type = RecurringTransactionType.Bill } ]
 
             let! model =
                 service.BuildForecastAsync(user.Id, startDate, endDate, now,
@@ -331,7 +332,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
             // Temp occurrence on/before today is filtered: temp on the 15th with now = June 15 should NOT appear.
             let tempToday : TempRecurringTransaction list =
-                [ { Name = "Today bill"; Amount = 50M; Schedule = ScheduleType.ByCalendarDate { Date = 15 } } ]
+                [ { Name = "Today bill"; Amount = 50M; Schedule = ScheduleType.ByCalendarDate { Date = 15 }; Type = RecurringTransactionType.Bill } ]
             let! model2 =
                 service.BuildForecastAsync(user.Id, startDate, endDate, now,
                                            temporaryRecurringTransactions = tempToday)
@@ -344,7 +345,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
     [<Fact>]
     member _.``validateTempItem accepts valid week item``() =
-        let result = ForecastService.validateTempItem "Rent" "1200" "week" "2" "3" ""
+        let result = ForecastService.validateTempItem "Rent" "1200" "week" "2" "3" "" "bill"
         match result with
         | Ok item ->
             %item.Name.Should().Be("Rent")
@@ -358,7 +359,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
     [<Fact>]
     member _.``validateTempItem accepts valid date item``() =
-        let result = ForecastService.validateTempItem "Phone" "50" "date" "" "" "15"
+        let result = ForecastService.validateTempItem "Phone" "50" "date" "" "" "15" "bill"
         match result with
         | Ok item ->
             %item.Name.Should().Be("Phone")
@@ -371,42 +372,42 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
     [<Fact>]
     member _.``validateTempItem rejects empty name``() =
-        let result = ForecastService.validateTempItem "  " "100" "date" "" "" "15"
+        let result = ForecastService.validateTempItem "  " "100" "date" "" "" "15" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "You must enter a name for this temporary recurring transaction.")
 
     [<Fact>]
     member _.``validateTempItem rejects zero amount``() =
-        let result = ForecastService.validateTempItem "Test" "0" "date" "" "" "15"
+        let result = ForecastService.validateTempItem "Test" "0" "date" "" "" "15" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Amount must be greater than 0.01.")
 
     [<Fact>]
     member _.``validateTempItem rejects unparseable amount``() =
-        let result = ForecastService.validateTempItem "Test" "abc" "date" "" "" "15"
+        let result = ForecastService.validateTempItem "Test" "abc" "date" "" "" "15" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Could not parse abc to a number or decimal.")
 
     [<Fact>]
     member _.``validateTempItem rejects week out of range``() =
-        let result = ForecastService.validateTempItem "Test" "100" "week" "5" "3" ""
+        let result = ForecastService.validateTempItem "Test" "100" "week" "5" "3" "" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Week of month must be between 1 and 4.")
 
     [<Fact>]
     member _.``validateTempItem rejects day out of range``() =
-        let result = ForecastService.validateTempItem "Test" "100" "week" "2" "9" ""
+        let result = ForecastService.validateTempItem "Test" "100" "week" "2" "9" "" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Day of week must be between 0 (Sunday) and 6 (Saturday).")
 
     [<Fact>]
     member _.``validateTempItem rejects date out of range``() =
-        let result = ForecastService.validateTempItem "Test" "100" "date" "" "" "32"
+        let result = ForecastService.validateTempItem "Test" "100" "date" "" "" "32" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Date of month must be between 1 and 31.")
 
     [<Fact>]
     member _.``validateTempItem rejects unrecognized schedule type``() =
-        let result = ForecastService.validateTempItem "Test" "100" "bogus" "" "" ""
+        let result = ForecastService.validateTempItem "Test" "100" "bogus" "" "" "" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Unrecognized schedule type bogus.")

@@ -15,7 +15,8 @@ module RecurringTransactions =
         { Name = req.Name
           Amount = req.Amount
           WeekOfMonth = req.WeekOfMonth
-          DayOfWeek = req.DayOfWeek }
+          DayOfWeek = req.DayOfWeek
+          Type = req.Type }
 
     /// GET /api/v1/bills  (recurring transactions)
     let listHandler: HttpHandler =

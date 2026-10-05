@@ -204,7 +204,8 @@ type CodecTests() =
               DayOfWeek = 1
               DateCreated = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
               LastAppliedDate = Some (DateTimeOffset(2024, 9, 1, 0, 0, 0, TimeSpan.Zero))
-              Active = true }
+              Active = true
+              Type = "bill" }
 
         let json = Codecs.serialize Codecs.recurringTransactionDtoEncoder dto
         let result = Codecs.deserialize Codecs.recurringTransactionDtoDecoder json
@@ -253,7 +254,8 @@ type CodecTests() =
                 DayOfWeek = 1
                 DateCreated = DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)
                 LastAppliedDate = None
-                Active = true }
+                Active = true
+                Type = "bill" }
               MatchScore = 0.95m }
 
         let json = Codecs.serialize Codecs.matchSuggestionDtoEncoder dto

@@ -79,15 +79,15 @@ module Balance =
                             |> List.filter (fun t -> t.Id <> transaction.Id)
                             |> List.filter (fun t ->
                                 match transaction.Type with
-                                | Bill _ ->
+                                | TransactionType.Bill _ ->
                                     // Current is Bill: show only non-Bill candidates
                                     match t.Type with
-                                    | Bill _ -> false
+                                    | TransactionType.Bill _ -> false
                                     | _ -> true
                                 | _ ->
                                     // Current is non-Bill: show Bills, or non-Bills where at least one is non-imported
                                     match t.Type with
-                                    | Bill _ -> true
+                                    | TransactionType.Bill _ -> true
                                     | _ -> transaction.ImportId.IsNone || t.ImportId.IsNone)
                         return filtered
                     }

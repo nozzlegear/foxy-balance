@@ -289,8 +289,8 @@ module Shared =
     let pagination (options: PaginationOptions) =
         let route =
             match options.RouteType with
-            | Balance -> "balance"
-            | Income -> "income"
+            | RouteType.Balance -> "balance"
+            | RouteType.Income -> "income"
 
         let previousPageAttrs =
             let queryParams =

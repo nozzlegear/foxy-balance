@@ -128,6 +128,15 @@ module Forecast =
                     Form.Value model.TempItemForm.Amount ]
 
                 Form.Element.SelectBox [
+                    Form.SelectOption.LabelText "Type"
+                    Form.SelectOption.HtmlName "tmpType"
+                    Form.SelectOption.Value model.TempItemForm.Type
+                    Form.SelectOption.Options [
+                        {| Label = "Bill"; Value = "bill"; Selected = model.TempItemForm.Type = "bill" |}
+                        {| Label = "Income"; Value = "income"; Selected = model.TempItemForm.Type = "income" |}
+                    ] ]
+
+                Form.Element.SelectBox [
                     Form.SelectOption.LabelText "Schedule type"
                     Form.SelectOption.HtmlName "tmpScheduleType"
                     Form.SelectOption.Value model.TempItemForm.ScheduleType

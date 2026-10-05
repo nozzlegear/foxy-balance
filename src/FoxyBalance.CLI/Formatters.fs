@@ -156,6 +156,12 @@ module Formatters =
         | 4 -> "4th"
         | _ -> string week
 
+    let recurringTypeLabel (t: string) : string =
+        match t with
+        | "bill" -> "Bill"
+        | "income" -> "Income"
+        | other -> other
+
     let printRecurringTransactions (recurringTransactions: RecurringTransactionDto list) =
         if List.isEmpty recurringTransactions then
             printfn "No recurring transactions found."
@@ -166,12 +172,13 @@ module Formatters =
                     [ string b.Id
                       b.Name
                       formatCurrency b.Amount
+                      recurringTypeLabel b.Type
                       weekLabel b.WeekOfMonth
                       dayOfWeekLabel b.DayOfWeek
                       if b.Active then "yes" else "no" ])
 
             printTable
-                [ "ID"; "Name"; "Amount"; "Week"; "Day"; "Active" ]
+                [ "ID"; "Name"; "Amount"; "Type"; "Week"; "Day"; "Active" ]
                 rows
 
     let printRecurringTransaction (b: RecurringTransactionDto) =
@@ -180,6 +187,7 @@ module Formatters =
         printfn "==================="
         printfn "  Name:            %s" b.Name
         printfn "  Amount:          %s" (formatCurrency b.Amount)
+        printfn "  Type:            %s" (recurringTypeLabel b.Type)
         printfn "  Week of Month:   %s" (weekLabel b.WeekOfMonth)
         printfn "  Day of Week:     %s" (dayOfWeekLabel b.DayOfWeek)
         printfn "  Active:          %s" (if b.Active then "yes" else "no")
@@ -298,6 +306,7 @@ module Formatters =
         printfn "==================="
         printfn "  Name:            %s" b.Name
         printfn "  Amount:          %s" (formatCurrency b.Amount)
+        printfn "  Type:            %s" (recurringTypeLabel b.Type)
         printfn "  Week of Month:   %s" (weekLabel b.WeekOfMonth)
         printfn "  Day of Week:     %s" (dayOfWeekLabel b.DayOfWeek)
         printfn "  Active:          %s" (if b.Active then "yes" else "no")
@@ -325,13 +334,14 @@ module Formatters =
                     [ string b.Id
                       b.Name
                       formatCurrency b.Amount
+                      recurringTypeLabel b.Type
                       weekLabel b.WeekOfMonth
                       dayOfWeekLabel b.DayOfWeek
                       if b.Active then "yes" else "no"
                       selfHref ])
 
             printTable
-                [ "ID"; "Name"; "Amount"; "Week"; "Day"; "Active"; "Link" ]
+                [ "ID"; "Name"; "Amount"; "Type"; "Week"; "Day"; "Active"; "Link" ]
                 rows
 
     /// Print balance with its HATEOAS links.

@@ -41,7 +41,8 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day } }
+                  Schedule = ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day }
+                  Type = RecurringTransactionType.Bill }
             return! billDatabase.CreateAsync(userId, partialBill)
         }
 

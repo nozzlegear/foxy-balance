@@ -71,7 +71,7 @@ module Balance =
                 Shared.LeftLevel statusControls
                 Shared.RightLevel [
                     Shared.LevelItem.Element (a [_href "/balance/clear"; _class "button is-light"] [str "Clear All"])
-                    Shared.LevelItem.Element (a [_href "/bills"; _class "button is-link"] [str "Recurring Bills"])
+                    Shared.LevelItem.Element (a [_href "/recurring"; _class "button is-link"] [str "Recurring"])
                     Shared.LevelItem.Element (a [_href "/balance/upload"; _class "button is-info"] [str "Upload Transactions"])
                     Shared.LevelItem.Element (a [_href "/balance/new"; _class "button is-success"] [str "New Transaction"])
                 ]
@@ -316,8 +316,8 @@ module Balance =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                     G.a [A._href "/bills/match"; A._class "button is-primary"] [
-                        G.str "Match Transactions to Bills" ]
+                     G.a [A._href "/recurring/match"; A._class "button is-primary"] [
+                        G.str "Match Transactions to Recurring Transactions" ]
                      |> Shared.LevelItem.Element
                      G.a [A._href "/balance"; A._class "button is-info"] [
                         G.str "Back to Transactions" ]

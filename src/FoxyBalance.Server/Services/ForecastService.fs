@@ -45,7 +45,7 @@ type ForecastService(
     static member private typeLabel (txType : TransactionType) : string =
         match txType with
         | Credit -> "Income"
-        | Bill _ -> "Bill"
+        | TransactionType.Bill _ -> "Bill"
         | Check _ -> "Check"
         | Debit -> "Debit"
 
@@ -89,9 +89,9 @@ type ForecastService(
                     |> List.filter (fun d -> d.Date > todayDate)
                     |> List.map (fun d ->
                         {| Date = d
-                           Label = "Bill"
+                           Label = match rt.Type with | RecurringTransactionType.Bill -> "Bill" | RecurringTransactionType.Income -> "Income"
                            Description = rt.Name
-                           Amount = Some (-rt.Amount)
+                           Amount = Some (match rt.Type with | RecurringTransactionType.Bill -> -rt.Amount | RecurringTransactionType.Income -> rt.Amount)
                            EventId = sprintf "r%i-%s" rt.Id (Format.date d)
                            IsTemporary = false |}))
 
@@ -104,9 +104,9 @@ type ForecastService(
                     |> List.filter (fun d -> d.Date > todayDate)
                     |> List.map (fun d ->
                         {| Date = d
-                           Label = "Bill"
+                           Label = match t.Type with | RecurringTransactionType.Bill -> "Bill" | RecurringTransactionType.Income -> "Income"
                            Description = t.Name
-                           Amount = Some -t.Amount
+                           Amount = Some (match t.Type with | RecurringTransactionType.Bill -> -t.Amount | RecurringTransactionType.Income -> t.Amount)
                            EventId = sprintf "x%i-%s" i (Format.date d)
                            IsTemporary = true |}))
 
@@ -196,11 +196,16 @@ type ForecastService(
     static member validateTempItem
         (name : string) (amount : string) (scheduleType : string)
         (week : string) (day : string) (date : string)
+        (typeStr : string)
         : Result<TempRecurringTransaction, string> =
         let trimmedName = name.Trim()
         if System.String.IsNullOrEmpty trimmedName then
             Error "You must enter a name for this temporary recurring transaction."
         else
+            let tempType =
+                match typeStr with
+                | "income" -> RecurringTransactionType.Income
+                | _ -> RecurringTransactionType.Bill
             match System.Decimal.TryParse (amount : string) with
             | false, _ -> Error $"Could not parse {amount} to a number or decimal."
             | true, amt when amt < 0.01M -> Error "Amount must be greater than 0.01."
@@ -216,13 +221,15 @@ type ForecastService(
                         Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
                     else
                         Ok { Name = trimmedName; Amount = amt
-                             Schedule = ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt weekVal; DayOfWeek = enum<System.DayOfWeek> dayVal } }
+                             Schedule = ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt weekVal; DayOfWeek = enum<System.DayOfWeek> dayVal }
+                             Type = tempType }
                 | "date" ->
                     let dateOk, dateVal = System.Int32.TryParse date
                     if not dateOk || dateVal < 1 || dateVal > 31 then
                         Error "Date of month must be between 1 and 31."
                     else
                         Ok { Name = trimmedName; Amount = amt
-                             Schedule = ByCalendarDate { Date = dateVal } }
+                             Schedule = ByCalendarDate { Date = dateVal }
+                             Type = tempType }
                 | other ->
                     Error $"Unrecognized schedule type {other}."

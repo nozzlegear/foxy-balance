@@ -34,9 +34,14 @@ module Bills =
         | ScheduleType.ByWeekOfMonth sched -> sched.DayOfWeek
         | ScheduleType.ByCalendarDate _ -> System.DayOfWeek.Monday
 
+    let private recurringTypeLabel (t : RecurringTransactionType) =
+        match t with
+        | RecurringTransactionType.Bill -> "Bill"
+        | RecurringTransactionType.Income -> "Income"
+
 
     let listBillsPage (model : RecurringBillsListViewModel) : XmlNode =
-        let title = "Recurring Bills"
+        let title = "Recurring"
 
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             Shared.level [
@@ -44,17 +49,18 @@ module Bills =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                    Shared.LevelItem.Element (G.a [A._href "/bills/match"; A._class "button is-info"] [G.str "Match Transactions"])
-                    Shared.LevelItem.Element (G.a [A._href "/bills/new"; A._class "button is-success"] [G.str "New Bill"])
+                    Shared.LevelItem.Element (G.a [A._href "/recurring/match"; A._class "button is-info"] [G.str "Match Transactions"])
+                    Shared.LevelItem.Element (G.a [A._href "/recurring/new"; A._class "button is-success"] [G.str "New Recurring"])
                 ]
             ]
 
             if Seq.isEmpty model.Bills then
-                G.p [] [G.str "No recurring bills found. Create one to get started!"]
+                G.p [] [G.str "No recurring transactions found. Create one to get started!"]
             else
                 Shared.table [
                     Shared.TableHead [
                         Shared.TableCell (G.str "Name")
+                        Shared.TableCell (G.str "Type")
                         Shared.TableCell (G.str "Amount")
                         Shared.TableCell (G.str "Schedule")
                         Shared.TableCell (G.str "Last Applied")
@@ -64,7 +70,8 @@ module Bills =
                     Shared.TableBody [
                         for bill in model.Bills do
                             yield Shared.TableRow [
-                                Shared.TableCell (G.a [A._href (sprintf "/bills/%i" bill.Id)] [G.str bill.Name])
+                                Shared.TableCell (G.a [A._href (sprintf "/recurring/%i" bill.Id)] [G.str bill.Name])
+                                Shared.TableCell (G.str (recurringTypeLabel bill.Type))
                                 Shared.TableCell (Format.amountWithDollarSign bill.Amount |> G.str)
                                 Shared.TableCell (G.str $"{scheduleTypeLabel bill.Schedule} week, {formatDayOfWeek (scheduleDayOfWeek bill.Schedule)}")
                                 Shared.TableCell (
@@ -74,7 +81,7 @@ module Bills =
                                 )
                                 Shared.TableCell (G.str (if bill.Active then "Active" else "Paused"))
                                 Shared.TableCell (
-                                    Form.create [Form.Method Form.Post; Form.Action (sprintf "/bills/%i/toggle" bill.Id)] [
+                                    Form.create [Form.Method Form.Post; Form.Action (sprintf "/recurring/%i/toggle" bill.Id)] [
                                         Form.Element.Button [
                                             Form.ButtonText (if bill.Active then "Pause" else "Resume")
                                             Form.Color (if bill.Active then Form.ButtonColor.Warning else Form.ButtonColor.Success)
@@ -93,9 +100,9 @@ module Bills =
             | NewBill vm -> (true, 0L, vm)
             | ExistingBill (id, vm) -> (false, id, vm)
 
-        let title = if isNew then "New Recurring Bill" else "Edit Recurring Bill"
-        let action = if isNew then "/bills/new" else sprintf "/bills/%i" billId
-        let buttonText = if isNew then "Create Bill" else "Update Bill"
+        let title = if isNew then "New Recurring Transaction" else "Edit Recurring Transaction"
+        let action = if isNew then "/recurring/new" else sprintf "/recurring/%i" billId
+        let buttonText = if isNew then "Create Recurring Transaction" else "Update Recurring Transaction"
 
         let deleteButton =
             if isNew then
@@ -104,9 +111,9 @@ module Bills =
                 Some (
                     Form.Element.Button [
                         Form.ButtonText "Delete"
-                        Form.ButtonFormAction (sprintf "/bills/%i/delete" billId)
+                        Form.ButtonFormAction (sprintf "/recurring/%i/delete" billId)
                         Form.Color Form.ButtonColor.Danger
-                        Form.OnClick "return confirm('Are you sure you want to delete this bill? This action cannot be undone.')"
+                        Form.OnClick "return confirm('Are you sure you want to delete this recurring transaction? This action cannot be undone.')"
                         Form.Type Form.Submit
                     ]
                 )
@@ -117,7 +124,7 @@ module Bills =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                     G.a [A._href "/bills"; A._class "button"] [G.str "Cancel"]
+                     G.a [A._href "/recurring"; A._class "button"] [G.str "Cancel"]
                      |> Shared.LevelItem.Element
                 ]
             ]
@@ -137,6 +144,15 @@ module Bills =
                     Form.Step 0.01M
                     Form.Required
                     Form.Value viewModel.Amount ]
+
+                Form.Element.SelectBox [
+                    Form.SelectOption.LabelText "Type"
+                    Form.SelectOption.HtmlName "type"
+                    Form.SelectOption.Options [
+                        {| Label = "Bill"; Value = "bill"; Selected = viewModel.Type = "bill" |}
+                        {| Label = "Income"; Value = "income"; Selected = viewModel.Type = "income" |}
+                    ]
+                    Form.SelectOption.Value viewModel.Type ]
 
                 Form.Element.SelectBox [
                     Form.SelectOption.LabelText "Week of Month"
@@ -179,7 +195,7 @@ module Bills =
         ]
 
     let matchingPage (model : BillMatchingViewModel) : XmlNode =
-        let title = "Match Transactions to Bills"
+        let title = "Match Transactions to Recurring Transactions"
 
         Shared.pageContainer title Shared.Authenticated Shared.WrappedInSection [
             Shared.level [
@@ -187,13 +203,13 @@ module Bills =
                     Shared.LevelItem.Element (Shared.title title)
                 ]
                 Shared.RightLevel [
-                     G.a [A._href "/bills"; A._class "button"] [G.str "Back to Bills"]
+                     G.a [A._href "/recurring"; A._class "button"] [G.str "Back to Recurring"]
                      |> Shared.LevelItem.Element
                 ]
             ]
 
             G.div [A._class "content"] [
-                G.p [] [G.str "Below are suggested matches between your imported transactions and recurring bills. Click \"Match\" to link them together."]
+                G.p [] [G.str "Below are suggested matches between your imported transactions and recurring transactions. Click \"Match\" to link them together."]
             ]
 
             if List.isEmpty model.MatchCandidates then

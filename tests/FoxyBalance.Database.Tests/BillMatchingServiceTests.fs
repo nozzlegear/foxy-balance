@@ -26,7 +26,8 @@ type RecurringTransactionMatchingServiceTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day } }
+                  Schedule = ScheduleType.ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day }
+                  Type = RecurringTransactionType.Bill }
             return! billDatabase.CreateAsync(userId, partialBill)
     }
 

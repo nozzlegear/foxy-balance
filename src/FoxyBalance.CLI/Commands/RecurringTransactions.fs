@@ -80,9 +80,10 @@ module RecurringTransactions =
         let amountOpt = optionMaybe<string> "--amount" |> desc "Amount (e.g. 50.00)"
         let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4)"
         let dayOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0=Sunday through 6=Saturday)"
+        let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income [default: bill]"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (name: string option, amount: string option, week: string option, day: string option, json: bool) =
+        let action (name: string option, amount: string option, week: string option, day: string option, typ: string option, json: bool) =
             async {
                 let resolvedName =
                     match name with
@@ -116,7 +117,8 @@ module RecurringTransactions =
                     { Name = resolvedName
                       Amount = resolvedAmount
                       WeekOfMonth = resolvedWeek
-                      DayOfWeek = resolvedDay }
+                      DayOfWeek = resolvedDay
+                      Type = typ |> Option.defaultValue "bill" }
 
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
@@ -137,7 +139,7 @@ module RecurringTransactions =
 
         command "create" {
             description "Create a new recurring transaction"
-            inputs (nameOpt, amountOpt, weekOpt, dayOpt, jsonOpt)
+            inputs (nameOpt, amountOpt, weekOpt, dayOpt, typeOpt, jsonOpt)
             setAction action
         }
 
@@ -149,9 +151,10 @@ module RecurringTransactions =
         let amountOpt = optionMaybe<string> "--amount" |> desc "Amount"
         let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4)"
         let dayOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0-6)"
+        let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (idOrLink: string, name: string option, amount: string option, week: string option, day: string option, json: bool) =
+        let action (idOrLink: string, name: string option, amount: string option, week: string option, day: string option, typ: string option, json: bool) =
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
@@ -180,7 +183,11 @@ module RecurringTransactions =
                           DayOfWeek =
                             match day with
                             | Some d when not (String.IsNullOrWhiteSpace d) -> d
-                            | _ -> string existingTransaction.DayOfWeek }
+                            | _ -> string existingTransaction.DayOfWeek
+                          Type =
+                            match typ with
+                            | Some t when not (String.IsNullOrWhiteSpace t) -> t
+                            | _ -> existingTransaction.Type }
 
                     let! result = client.PutResourceAsync(Codecs.apiRecurringTransactionRequestEncoder, Codecs.recurringTransactionDtoDecoder, path, request)
 
@@ -199,7 +206,7 @@ module RecurringTransactions =
 
         command "update" {
             description "Update an existing recurring transaction (accepts ID or HATEOAS link)"
-            inputs (idArg, nameOpt, amountOpt, weekOpt, dayOpt, jsonOpt)
+            inputs (idArg, nameOpt, amountOpt, weekOpt, dayOpt, typeOpt, jsonOpt)
             setAction action
         }
 

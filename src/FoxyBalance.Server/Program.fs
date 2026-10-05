@@ -80,10 +80,10 @@ let allRoutes : HttpHandler =
                 route "/balance" >=> Routes.Balance.homePageHandler
                 routef "/balance/%d" Routes.Balance.editTransactionHandler
 
-                route "/bills" >=> Routes.Bills.listBillsHandler
-                route "/bills/new" >=> Routes.Bills.newBillHandler
-                route "/bills/match" >=> Routes.Bills.matchingInterfaceHandler
-                routef "/bills/%d" Routes.Bills.editBillHandler
+                route "/recurring" >=> Routes.Bills.listBillsHandler
+                route "/recurring/new" >=> Routes.Bills.newBillHandler
+                route "/recurring/match" >=> Routes.Bills.matchingInterfaceHandler
+                routef "/recurring/%d" Routes.Bills.editBillHandler
 
                 route "/income" >=> Routes.Income.homePageHandler
                 route "/income/sync" >=> Routes.Income.syncHandler
@@ -109,10 +109,10 @@ let allRoutes : HttpHandler =
                 routef "/balance/%d/match" Routes.Bills.executeMatchHandler
                 routef "/balance/%d" Routes.Balance.existingTransactionPostHandler
 
-                route "/bills/new" >=> Routes.Bills.newBillPostHandler
-                routef "/bills/%d/delete" Routes.Bills.deleteBillPostHandler
-                routef "/bills/%d/toggle" Routes.Bills.toggleActiveBillPostHandler
-                routef "/bills/%d" Routes.Bills.existingBillPostHandler
+                route "/recurring/new" >=> Routes.Bills.newBillPostHandler
+                routef "/recurring/%d/delete" Routes.Bills.deleteBillPostHandler
+                routef "/recurring/%d/toggle" Routes.Bills.toggleActiveBillPostHandler
+                routef "/recurring/%d" Routes.Bills.existingBillPostHandler
 
                 route "/income/sync" >=> Routes.Income.executeSyncHandler
                 route "/income/new" >=> Routes.Income.executeNewRecordHandler
