@@ -67,7 +67,7 @@ module Forecast =
                       Type = typeStr })
         JsonSerializer.Serialize<TempRecurringTransactionDto list>(dtos, jsonOptions)
 
-    let private canonicalUrl (startDate : string) (endDate : string) (toggled : bool) (txnValues : string list) (tmpJson : string) : string =
+    let private canonicalUrl (startDate : string) (endDate : string) (toggled : bool) (txnValues : string list) (overrideBalance : string) (tmpJson : string) : string =
         let parts = System.Collections.Generic.List<string>()
         parts.Add($"startDate={Uri.EscapeDataString startDate}")
         parts.Add($"endDate={Uri.EscapeDataString endDate}")
@@ -79,6 +79,8 @@ module Forecast =
             parts.Add($"prevEndDate={Uri.EscapeDataString endDate}")
             for tx in txnValues do
                 parts.Add($"txn={Uri.EscapeDataString tx}")
+        if not (System.String.IsNullOrEmpty overrideBalance) then
+            parts.Add($"overrideBalance={Uri.EscapeDataString overrideBalance}")
         if not (System.String.IsNullOrEmpty tmpJson) then
             parts.Add($"tmp={Uri.EscapeDataString tmpJson}")
         let joined = System.String.Join("&", parts)
@@ -112,6 +114,7 @@ module Forecast =
                       StartDate = today
                       EndDate = today.AddDays(30.0)
                       StartingBalance = 0M
+                      OverrideStartingBalanceStr = ""
                       Rows = []
                       ChartDates = []
                       ChartBalances = []
@@ -146,6 +149,16 @@ module Forecast =
                 let includedEventIds =
                     if hasToggled && not datesChanged then Some (Set.ofList txnValues) else None
 
+                // Starting-balance override: parse the raw string into a decimal option.
+                // Empty/absent → None (use DB-computed balance). Invalid → None (silently ignored).
+                let overrideBalanceStr = ctx.TryGetQueryStringValue "overrideBalance" |> Option.defaultValue ""
+                let overrideBalance =
+                    if System.String.IsNullOrWhiteSpace overrideBalanceStr then None
+                    else
+                        match System.Decimal.TryParse overrideBalanceStr with
+                        | true, v -> Some v
+                        | false, _ -> None
+
                 // Remove temp item?
                 match ctx.TryGetQueryStringValue "removeTmp" with
                 | Some removeIdxStr ->
@@ -153,10 +166,10 @@ module Forecast =
                     | true, idx when idx >= 0 && idx < List.length tmpItems ->
                         let updated = List.removeAt idx tmpItems
                         let newTmpJson = serializeTempItems updated
-                        let url = canonicalUrl startDateStr endDateStr true txnValues newTmpJson
+                        let url = canonicalUrl startDateStr endDateStr true txnValues overrideBalanceStr newTmpJson
                         return! redirectTo false url next ctx
                     | _ ->
-                        let url = canonicalUrl startDateStr endDateStr true txnValues (serializeTempItems tmpItems)
+                        let url = canonicalUrl startDateStr endDateStr true txnValues overrideBalanceStr (serializeTempItems tmpItems)
                         return! redirectTo false url next ctx
                 | None ->
                     // Add temp item?
@@ -173,7 +186,7 @@ module Forecast =
                         | Ok item ->
                             let updated = tmpItems @ [item]
                             let newTmpJson = serializeTempItems updated
-                            let url = canonicalUrl startDateStr endDateStr true txnValues newTmpJson
+                            let url = canonicalUrl startDateStr endDateStr true txnValues overrideBalanceStr newTmpJson
                             return! redirectTo false url next ctx
                         | Error errMsg ->
                             // Build forecast model preserving toggles + tmp, then decorate with form error.
@@ -181,6 +194,7 @@ module Forecast =
                                 forecastService.BuildForecastAsync(
                                     session.UserId, parsed.StartDate, parsed.EndDate,
                                     ?includedEventIds = includedEventIds,
+                                    ?overrideStartingBalance = overrideBalance,
                                     temporaryRecurringTransactions = tmpItems)
                             let decoratedForm : TempRecurringTransactionForm =
                                 { Error = Some errMsg
@@ -195,6 +209,7 @@ module Forecast =
                                 { model with
                                     TmpJson = serializeTempItems tmpItems
                                     TempItems = tmpItems
+                                    OverrideStartingBalanceStr = overrideBalanceStr
                                     TempItemForm = decoratedForm }
                             return! (setStatusCode 422 >=> htmlView (Views.page decoratedModel)) next ctx
                     else
@@ -203,11 +218,13 @@ module Forecast =
                             forecastService.BuildForecastAsync(
                                 session.UserId, parsed.StartDate, parsed.EndDate,
                                 ?includedEventIds = includedEventIds,
+                                ?overrideStartingBalance = overrideBalance,
                                 temporaryRecurringTransactions = tmpItems)
                         let decoratedModel =
                             { model with
                                 TmpJson = serializeTempItems tmpItems
-                                TempItems = tmpItems }
+                                TempItems = tmpItems
+                                OverrideStartingBalanceStr = overrideBalanceStr }
                         return! htmlView (Views.page decoratedModel) next ctx
         })
 

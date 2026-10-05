@@ -327,6 +327,46 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
         }
 
     [<Fact>]
+    member _.``BuildForecastAsync uses override starting balance when provided``() =
+        task {
+            let! user = createUser ()
+            let now = DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero)
+            let startDate = DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero)
+            let endDate = DateTimeOffset(2026, 6, 30, 0, 0, 0, TimeSpan.Zero)
+
+            // Seed a cleared credit before startDate → DB starting balance = 100.
+            let! _creditBefore =
+                createTransaction user.Id "Salary" 100M (startDate.AddDays(-5.0)) Credit (Cleared (startDate.AddDays(-5.0)))
+
+            // Override to 500 — should replace the DB-computed 100.
+            let! model =
+                service.BuildForecastAsync(user.Id, startDate, endDate, now, overrideStartingBalance = 500M)
+
+            %model.StartingBalance.Should().Be(500M)
+            let firstRow = model.Rows |> List.head
+            %firstRow.Label.Should().Be("Starting balance")
+            %firstRow.RunningBalance.Should().Be(500M)
+            // Chart starts at the override.
+            %model.ChartBalances.Head.Should().Be(500M)
+        }
+
+    [<Fact>]
+    member _.``BuildForecastAsync falls back to DB balance when override absent``() =
+        task {
+            let! user = createUser ()
+            let now = DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero)
+            let startDate = DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero)
+            let endDate = DateTimeOffset(2026, 6, 30, 0, 0, 0, TimeSpan.Zero)
+
+            let! _creditBefore =
+                createTransaction user.Id "Salary" 100M (startDate.AddDays(-5.0)) Credit (Cleared (startDate.AddDays(-5.0)))
+
+            let! model = service.BuildForecastAsync(user.Id, startDate, endDate, now)
+
+            %model.StartingBalance.Should().Be(100M)
+        }
+
+    [<Fact>]
     member _.``BuildForecastAsync includes temporary recurring transactions without persisting``() =
         task {
             let! user = createUser ()

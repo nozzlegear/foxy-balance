@@ -53,6 +53,8 @@ module Forecast =
             G.input [A._type "hidden"; A._name "toggled"; A._value "1"]
             G.input [A._type "hidden"; A._name "prevStartDate"; A._value model.StartDateStr]
             G.input [A._type "hidden"; A._name "prevEndDate"; A._value model.EndDateStr]
+            if not (System.String.IsNullOrEmpty model.OverrideStartingBalanceStr) then
+                G.input [A._type "hidden"; A._name "overrideBalance"; A._value model.OverrideStartingBalanceStr]
             if not (System.String.IsNullOrEmpty model.TmpJson) then
                 G.input [A._type "hidden"; A._name "tmp"; A._value model.TmpJson]
             for row in model.Rows do
@@ -69,6 +71,8 @@ module Forecast =
         parts.Add("toggled=1")
         parts.Add("prevStartDate=" + System.Uri.EscapeDataString model.StartDateStr)
         parts.Add("prevEndDate=" + System.Uri.EscapeDataString model.EndDateStr)
+        if not (System.String.IsNullOrEmpty model.OverrideStartingBalanceStr) then
+            parts.Add("overrideBalance=" + System.Uri.EscapeDataString model.OverrideStartingBalanceStr)
         for row in model.Rows do
             if row.EventId.IsSome && not row.IsTemporary && not row.IsToggledOff then
                 parts.Add("txn=" + System.Uri.EscapeDataString row.EventId.Value)
@@ -76,7 +80,57 @@ module Forecast =
             parts.Add("tmp=" + System.Uri.EscapeDataString model.TmpJson)
         "/forecast?" + System.String.Join("&", parts)
 
-    /// A labelled date input that expands to fill the available row width.
+    /// A table row placed directly under the "Starting balance" row containing a number input
+    /// that lets the user override the starting balance. The input is inside the main forecast
+    /// form, so pressing Enter submits the whole form (re-running the forecast with the override).
+    /// A native popover tooltip (anchored to the ⓘ button via popovertarget) explains what the
+    /// input does — no JS.
+    let private overrideBalanceRow (model : ForecastViewModel) : Shared.TableRow =
+        Shared.TableRow [
+            Shared.TableCell (str "")
+            Shared.TableCell (str "")
+            Shared.TableCell (str "")
+            Shared.TableCell (
+                G.div [A._class "field has-addons"] [
+                    G.div [A._class "control is-expanded"] [
+                        G.input [
+                            A._type "number"
+                            A._class "input is-small"
+                            A._name "overrideBalance"
+                            A._placeholder "Override starting balance"
+                            A._step "0.01"
+                            A._value model.OverrideStartingBalanceStr
+                        ]
+                    ]
+                    G.div [A._class "control"] [
+                        G.button [
+                            A._type "submit"
+                            A._class "button is-small is-light"
+                        ] [ G.str "Set" ]
+                    ]
+                    G.div [A._class "control"] [
+                        G.button [
+                            A._type "button"
+                            A._class "button is-small is-white"
+                            G.attr "popovertarget" "override-balance-help"
+                            G.attr "aria-label" "Override starting balance help"
+                        ] [ G.str "ⓘ" ]
+                    ]
+                    // Native popover tooltip — positioned by the UA near the button.
+                    G.div [
+                        G.attr "popover" "auto"
+                        A._id "override-balance-help"
+                        A._style "padding:0.75rem;max-width:22rem;font-size:0.875rem;"
+                    ] [
+                        G.p [] [
+                            G.str "Enter a custom starting balance to override the computed sum of all transactions before the start date. Leave blank to use the real balance."
+                        ]
+                    ]
+                ]
+            )
+            Shared.TableCell (str "")
+            Shared.TableCell (str "")
+        ]
     let private dateField (label : string) (htmlName : string) (value : string) : XmlNode =
         G.div [A._class "control is-expanded"] [
             G.label [A._class "label"; A._for htmlName] [G.str label]
@@ -328,40 +382,52 @@ document.addEventListener('DOMContentLoaded', function () {
                                 ]
                                 Shared.TableBody [
                                     for row in model.Rows do
-                                        yield Shared.TableRow [
-                                            // Checkbox cell: only for toggleable event rows (not temp, not status rows)
-                                            Shared.TableCell (
-                                                match row.EventId with
-                                                | Some eventId when not row.IsTemporary ->
-                                                    let checkboxAttrs =
-                                                        [ A._type "checkbox"
-                                                          A._name "txn"
-                                                          A._value eventId
-                                                          A._class "forecast-toggle"
-                                                          G.attr "aria-label" (sprintf "Include %s in forecast" row.Description) ]
-                                                        @ (if not row.IsToggledOff then [A._checked] else [])
-                                                    G.input checkboxAttrs
-                                                | _ -> str ""
-                                            )
-                                            Shared.TableCell (Format.date row.Date |> str)
-                                            Shared.TableCell (
-                                                if row.IsTemporary then
-                                                    G.span [] [
+                                        // Inject the override-balance row right after the "Starting balance" row.
+                                        if row.Label = "Starting balance" then
+                                            yield Shared.TableRow [
+                                                Shared.TableCell (str "")
+                                                Shared.TableCell (Format.date row.Date |> str)
+                                                Shared.TableCell (str row.Label)
+                                                Shared.TableCell (str row.Description)
+                                                Shared.TableCell (str "")
+                                                Shared.TableCell (Format.amountWithDollarSign row.RunningBalance |> str)
+                                            ]
+                                            yield overrideBalanceRow model
+                                        else
+                                            yield Shared.TableRow [
+                                                // Checkbox cell: only for toggleable event rows (not temp, not status rows)
+                                                Shared.TableCell (
+                                                    match row.EventId with
+                                                    | Some eventId when not row.IsTemporary ->
+                                                        let checkboxAttrs =
+                                                            [ A._type "checkbox"
+                                                              A._name "txn"
+                                                              A._value eventId
+                                                              A._class "forecast-toggle"
+                                                              G.attr "aria-label" (sprintf "Include %s in forecast" row.Description) ]
+                                                                @ (if not row.IsToggledOff then [A._checked] else [])
+                                                        G.input checkboxAttrs
+                                                    | _ -> str ""
+                                                )
+                                                Shared.TableCell (Format.date row.Date |> str)
+                                                Shared.TableCell (
+                                                    if row.IsTemporary then
+                                                        G.span [] [
+                                                            str row.Label
+                                                            str " "
+                                                            G.span [A._class "tag is-warning is-light"] [str "Temporary"]
+                                                        ]
+                                                    else
                                                         str row.Label
-                                                        str " "
-                                                        G.span [A._class "tag is-warning is-light"] [str "Temporary"]
-                                                    ]
-                                                else
-                                                    str row.Label
-                                            )
-                                            Shared.TableCell (str row.Description)
-                                            Shared.TableCell (
-                                                match row.Amount with
-                                                | Some a -> amountCell a
-                                                | None -> str ""
-                                            )
-                                            Shared.TableCell (Format.amountWithDollarSign row.RunningBalance |> str)
-                                        ]
+                                                )
+                                                Shared.TableCell (str row.Description)
+                                                Shared.TableCell (
+                                                    match row.Amount with
+                                                    | Some a -> amountCell a
+                                                    | None -> str ""
+                                                )
+                                                Shared.TableCell (Format.amountWithDollarSign row.RunningBalance |> str)
+                                            ]
                                 ]
                             ]
                         ]

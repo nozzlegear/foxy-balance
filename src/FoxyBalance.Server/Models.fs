@@ -516,6 +516,7 @@ module ViewModels =
           StartDate : DateTimeOffset
           EndDate : DateTimeOffset
           StartingBalance : decimal
+          OverrideStartingBalanceStr : string
           Rows : ForecastRow list
           ChartDates : string list
           ChartBalances : decimal list

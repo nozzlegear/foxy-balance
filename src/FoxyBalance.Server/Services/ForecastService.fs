@@ -64,10 +64,12 @@ type ForecastService(
     /// Build the full forecast: backfill real transactions then project recurring ones.
     /// The `now` parameter defaults to UtcNow so tests can anchor it deterministically.
     /// `includedEventIds` when Some determines which events are toggled on (off = excluded from calc).
+    /// `overrideStartingBalance` when Some replaces the DB-computed starting balance.
     /// `temporaryRecurringTransactions` are forecast-only recurring bills never persisted to DB.
     member this.BuildForecastAsync(userId : UserId, startDate : DateTimeOffset, endDate : DateTimeOffset,
                                    ?now : DateTimeOffset,
                                    ?includedEventIds : Set<string>,
+                                   ?overrideStartingBalance : decimal,
                                    ?temporaryRecurringTransactions : TempRecurringTransaction list)
                                    : Task<ForecastViewModel> =
         let now = defaultArg now DateTimeOffset.UtcNow
@@ -76,7 +78,9 @@ type ForecastService(
         task {
             // 1. Starting balance: all transactions before startDate, including pending.
             let! startingSum = transactionDb.SumAsOfDateAsync(userId, startDate, true)
-            let startingBalance = startingSum.Sum
+            let dbBalance = startingSum.Sum
+            // Apply user override if provided; otherwise use the DB-computed balance.
+            let startingBalance = defaultArg overrideStartingBalance dbBalance
 
             // 2. Real transactions in [startDate, endDate].
             let! realTxns = transactionDb.ListInRangeAsync(userId, startDate, endDate)
@@ -194,6 +198,7 @@ type ForecastService(
                   StartDate = startDate
                   EndDate = endDate
                   StartingBalance = startingBalance
+                  OverrideStartingBalanceStr = ""
                   Rows = allRows
                   ChartDates = chartDates
                   ChartBalances = chartBalances
