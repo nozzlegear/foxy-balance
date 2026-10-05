@@ -20,23 +20,82 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                     IF hasOldTable THEN
                         ALTER TABLE foxybalance_recurringbills RENAME TO foxybalance_recurringtransactions;
                     END IF;
+                END;
+            $$;
 
-                    -- Rename old unprefixed columns to current codebase names (no-ops if already renamed)
-                    ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN IF EXISTS weekofmonth TO scheduleweekofmonth;
-                    ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN IF EXISTS dayofweek TO scheduledayofweek;
+            DO $$
+                DECLARE tableExists BOOLEAN;
+                DECLARE hasScheduleType BOOLEAN;
+                DECLARE hasScheduledDate BOOLEAN;
+                DECLARE hasWeekOfMonthColumn BOOLEAN;
+                DECLARE hasDayOfWeekColumn BOOLEAN;
 
-                    -- Add columns that don't exist in the old schema
-                    ALTER TABLE foxybalance_recurringtransactions ADD COLUMN IF NOT EXISTS scheduletype INT DEFAULT 0;
-                    ALTER TABLE foxybalance_recurringtransactions ADD COLUMN IF NOT EXISTS scheduleddate INT;
+                BEGIN
+                    -- Check if the transactions table exists
+                    SELECT EXISTS (SELECT 1 FROM information_schema.tables
+                        WHERE table_name = 'foxybalance_recurringtransactions') INTO tableExists;
 
+                    IF NOT tableExists THEN
+                        RETURN;
+                    END IF;
+
+                    -- Check existing columns
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduletype') INTO hasScheduleType;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleddate') INTO hasScheduledDate;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasWeekOfMonthColumn;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasDayOfWeekColumn;
+
+                    IF NOT hasScheduleType THEN
+                        ALTER TABLE foxybalance_recurringtransactions ADD COLUMN scheduletype INT DEFAULT 0;
+                    END IF;
+
+                    IF NOT hasScheduledDate THEN
+                        ALTER TABLE foxybalance_recurringtransactions ADD COLUMN scheduledate INT;
+                    END IF;
+
+                    IF hasWeekOfMonthColumn AND NOT hasDayOfWeekColumn THEN
+                        ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN weekofmonth TO scheduleweekofmonth;
+                        ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN dayofweek TO scheduledayofweek;
+                    END IF;
                 END;
             $$;
         """)
 
     override this.Down() =
         // Reverse column changes from Up. Table rename reversed by Migration_007.Down().
-        [this.Execute.Sql("ALTER TABLE foxybalance_recurringtransactions DROP COLUMN IF EXISTS scheduletype;"),
-         this.Execute.Sql("ALTER TABLE foxybalance_recurringtransactions DROP COLUMN IF EXISTS scheduleddate;"),
-         this.Execute.Sql("ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN IF EXISTS scheduleweekofmonth TO weekofmonth;"),
-         this.Execute.Sql("ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN IF EXISTS scheduledayofweek TO dayofweek;")]
-        |> ignore
+        this.Execute.Sql("""
+            DO $$
+                DECLARE hasScheduleType BOOLEAN;
+                DECLARE hasScheduledDate BOOLEAN;
+                DECLARE hasWeekOfMonthColumn BOOLEAN;
+                DECLARE hasDayOfWeekColumn BOOLEAN;
+
+                BEGIN
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduletype') INTO hasScheduleType;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleddate') INTO hasScheduledDate;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasWeekOfMonthColumn;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasDayOfWeekColumn;
+
+                    IF hasScheduleType THEN
+                        ALTER TABLE foxybalance_recurringtransactions DROP COLUMN scheduletype;
+                    END IF;
+
+                    IF hasScheduledDate THEN
+                        ALTER TABLE foxybalance_recurringtransactions DROP COLUMN scheduledate;
+                    END IF;
+
+                    IF hasWeekOfMonthColumn AND NOT hasDayOfWeekColumn THEN
+                        ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN scheduleweekofmonth TO weekofmonth;
+                        ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN scheduledayofweek TO dayofweek;
+                    END IF;
+                END;
+            $$;
+        """)
