@@ -174,3 +174,8 @@ dialog#forecast-temp-dialog {
     max-width: 32rem;
     width: calc(100% - 2rem);
 }
+
+/* Slight dimming of the page behind the dialog when it's open (native ::backdrop). */
+dialog#forecast-temp-dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.2);
+}
