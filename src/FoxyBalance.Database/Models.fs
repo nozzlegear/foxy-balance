@@ -98,8 +98,25 @@ type WeekOfMonthScheduleDef =
     { WeekOfMonth : WeekOfMonth 
       DayOfWeek : System.DayOfWeek }
 
+/// How to apply a calendar-date schedule in months where the chosen day
+/// doesn't exist (e.g. the 31st in a 30-day month, or Feb 29 in a non-leap year).
+type ApplyDate =
+    | LastDayOfMonth   // apply early: use the last valid day of the target month
+    | NextMonth1st     // apply late:  use the 1st of the next month
+    with
+    member this.ToDbString() =
+        match this with
+        | LastDayOfMonth -> "early"
+        | NextMonth1st -> "late"
+    static member FromDbString(s : string) =
+        match s with
+        | "early" -> Some LastDayOfMonth
+        | "late" -> Some NextMonth1st
+        | _ -> None
+
 type ScheduledDateScheduleDef =
-    { Date : int }  // 1-31
+    { Date : int                      // 1-31
+      Apply : ApplyDate option }      // None = skip months where Date doesn't exist (legacy behavior)
 
 type ScheduleType =
     | ByWeekOfMonth of WeekOfMonthScheduleDef

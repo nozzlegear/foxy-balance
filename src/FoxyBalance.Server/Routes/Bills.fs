@@ -45,6 +45,25 @@ module Bills =
                 return! (setStatusCode 404 >=> text "Not Found") next ctx
         })
 
+    /// Build an EditRecurringBillViewModel from a failed request, preserving all submitted
+    /// fields. Translates the APPLY_DATE_REQUIRED sentinel into a user-facing message that
+    /// prompts the user to choose how to apply a potentially-invalid day (29-31).
+    let private modelFromFailedRequest (request : EditRecurringTransactionRequest) (msg : string) : EditRecurringBillViewModel =
+        let friendlyError =
+            if msg = "APPLY_DATE_REQUIRED" then
+                Some "The chosen day may not exist in every month. Choose how to apply it on months where it doesn't exist."
+            else
+                Some msg
+        { Error = friendlyError
+          Name = request.Name
+          Amount = request.Amount
+          ScheduleType = request.ScheduleType |> Option.defaultValue "week"
+          WeekOfMonth = request.WeekOfMonth |> Option.defaultValue "1"
+          DayOfWeek = request.DayOfWeek |> Option.defaultValue "0"
+          DayOfMonth = request.DayOfMonth |> Option.defaultValue "1"
+          ApplyDate = request.ApplyDate |> Option.defaultValue ""
+          Type = request.Type |> Option.defaultValue "bill" }
+
     let newBillPostHandler : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
             let! request = ctx.BindFormAsync<EditRecurringTransactionRequest>()
@@ -52,13 +71,7 @@ module Bills =
 
             match EditRecurringTransactionRequest.Validate request with
             | Error msg ->
-                let model =
-                    { Error = Some msg
-                      Name = request.Name
-                      Amount = request.Amount
-                      WeekOfMonth = request.WeekOfMonth |> Option.defaultValue "1"
-                      DayOfWeek = request.DayOfWeek |> Option.defaultValue "0"
-                      Type = request.Type |> Option.defaultValue "bill" }
+                let model = modelFromFailedRequest request msg
 
                 let view =
                     model
@@ -80,13 +93,7 @@ module Bills =
 
             match EditRecurringTransactionRequest.Validate request with
             | Error msg ->
-                let model =
-                    { Error = Some msg
-                      Name = request.Name
-                      Amount = request.Amount
-                      WeekOfMonth = request.WeekOfMonth |> Option.defaultValue "1"
-                      DayOfWeek = request.DayOfWeek |> Option.defaultValue "0"
-                      Type = request.Type |> Option.defaultValue "bill" }
+                let model = modelFromFailedRequest request msg
 
                 let view =
                     (billId, model)

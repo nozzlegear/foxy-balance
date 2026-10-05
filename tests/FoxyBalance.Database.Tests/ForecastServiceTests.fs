@@ -42,7 +42,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth }
+                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth; Apply = None }
                   Type = RecurringTransactionType.Bill }
             return! recurringTransactionDatabase.CreateAsync(userId, partialBill)
         }
@@ -381,7 +381,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
             // Temp item: bill on the 25th.
             let tempItems : TempRecurringTransaction list =
-                [ { Name = "New bill"; Amount = 100M; Schedule = ScheduleType.ByCalendarDate { Date = 25 }; Type = RecurringTransactionType.Bill } ]
+                [ { Name = "New bill"; Amount = 100M; Schedule = ScheduleType.ByCalendarDate { Date = 25; Apply = None }; Type = RecurringTransactionType.Bill } ]
 
             let! model =
                 service.BuildForecastAsync(user.Id, startDate, endDate, now,
@@ -402,7 +402,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
             // Temp occurrence on/before today is filtered: temp on the 15th with now = June 15 should NOT appear.
             let tempToday : TempRecurringTransaction list =
-                [ { Name = "Today bill"; Amount = 50M; Schedule = ScheduleType.ByCalendarDate { Date = 15 }; Type = RecurringTransactionType.Bill } ]
+                [ { Name = "Today bill"; Amount = 50M; Schedule = ScheduleType.ByCalendarDate { Date = 15; Apply = None }; Type = RecurringTransactionType.Bill } ]
             let! model2 =
                 service.BuildForecastAsync(user.Id, startDate, endDate, now,
                                            temporaryRecurringTransactions = tempToday)
@@ -425,7 +425,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
             // Temp credit on the 25th.
             let tempItems : TempRecurringTransaction list =
-                [ { Name = "Freelance"; Amount = 200M; Type = RecurringTransactionType.Income; Schedule = ScheduleType.ByCalendarDate { Date = 25 } } ]
+                [ { Name = "Freelance"; Amount = 200M; Type = RecurringTransactionType.Income; Schedule = ScheduleType.ByCalendarDate { Date = 25; Apply = None } } ]
 
             let! model =
                 service.BuildForecastAsync(user.Id, startDate, endDate, now,

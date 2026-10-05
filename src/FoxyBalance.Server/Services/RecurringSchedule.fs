@@ -6,18 +6,30 @@ open FoxyBalance.Database.Models
 module RecurringSchedule =
 
     /// Calculate the target date for a given schedule within the month of `referenceDate`.
-    /// For `ByCalendarDate`, returns `referenceDate.Year/Month/Date`, skipping the month if
-    /// `Date` exceeds that month's day count.
+    /// For `ByCalendarDate`:
+    ///   - if `Date` exists in the month, use it directly;
+    ///   - if `Date` exceeds the month's day count and `Apply` is set, fall back to the last
+    ///     day of the month (LastDayOfMonth) or the 1st of the next month (NextMonth1st);
+    ///   - otherwise (Apply = None), skip the month (return None) — legacy behavior.
     /// For `ByWeekOfMonth`, returns the Nth occurrence of the specified day of week in that month.
     let targetDateForMonth (schedule : ScheduleType) (referenceDate : DateTimeOffset) : DateTimeOffset option =
         match schedule with
         | ScheduleType.ByCalendarDate sched ->
             let daysInMonth = DateTime.DaysInMonth(referenceDate.Year, referenceDate.Month)
-            if sched.Date > daysInMonth then
-                None
-            else
+            if sched.Date <= daysInMonth then
                 DateTimeOffset(referenceDate.Year, referenceDate.Month, sched.Date, 0, 0, 0, referenceDate.Offset)
                 |> Some
+            else
+                match sched.Apply with
+                | Some LastDayOfMonth ->
+                    DateTimeOffset(referenceDate.Year, referenceDate.Month, daysInMonth, 0, 0, 0, referenceDate.Offset)
+                    |> Some
+                | Some NextMonth1st ->
+                    let next = referenceDate.AddMonths(1)
+                    DateTimeOffset(next.Year, next.Month, 1, 0, 0, 0, referenceDate.Offset)
+                    |> Some
+                | None ->
+                    None
         | ScheduleType.ByWeekOfMonth sched ->
             let firstDayOfMonth = DateTimeOffset(referenceDate.Year, referenceDate.Month, 1, 0, 0, 0, referenceDate.Offset)
             let daysUntilTargetDay = (int sched.DayOfWeek - int firstDayOfMonth.DayOfWeek + 7) % 7

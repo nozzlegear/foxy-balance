@@ -252,7 +252,7 @@ type ForecastService(
                             Error "Date of month must be between 1 and 31."
                         else
                             Ok { Name = trimmedName; Amount = amt
-                                 Schedule = ByCalendarDate { Date = dateVal }
+                                 Schedule = ByCalendarDate { Date = dateVal; Apply = None }
                                  Type = tempType }
                     | other ->
                         Error $"Unrecognized schedule type {other}."

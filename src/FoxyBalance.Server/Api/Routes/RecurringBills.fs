@@ -14,8 +14,11 @@ module RecurringTransactions =
     let private toEditTransactionRequest (req: ApiRecurringTransactionRequest) : EditRecurringTransactionRequest =
         { Name = req.Name
           Amount = req.Amount
+          ScheduleType = req.ScheduleType
           WeekOfMonth = req.WeekOfMonth
           DayOfWeek = req.DayOfWeek
+          DayOfMonth = req.DayOfMonth
+          ApplyDate = req.ApplyDate
           Type = req.Type }
 
     /// GET /api/v1/bills  (recurring transactions)

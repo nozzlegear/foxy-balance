@@ -24,15 +24,14 @@ module Bills =
         | System.DayOfWeek.Saturday -> "Saturday"
         | _ -> failwith "Unexpected DayOfWeek value"
 
-    let private scheduleTypeLabel (schedule : ScheduleType) =
+    /// Human-readable description of a schedule for the list table.
+    /// ByWeekOfMonth: "1st week, Monday". ByCalendarDate: "Day 15 of month".
+    let private scheduleLabel (schedule : ScheduleType) =
         match schedule with
-        | ScheduleType.ByWeekOfMonth sched -> formatWeekOfMonth sched.WeekOfMonth
-        | ScheduleType.ByCalendarDate sched -> $"Date {sched.Date}"
-
-    let private scheduleDayOfWeek (schedule : ScheduleType) =
-        match schedule with
-        | ScheduleType.ByWeekOfMonth sched -> sched.DayOfWeek
-        | ScheduleType.ByCalendarDate _ -> System.DayOfWeek.Monday
+        | ScheduleType.ByWeekOfMonth sched ->
+            $"{formatWeekOfMonth sched.WeekOfMonth} week, {formatDayOfWeek sched.DayOfWeek}"
+        | ScheduleType.ByCalendarDate sched ->
+            $"Day {sched.Date} of month"
 
     let private recurringTypeLabel (t : RecurringTransactionType) =
         match t with
@@ -155,29 +154,92 @@ module Bills =
                     Form.SelectOption.Value viewModel.Type ]
 
                 Form.Element.SelectBox [
-                    Form.SelectOption.LabelText "Week of Month"
-                    Form.SelectOption.HtmlName "weekOfMonth"
+                    Form.SelectOption.LabelText "Schedule type"
+                    Form.SelectOption.HtmlName "scheduleType"
                     Form.SelectOption.Options [
-                        {| Label = "1st week"; Value = "1"; Selected = viewModel.WeekOfMonth = "1" |}
-                        {| Label = "2nd week"; Value = "2"; Selected = viewModel.WeekOfMonth = "2" |}
-                        {| Label = "3rd week"; Value = "3"; Selected = viewModel.WeekOfMonth = "3" |}
-                        {| Label = "4th week"; Value = "4"; Selected = viewModel.WeekOfMonth = "4" |}
+                        {| Label = "By week of month"; Value = "week"; Selected = viewModel.ScheduleType = "week" |}
+                        {| Label = "By calendar date"; Value = "date"; Selected = viewModel.ScheduleType = "date" |}
                     ]
-                    Form.SelectOption.Value viewModel.WeekOfMonth ]
+                    Form.SelectOption.Value viewModel.ScheduleType ]
 
-                Form.Element.SelectBox [
-                    Form.SelectOption.LabelText "Day of Week"
-                    Form.SelectOption.HtmlName "dayOfWeek"
-                    Form.SelectOption.Options [
-                        {| Label = "Sunday"; Value = "0"; Selected = viewModel.DayOfWeek = "0" |}
-                        {| Label = "Monday"; Value = "1"; Selected = viewModel.DayOfWeek = "1" |}
-                        {| Label = "Tuesday"; Value = "2"; Selected = viewModel.DayOfWeek = "2" |}
-                        {| Label = "Wednesday"; Value = "3"; Selected = viewModel.DayOfWeek = "3" |}
-                        {| Label = "Thursday"; Value = "4"; Selected = viewModel.DayOfWeek = "4" |}
-                        {| Label = "Friday"; Value = "5"; Selected = viewModel.DayOfWeek = "5" |}
-                        {| Label = "Saturday"; Value = "6"; Selected = viewModel.DayOfWeek = "6" |}
-                    ]
-                    Form.SelectOption.Value viewModel.DayOfWeek ]
+                // Week-of-month fields: only relevant (and rendered) for the "week" schedule type.
+                Form.Element.MaybeElement (
+                    if viewModel.ScheduleType = "week" then
+                        Some (Form.Element.Group [
+                            Form.Element.SelectBox [
+                                Form.SelectOption.LabelText "Week of Month"
+                                Form.SelectOption.HtmlName "weekOfMonth"
+                                Form.SelectOption.Options [
+                                    {| Label = "1st week"; Value = "1"; Selected = viewModel.WeekOfMonth = "1" |}
+                                    {| Label = "2nd week"; Value = "2"; Selected = viewModel.WeekOfMonth = "2" |}
+                                    {| Label = "3rd week"; Value = "3"; Selected = viewModel.WeekOfMonth = "3" |}
+                                    {| Label = "4th week"; Value = "4"; Selected = viewModel.WeekOfMonth = "4" |}
+                                ]
+                                Form.SelectOption.Value viewModel.WeekOfMonth ]
+
+                            Form.Element.SelectBox [
+                                Form.SelectOption.LabelText "Day of Week"
+                                Form.SelectOption.HtmlName "dayOfWeek"
+                                Form.SelectOption.Options [
+                                    {| Label = "Sunday"; Value = "0"; Selected = viewModel.DayOfWeek = "0" |}
+                                    {| Label = "Monday"; Value = "1"; Selected = viewModel.DayOfWeek = "1" |}
+                                    {| Label = "Tuesday"; Value = "2"; Selected = viewModel.DayOfWeek = "2" |}
+                                    {| Label = "Wednesday"; Value = "3"; Selected = viewModel.DayOfWeek = "3" |}
+                                    {| Label = "Thursday"; Value = "4"; Selected = viewModel.DayOfWeek = "4" |}
+                                    {| Label = "Friday"; Value = "5"; Selected = viewModel.DayOfWeek = "5" |}
+                                    {| Label = "Saturday"; Value = "6"; Selected = viewModel.DayOfWeek = "6" |}
+                                ]
+                                Form.SelectOption.Value viewModel.DayOfWeek ]
+                        ])
+                    else
+                        None)
+
+                // Calendar-date fields: only relevant (and rendered) for the "date" schedule type.
+                Form.Element.MaybeElement (
+                    if viewModel.ScheduleType = "date" then
+                        // Determine whether the chosen day may not exist in every month (29-31)
+                        // and whether the user has already chosen an apply policy.
+                        let dayOpt =
+                            match System.Int32.TryParse viewModel.DayOfMonth with
+                            | true, d -> Some d
+                            | false, _ -> None
+                        let dayIsPotentiallyInvalid =
+                            dayOpt |> Option.exists (fun d -> d >= 29)
+                        let applyNotChosen = System.String.IsNullOrEmpty viewModel.ApplyDate
+
+                        let dayOfMonthSelect =
+                            Form.Element.SelectBox [
+                                Form.SelectOption.LabelText "Day of Month"
+                                Form.SelectOption.HtmlName "dayOfMonth"
+                                Form.SelectOption.Options [
+                                    for d in 1..31 do
+                                        yield {| Label = string d; Value = string d; Selected = viewModel.DayOfMonth = string d |}
+                                ]
+                                Form.SelectOption.Value viewModel.DayOfMonth ]
+
+                        // The "How to apply" selector only appears after a re-render triggered by
+                        // submitting a potentially-invalid day without an apply policy. It stays
+                        // visible once the user has chosen a policy so they can change it.
+                        let applySelect =
+                            Form.Element.MaybeElement (
+                                if dayIsPotentiallyInvalid then
+                                    Some (
+                                        Form.Element.SelectBox [
+                                            Form.SelectOption.LabelText "How to apply this date"
+                                            Form.SelectOption.HtmlName "applyDate"
+                                            Form.SelectOption.Options [
+                                                {| Label = "Choose…"; Value = ""; Selected = applyNotChosen |}
+                                                {| Label = "Apply early (last day of the month)"; Value = "early"; Selected = viewModel.ApplyDate = "early" |}
+                                                {| Label = "Apply late (1st of next month)"; Value = "late"; Selected = viewModel.ApplyDate = "late" |}
+                                            ]
+                                            Form.SelectOption.Value viewModel.ApplyDate ]
+                                    )
+                                else
+                                    None)
+
+                        Some (Form.Element.Group [ dayOfMonthSelect; applySelect ])
+                    else
+                        None)
 
                 Form.Element.MaybeError viewModel.Error
 
@@ -237,14 +299,9 @@ module Bills =
                                 G.p [A._class "has-text-weight-bold"] [G.str "Recurring Txn"]
                                 G.p [] [G.str rt.Name]
                                 G.p [A._class "is-size-7"] [
-                                    let scheduleInfo =
-                                        match rt.Schedule with
-                                        | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth, sched.DayOfWeek)
-                                        | ScheduleType.ByCalendarDate sched -> (FirstWeek, System.DayOfWeek.Monday)
-                                    G.str (sprintf "%s - %s week, %s"
+                                    G.str (sprintf "%s - %s"
                                         (Format.amountWithDollarSign rt.Amount)
-                                        (formatWeekOfMonth (fst scheduleInfo))
-                                        (formatDayOfWeek (snd scheduleInfo)))
+                                        (scheduleLabel rt.Schedule))
                                 ]
                             ]
                             G.div [A._class "column is-2"] [

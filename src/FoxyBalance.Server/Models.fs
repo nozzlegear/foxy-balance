@@ -206,8 +206,11 @@ module RequestModels =
     type EditRecurringTransactionRequest =
         { Name : string
           Amount : string
+          ScheduleType : string option    // "week" | "date"; defaults to "week"
           WeekOfMonth : string option
           DayOfWeek : string option
+          DayOfMonth : string option      // 1-31 (when ScheduleType = "date")
+          ApplyDate : string option       // "early" | "late" (when day may not exist)
           Type : string option }
         with
         static member Validate model : Result<PartialRecurringTransaction, string> =
@@ -224,22 +227,59 @@ module RequestModels =
                 | true, amount when amount % 0.01M <> 0M -> Error "Amount cannot have more than two decimal places."
                 | true, amount -> Ok amount
 
-            let validateScheduleType weekStr dayStr =
-                match weekStr, dayStr with
-                | None, None -> Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
-                | Some "", Some "" -> Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
-                | Some w, Some d ->
-                    let weekOk, week = System.Int32.TryParse w
-                    let dayOk, day = System.Int32.TryParse d
-                    if not weekOk || not dayOk then
-                        Error (sprintf "Could not parse week of month '%s' or day of week '%s'." w d)
-                    elif week < 1 || week > 4 then
-                        Error "Week of month must be between 1 and 4."
-                    elif day < 0 || day > 6 then
-                        Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
-                    else
-                        Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt week; DayOfWeek = enum<System.DayOfWeek> day })
-                | _ -> Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
+            let validateSchedule =
+                let schedType = model.ScheduleType |> Option.defaultValue "week" |> (fun s -> s.ToLowerInvariant())
+                match schedType with
+                | "week" ->
+                    // Week-of-month path: parse week + day of week.
+                    match model.WeekOfMonth, model.DayOfWeek with
+                    | Some w, Some d ->
+                        let weekOk, week = System.Int32.TryParse w
+                        let dayOk, day = System.Int32.TryParse d
+                        if not weekOk || not dayOk then
+                            Error (sprintf "Could not parse week of month '%s' or day of week '%s'." w d)
+                        elif week < 1 || week > 4 then
+                            Error "Week of month must be between 1 and 4."
+                        elif day < 0 || day > 6 then
+                            Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
+                        else
+                            Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt week; DayOfWeek = enum<System.DayOfWeek> day })
+                    | _ ->
+                        Ok (ScheduleType.ByWeekOfMonth { WeekOfMonth = FirstWeek; DayOfWeek = System.DayOfWeek.Monday })
+                | "date" ->
+                    // Calendar-date path: parse day-of-month (1-31) and an optional apply policy.
+                    match model.DayOfMonth with
+                    | None | Some "" ->
+                        Error "You must select a day of the month for a calendar-date schedule."
+                    | Some dayStr ->
+                        let dayOk, day = System.Int32.TryParse dayStr
+                        if not dayOk || day < 1 || day > 31 then
+                            Error "Day of month must be between 1 and 31."
+                        else
+                            // Days 29-31 may not exist in every month. Require an explicit apply
+                            // policy so the scheduler knows how to handle those months.
+                            let needsApplyPolicy = day >= 29
+                            let applyOpt =
+                                model.ApplyDate
+                                |> Option.bind (fun s -> if System.String.IsNullOrWhiteSpace s then None else Some (s.ToLowerInvariant()))
+                            match needsApplyPolicy, applyOpt with
+                            | true, None ->
+                                // Re-render trigger: the route returns the form with the apply
+                                // selector visible so the user can choose early vs. late.
+                                Error "APPLY_DATE_REQUIRED"
+                            | true, Some "early" ->
+                                Ok (ScheduleType.ByCalendarDate { Date = day; Apply = Some ApplyDate.LastDayOfMonth })
+                            | true, Some "late" ->
+                                Ok (ScheduleType.ByCalendarDate { Date = day; Apply = Some ApplyDate.NextMonth1st })
+                            | true, Some other ->
+                                Error (sprintf "Unrecognized apply-date policy '%s'. Choose 'early' or 'late'." other)
+                            | false, None ->
+                                Ok (ScheduleType.ByCalendarDate { Date = day; Apply = None })
+                            | false, Some _ ->
+                                // Day always exists; apply policy is irrelevant but harmless. Ignore it.
+                                Ok (ScheduleType.ByCalendarDate { Date = day; Apply = None })
+                | other ->
+                    Error (sprintf "Unrecognized schedule type '%s'. Use 'week' or 'date'." other)
 
             let validateType (typeOpt : string option) =
                 match typeOpt |> Option.defaultValue "bill" with
@@ -247,7 +287,7 @@ module RequestModels =
                 | "income" -> Ok RecurringTransactionType.Income
                 | other -> Error (sprintf "Unrecognized recurring transaction type %s." other)
 
-            match validateName model.Name, validateAmount model.Amount, validateScheduleType model.WeekOfMonth model.DayOfWeek, validateType model.Type with
+            match validateName model.Name, validateAmount model.Amount, validateSchedule, validateType model.Type with
             | Error msg, _, _, _ -> Error msg
             | Ok _, Error msg, _, _ -> Error msg
             | Ok _, Ok _, Error msg, _ -> Error msg
@@ -437,28 +477,40 @@ module ViewModels =
         { Error : string option
           Name : string
           Amount : string
+          ScheduleType : string    // "week" | "date"
           WeekOfMonth : string
           DayOfWeek : string
+          DayOfMonth : string     // 1-31 (when ScheduleType = "date")
+          ApplyDate : string      // "early" | "late" | "" (chosen apply policy)
           Type : string }
         with
         static member Default =
             { Error = None
               Name = ""
               Amount = ""
+              ScheduleType = "week"
               WeekOfMonth = "1"
               DayOfWeek = "0"
+              DayOfMonth = "1"
+              ApplyDate = ""
               Type = "bill" }
 
         static member FromExistingTransaction (t: RecurringTransaction) =
-            let weekOfMonth, dayOfWeek =
+            let scheduleType, weekOfMonth, dayOfWeek, dayOfMonth, applyDate =
                 match t.Schedule with
-                | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth.ToInt(), int sched.DayOfWeek)
-                | ScheduleType.ByCalendarDate sched -> (0, sched.Date)
+                | ScheduleType.ByWeekOfMonth sched ->
+                    ("week", sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, 1, "")
+                | ScheduleType.ByCalendarDate sched ->
+                    let apply = sched.Apply |> Option.map (fun a -> a.ToDbString()) |> Option.defaultValue ""
+                    ("date", 1, 0, sched.Date, apply)
             { Error = None
               Name = t.Name
               Amount = string t.Amount
+              ScheduleType = scheduleType
               WeekOfMonth = string weekOfMonth
               DayOfWeek = string dayOfWeek
+              DayOfMonth = string dayOfMonth
+              ApplyDate = applyDate
               Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income" }
 
     type BillViewModel =

@@ -56,6 +56,21 @@ module ApiDtos =
         | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth.ToInt(), int sched.DayOfWeek)
         | ScheduleType.ByCalendarDate sched -> (0, sched.Date)
 
+    let private scheduleTypeStr (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByWeekOfMonth _ -> "week"
+        | ScheduleType.ByCalendarDate _ -> "date"
+
+    let private dayOfMonth (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByWeekOfMonth _ -> None
+        | ScheduleType.ByCalendarDate sched -> Some sched.Date
+
+    let private applyDateStr (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByWeekOfMonth _ -> None
+        | ScheduleType.ByCalendarDate sched -> sched.Apply |> Option.map (fun a -> a.ToDbString())
+
     let fromRecurringTransaction (t: RecurringTransaction) =
         let weekOfMonth, dayOfWeek = scheduleInfo t
         {| Id = t.Id
@@ -63,6 +78,9 @@ module ApiDtos =
            Amount = t.Amount
            WeekOfMonth = weekOfMonth
            DayOfWeek = dayOfWeek
+           ScheduleType = scheduleTypeStr t
+           DayOfMonth = dayOfMonth t
+           ApplyDate = applyDateStr t
            Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income"
            DateCreated = t.DateCreated
            LastAppliedDate = t.LastAppliedDate

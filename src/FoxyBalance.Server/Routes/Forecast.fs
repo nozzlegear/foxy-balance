@@ -43,7 +43,7 @@ module Forecast =
                                Type = tempType }
                     | _, _, Some date ->
                         Some { Name = d.Name; Amount = d.Amount
-                               Schedule = ScheduleType.ByCalendarDate { Date = date }
+                               Schedule = ScheduleType.ByCalendarDate { Date = date; Apply = None }
                                Type = tempType }
                     | _ -> None)
             with
