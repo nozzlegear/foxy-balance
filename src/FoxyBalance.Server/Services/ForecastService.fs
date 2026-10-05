@@ -95,14 +95,28 @@ type ForecastService(
                        EventId = sprintf "t%i" t.Id
                        IsTemporary = false |})
 
-            // 3. Predicted recurring transactions: active ones, occurrences > today, in [startDate, endDate].
+            // 3. Predicted recurring transactions: active ones, occurrences in [startDate, endDate].
+            // A predicted occurrence is suppressed when a real transaction (including the
+            // auto-generated pending one created by RecurringTransactionApplicationService)
+            // already exists for this recurring transaction in the same calendar month — this
+            // avoids double-counting once the hourly application job has booked the occurrence.
+            // The date range is the source of truth; there is no blanket "future-only" filter.
             let! recs = recurringTransactionDb.ListAsync(userId, true)
             let recsList = Seq.toList recs
+            // (recurringTransactionId, year, month) for every real transaction linked to a
+            // recurring transaction within the forecast range.
+            let appliedRecurrenceMonths =
+                realTxns
+                |> Seq.toList
+                |> List.choose (fun t ->
+                    t.RecurringTransactionId
+                    |> Option.map (fun rid -> rid, t.DateCreated.Year, t.DateCreated.Month))
+                |> Set.ofList
             let predictedEvents =
                 recsList
                 |> List.collect (fun rt ->
                     RecurringSchedule.enumerateOccurrences rt.Schedule startDate endDate
-                    |> List.filter (fun d -> d.Date > todayDate)
+                    |> List.filter (fun d -> not (appliedRecurrenceMonths.Contains (rt.Id, d.Year, d.Month)))
                     |> List.map (fun d ->
                         {| Date = d
                            Label = match rt.Type with | RecurringTransactionType.Bill -> "Bill" | RecurringTransactionType.Income -> "Income"
