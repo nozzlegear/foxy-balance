@@ -411,6 +411,33 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
             %todayBillRows.Length.Should().Be(0)
         }
 
+    [<Fact>]
+    member _.``BuildForecastAsync projects temporary credit transactions as positive income``() =
+        task {
+            let! user = createUser ()
+            let now = DateTimeOffset(2026, 6, 15, 12, 0, 0, TimeSpan.Zero)
+            let startDate = DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero)
+            let endDate = DateTimeOffset(2026, 6, 30, 0, 0, 0, TimeSpan.Zero)
+
+            let! _creditBefore =
+                createTransaction user.Id "Salary" 100M (startDate.AddDays(-5.0)) Credit (Cleared (startDate.AddDays(-5.0)))
+            let startingBalance = 100M
+
+            // Temp credit on the 25th.
+            let tempItems : TempRecurringTransaction list =
+                [ { Name = "Freelance"; Amount = 200M; Type = RecurringTransactionType.Income; Schedule = ScheduleType.ByCalendarDate { Date = 25 } } ]
+
+            let! model =
+                service.BuildForecastAsync(user.Id, startDate, endDate, now,
+                                           temporaryRecurringTransactions = tempItems)
+
+            let tempRow = model.Rows |> List.find (fun r -> r.Description = "Freelance")
+            %tempRow.Amount.Should().Be(Some 200M)
+            %tempRow.Label.Should().Be("Income")
+            %tempRow.RunningBalance.Should().Be(startingBalance + 200M)
+            %tempRow.IsTemporary.Should().Be(true)
+        }
+
     // ── validateTempItem tests (pure, no DB) ──
 
     [<Fact>]
@@ -420,6 +447,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
         | Ok item ->
             %item.Name.Should().Be("Rent")
             %item.Amount.Should().Be(1200M)
+            %item.Type.Should().Be(RecurringTransactionType.Bill)
             match item.Schedule with
             | ScheduleType.ByWeekOfMonth sched ->
                 %sched.WeekOfMonth.Should().Be(SecondWeek)
@@ -429,11 +457,12 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
 
     [<Fact>]
     member _.``validateTempItem accepts valid date item``() =
-        let result = ForecastService.validateTempItem "Phone" "50" "date" "" "" "15" "bill"
+        let result = ForecastService.validateTempItem "Phone" "50" "date" "" "" "15" "income"
         match result with
         | Ok item ->
             %item.Name.Should().Be("Phone")
             %item.Amount.Should().Be(50M)
+            %item.Type.Should().Be(RecurringTransactionType.Income)
             match item.Schedule with
             | ScheduleType.ByCalendarDate sched ->
                 %sched.Date.Should().Be(15)
@@ -457,6 +486,12 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
         let result = ForecastService.validateTempItem "Test" "abc" "date" "" "" "15" "bill"
         %result.Should().BeError()
         %result.Should().Be(Error "Could not parse abc to a number or decimal.")
+
+    [<Fact>]
+    member _.``validateTempItem rejects unrecognized transaction type``() =
+        let result = ForecastService.validateTempItem "Test" "100" "date" "" "" "15" "bogus"
+        %result.Should().BeError()
+        %result.Should().Be(Error "Unrecognized transaction type bogus.")
 
     [<Fact>]
     member _.``validateTempItem rejects week out of range``() =

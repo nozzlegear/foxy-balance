@@ -19,7 +19,7 @@ module Forecast =
           Week : int option
           Day : int option
           Date : int option
-          Type : string }
+          Type : string }   // "bill" | "income"
 
     let private jsonOptions = JsonSerializerOptions()
 

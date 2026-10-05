@@ -210,6 +210,7 @@ type ForecastService(
         }
 
     /// Validate a temporary recurring transaction form. Pure function — no DB access.
+    /// `typeStr` is "bill" or "income".
     static member validateTempItem
         (name : string) (amount : string) (scheduleType : string)
         (week : string) (day : string) (date : string)
@@ -219,34 +220,39 @@ type ForecastService(
         if System.String.IsNullOrEmpty trimmedName then
             Error "You must enter a name for this temporary recurring transaction."
         else
-            let tempType =
+            let typeResult =
                 match typeStr with
-                | "income" -> RecurringTransactionType.Income
-                | _ -> RecurringTransactionType.Bill
-            match System.Decimal.TryParse (amount : string) with
-            | false, _ -> Error $"Could not parse {amount} to a number or decimal."
-            | true, amt when amt < 0.01M -> Error "Amount must be greater than 0.01."
-            | true, amt when amt % 0.01M <> 0M -> Error "Amount cannot have more than two decimal places."
-            | true, amt ->
-                match scheduleType with
-                | "week" ->
-                    let weekOk, weekVal = System.Int32.TryParse week
-                    let dayOk, dayVal = System.Int32.TryParse day
-                    if not weekOk || weekVal < 1 || weekVal > 4 then
-                        Error "Week of month must be between 1 and 4."
-                    elif not dayOk || dayVal < 0 || dayVal > 6 then
-                        Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
-                    else
-                        Ok { Name = trimmedName; Amount = amt
-                             Schedule = ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt weekVal; DayOfWeek = enum<System.DayOfWeek> dayVal }
-                             Type = tempType }
-                | "date" ->
-                    let dateOk, dateVal = System.Int32.TryParse date
-                    if not dateOk || dateVal < 1 || dateVal > 31 then
-                        Error "Date of month must be between 1 and 31."
-                    else
-                        Ok { Name = trimmedName; Amount = amt
-                             Schedule = ByCalendarDate { Date = dateVal }
-                             Type = tempType }
-                | other ->
-                    Error $"Unrecognized schedule type {other}."
+                | "income" -> Ok RecurringTransactionType.Income
+                | "bill" -> Ok RecurringTransactionType.Bill
+                | other -> Error $"Unrecognized transaction type {other}."
+
+            match typeResult with
+            | Error e -> Error e
+            | Ok tempType ->
+                match System.Decimal.TryParse (amount : string) with
+                | false, _ -> Error $"Could not parse {amount} to a number or decimal."
+                | true, amt when amt < 0.01M -> Error "Amount must be greater than 0.01."
+                | true, amt when amt % 0.01M <> 0M -> Error "Amount cannot have more than two decimal places."
+                | true, amt ->
+                    match scheduleType with
+                    | "week" ->
+                        let weekOk, weekVal = System.Int32.TryParse week
+                        let dayOk, dayVal = System.Int32.TryParse day
+                        if not weekOk || weekVal < 1 || weekVal > 4 then
+                            Error "Week of month must be between 1 and 4."
+                        elif not dayOk || dayVal < 0 || dayVal > 6 then
+                            Error "Day of week must be between 0 (Sunday) and 6 (Saturday)."
+                        else
+                            Ok { Name = trimmedName; Amount = amt
+                                 Schedule = ByWeekOfMonth { WeekOfMonth = WeekOfMonth.FromInt weekVal; DayOfWeek = enum<System.DayOfWeek> dayVal }
+                                 Type = tempType }
+                    | "date" ->
+                        let dateOk, dateVal = System.Int32.TryParse date
+                        if not dateOk || dateVal < 1 || dateVal > 31 then
+                            Error "Date of month must be between 1 and 31."
+                        else
+                            Ok { Name = trimmedName; Amount = amt
+                                 Schedule = ByCalendarDate { Date = dateVal }
+                                 Type = tempType }
+                    | other ->
+                        Error $"Unrecognized schedule type {other}."

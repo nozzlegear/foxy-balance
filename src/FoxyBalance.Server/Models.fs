@@ -493,7 +493,7 @@ module ViewModels =
           Week : string
           Day : string
           Date : string
-          Type : string }         // "bill" | "income"
+          Type : string }           // "bill" | "income"
         with
         static member Empty =
             { Error = None; Name = ""; Amount = ""; ScheduleType = "week"
