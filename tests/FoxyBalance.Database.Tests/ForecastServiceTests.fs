@@ -109,6 +109,36 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
             %parsed.EndDate.Date.Should().Be(DateTimeOffset(2026, 2, 15, 0, 0, 0, TimeSpan.Zero).Date)
         | Error _ -> failwith "Expected Ok"
 
+    // ── datesChangedSince tests (pure, no DB) ──
+
+    [<Fact>]
+    member _.``datesChangedSince returns false when toggles inactive``() =
+        // No toggles → never report a change; the allow-list isn't carried.
+        let result = ForecastService.datesChangedSince false (Some "2026-01-01") (Some "2026-02-01") "2026-03-01" "2026-04-01"
+        %result.Should().Be(false)
+
+    [<Fact>]
+    member _.``datesChangedSince returns false when dates match prev``() =
+        // Same range → honor the user's toggles.
+        let result = ForecastService.datesChangedSince true (Some "2026-10-01") (Some "2026-11-01") "2026-10-01" "2026-11-01"
+        %result.Should().Be(false)
+
+    [<Fact>]
+    member _.``datesChangedSince returns true when start date changed``() =
+        let result = ForecastService.datesChangedSince true (Some "2026-10-01") (Some "2026-11-01") "2026-10-05" "2026-11-01"
+        %result.Should().Be(true)
+
+    [<Fact>]
+    member _.``datesChangedSince returns true when end date changed``() =
+        let result = ForecastService.datesChangedSince true (Some "2026-10-01") (Some "2026-11-01") "2026-10-01" "2026-11-15"
+        %result.Should().Be(true)
+
+    [<Fact>]
+    member _.``datesChangedSince returns true when prev dates are missing``() =
+        // First render after enabling toggles has no prev → treat as changed so no stale set is honored.
+        let result = ForecastService.datesChangedSince true None None "2026-10-01" "2026-11-01"
+        %result.Should().Be(true)
+
     // ── BuildForecastAsync tests (DB) ──
 
     [<Fact>]

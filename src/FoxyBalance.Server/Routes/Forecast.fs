@@ -73,6 +73,10 @@ module Forecast =
         parts.Add($"endDate={Uri.EscapeDataString endDate}")
         if toggled then
             parts.Add("toggled=1")
+            // Carry the current dates as prevStartDate/prevEndDate so the next submit can
+            // detect a date-range change and drop the stale txn allow-list (see forecastHandler).
+            parts.Add($"prevStartDate={Uri.EscapeDataString startDate}")
+            parts.Add($"prevEndDate={Uri.EscapeDataString endDate}")
             for tx in txnValues do
                 parts.Add($"txn={Uri.EscapeDataString tx}")
         if not (System.String.IsNullOrEmpty tmpJson) then
@@ -128,8 +132,19 @@ module Forecast =
                 let tmpJson = ctx.TryGetQueryStringValue "tmp" |> Option.defaultValue ""
                 let tmpItems = deserializeTempItems tmpJson
 
+                // If the date range changed since the previous render, the carried txn
+                // allow-list is stale (its ids refer to events from the old range). Drop it
+                // and render all events on. Same range → honor the user's toggles.
+                let datesChanged =
+                    ForecastService.datesChangedSince
+                        hasToggled
+                        (ctx.TryGetQueryStringValue "prevStartDate")
+                        (ctx.TryGetQueryStringValue "prevEndDate")
+                        startDateStr
+                        endDateStr
+
                 let includedEventIds =
-                    if hasToggled then Some (Set.ofList txnValues) else None
+                    if hasToggled && not datesChanged then Some (Set.ofList txnValues) else None
 
                 // Remove temp item?
                 match ctx.TryGetQueryStringValue "removeTmp" with

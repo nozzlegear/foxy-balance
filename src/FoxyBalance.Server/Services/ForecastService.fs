@@ -35,6 +35,18 @@ type ForecastService(
             else
                 Ok {| StartDate = startDate; EndDate = endDate |}
 
+    /// Pure function — no DB access. Determines whether the forecast date range changed
+    /// since the previous render, which means the carried txn allow-list is stale (its ids
+    /// refer to events from the old range) and should be dropped so new events default to on.
+    /// Returns true when toggles are active (`hasToggled`) and the prev dates are missing or
+    /// differ from the current dates.
+    static member datesChangedSince (hasToggled : bool) (prevStartDate : string option) (prevEndDate : string option) (startDateStr : string) (endDateStr : string) : bool =
+        if not hasToggled then false
+        else
+            match prevStartDate, prevEndDate with
+            | Some prevStart, Some prevEnd -> not (prevStart = startDateStr && prevEnd = endDateStr)
+            | _ -> true
+
     /// Sign an amount based on transaction type: Credit → +, everything else → −.
     static member private signedAmount (amount : decimal) (txType : TransactionType) : decimal =
         match txType with

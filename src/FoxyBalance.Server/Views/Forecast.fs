@@ -44,11 +44,15 @@ module Forecast =
 
     /// Hidden inputs that carry forecast state (dates + toggled + tmp + on-event txn ids)
     /// across GET forms that live outside the main forecast form (temp list + add dialog).
+    /// prevStartDate/prevEndDate mirror the current dates so the next submit can detect a
+    /// date-range change and drop the stale txn allow-list (see forecastHandler).
     let private forecastStateHiddenInputs (model : ForecastViewModel) : XmlNode list =
         [
             G.input [A._type "hidden"; A._name "startDate"; A._value model.StartDateStr]
             G.input [A._type "hidden"; A._name "endDate"; A._value model.EndDateStr]
             G.input [A._type "hidden"; A._name "toggled"; A._value "1"]
+            G.input [A._type "hidden"; A._name "prevStartDate"; A._value model.StartDateStr]
+            G.input [A._type "hidden"; A._name "prevEndDate"; A._value model.EndDateStr]
             if not (System.String.IsNullOrEmpty model.TmpJson) then
                 G.input [A._type "hidden"; A._name "tmp"; A._value model.TmpJson]
             for row in model.Rows do
@@ -63,6 +67,8 @@ module Forecast =
         parts.Add("startDate=" + System.Uri.EscapeDataString model.StartDateStr)
         parts.Add("endDate=" + System.Uri.EscapeDataString model.EndDateStr)
         parts.Add("toggled=1")
+        parts.Add("prevStartDate=" + System.Uri.EscapeDataString model.StartDateStr)
+        parts.Add("prevEndDate=" + System.Uri.EscapeDataString model.EndDateStr)
         for row in model.Rows do
             if row.EventId.IsSome && not row.IsTemporary && not row.IsToggledOff then
                 parts.Add("txn=" + System.Uri.EscapeDataString row.EventId.Value)
@@ -253,9 +259,13 @@ module Forecast =
                     // Main form wraps chart + controls + table so the Forecast button submits
                     // the date range AND the checkbox toggles together (no JavaScript).
                     Form.create [Form.Method Form.Get; Form.Action "/forecast"] [
-                        // Hidden state carriers (dates come from the visible inputs; txn from the checkboxes)
+                        // Hidden state carriers (dates come from the visible inputs; txn from the checkboxes).
+                        // prevStartDate/prevEndDate mirror the current render's dates so the next
+                        // submit can detect a date-range change and drop the stale txn allow-list.
                         Form.Element.Raw [
                             G.input [A._type "hidden"; A._name "toggled"; A._value "1"]
+                            G.input [A._type "hidden"; A._name "prevStartDate"; A._value model.StartDateStr]
+                            G.input [A._type "hidden"; A._name "prevEndDate"; A._value model.EndDateStr]
                             if not (System.String.IsNullOrEmpty model.TmpJson) then
                                 G.input [A._type "hidden"; A._name "tmp"; A._value model.TmpJson]
                         ]
