@@ -27,8 +27,10 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                 DECLARE tableExists BOOLEAN;
                 DECLARE hasScheduleType BOOLEAN;
                 DECLARE hasScheduledDate BOOLEAN;
-                DECLARE hasWeekOfMonthColumn BOOLEAN;
-                DECLARE hasDayOfWeekColumn BOOLEAN;
+                DECLARE hasScheduleweekofmonth BOOLEAN;
+                DECLARE hasScheduledayofweek BOOLEAN;
+                DECLARE hasOldWeekofmonth BOOLEAN;
+                DECLARE hasOldDayOfWeek BOOLEAN;
 
                 BEGIN
                     -- Check if the transactions table exists
@@ -45,9 +47,18 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
                         WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleddate') INTO hasScheduledDate;
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasWeekOfMonthColumn;
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasScheduleweekofmonth;
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasDayOfWeekColumn;
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasScheduledayofweek;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'weekofmonth') INTO hasOldWeekofmonth;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'dayofweek') INTO hasOldDayOfWeek;
+
+                    -- Early return: if both new prefixed columns already exist, skip rename entirely (Migration_009 may have handled it)
+                    IF hasScheduleweekofmonth AND hasScheduledayofweek THEN
+                        RETURN;
+                    END IF;
 
                     IF NOT hasScheduleType THEN
                         ALTER TABLE foxybalance_recurringtransactions ADD COLUMN scheduletype INT DEFAULT 0;
@@ -57,7 +68,8 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                         ALTER TABLE foxybalance_recurringtransactions ADD COLUMN scheduledate INT;
                     END IF;
 
-                    IF hasWeekOfMonthColumn AND NOT hasDayOfWeekColumn THEN
+                    -- Rename old columns to new prefixed names only if old exist and new don't
+                    IF hasOldWeekofmonth AND NOT hasScheduleweekofmonth AND hasOldDayOfWeek AND NOT hasScheduledayofweek THEN
                         ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN weekofmonth TO scheduleweekofmonth;
                         ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN dayofweek TO scheduledayofweek;
                     END IF;
@@ -71,8 +83,10 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
             DO $$
                 DECLARE hasScheduleType BOOLEAN;
                 DECLARE hasScheduledDate BOOLEAN;
-                DECLARE hasWeekOfMonthColumn BOOLEAN;
-                DECLARE hasDayOfWeekColumn BOOLEAN;
+                DECLARE hasScheduleweekofmonth BOOLEAN;
+                DECLARE hasScheduledayofweek BOOLEAN;
+                DECLARE hasOldWeekofmonth BOOLEAN;
+                DECLARE hasOldDayOfWeek BOOLEAN;
 
                 BEGIN
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
@@ -80,9 +94,13 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
                         WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleddate') INTO hasScheduledDate;
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasWeekOfMonthColumn;
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduleweekofmonth') INTO hasScheduleweekofmonth;
                     SELECT EXISTS (SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasDayOfWeekColumn;
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'scheduledayofweek') INTO hasScheduledayofweek;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'weekofmonth') INTO hasOldWeekofmonth;
+                    SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                        WHERE table_name = 'foxybalance_recurringtransactions' AND column_name = 'dayofweek') INTO hasOldDayOfWeek;
 
                     IF hasScheduleType THEN
                         ALTER TABLE foxybalance_recurringtransactions DROP COLUMN scheduletype;
@@ -92,7 +110,8 @@ type Migration_008_AddScheduleColumnsAndRenameTable() =
                         ALTER TABLE foxybalance_recurringtransactions DROP COLUMN scheduledate;
                     END IF;
 
-                    IF hasWeekOfMonthColumn AND NOT hasDayOfWeekColumn THEN
+                    -- Rename new prefixed columns back to old names only if new exist and old don't
+                    IF hasScheduleweekofmonth AND NOT hasOldWeekofmonth AND hasScheduledayofweek AND NOT hasOldDayOfWeek THEN
                         ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN scheduleweekofmonth TO weekofmonth;
                         ALTER TABLE foxybalance_recurringtransactions RENAME COLUMN scheduledayofweek TO dayofweek;
                     END IF;

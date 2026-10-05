@@ -13,6 +13,7 @@
     <Compile Include="Migrations\Migration_006_AddMatchedTransactionIdToTransactions.fs" />
     <Compile Include="Migrations\Migration_007_RenameRecurringBillsToRecurringTransactions.fs" />
     <Compile Include="Migrations\Migration_008_AddScheduleColumnsAndRenameTable.fs" />
+    <Compile Include="Migrations\Migration_009_CopyScheduleColumnsToFrozenNames.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>
