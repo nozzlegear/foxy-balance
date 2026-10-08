@@ -52,7 +52,7 @@ type ForecastServiceTests(fixture: DbContainerFixture) =
             let partial: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth }
+                  Schedule = ScheduleType.ByCalendarDate { Date = dayOfMonth; Apply = None }
                   Type = rtType }
             return! recurringTransactionDatabase.CreateAsync(userId, partial)
         }
