@@ -162,6 +162,19 @@ module Formatters =
         | "income" -> "Income"
         | other -> other
 
+    /// Human-readable schedule description for a recurring transaction DTO.
+    /// Week: "1st week, Monday". Date: "Day 15 of month" (with apply policy if present).
+    let scheduleLabel (b: RecurringTransactionDto) : string =
+        match b.ScheduleType with
+        | "date" ->
+            let day = b.DayOfMonth |> Option.defaultValue 0
+            match b.ApplyDate with
+            | Some "early" -> sprintf "Day %d of month (early)" day
+            | Some "late" -> sprintf "Day %d of month (late)" day
+            | _ -> sprintf "Day %d of month" day
+        | _ ->
+            sprintf "%s week, %s" (weekLabel b.WeekOfMonth) (dayOfWeekLabel b.DayOfWeek)
+
     let printRecurringTransactions (recurringTransactions: RecurringTransactionDto list) =
         if List.isEmpty recurringTransactions then
             printfn "No recurring transactions found."
@@ -173,12 +186,11 @@ module Formatters =
                       b.Name
                       formatCurrency b.Amount
                       recurringTypeLabel b.Type
-                      weekLabel b.WeekOfMonth
-                      dayOfWeekLabel b.DayOfWeek
+                      scheduleLabel b
                       if b.Active then "yes" else "no" ])
 
             printTable
-                [ "ID"; "Name"; "Amount"; "Type"; "Week"; "Day"; "Active" ]
+                [ "ID"; "Name"; "Amount"; "Type"; "Schedule"; "Active" ]
                 rows
 
     let printRecurringTransaction (b: RecurringTransactionDto) =
@@ -188,8 +200,7 @@ module Formatters =
         printfn "  Name:            %s" b.Name
         printfn "  Amount:          %s" (formatCurrency b.Amount)
         printfn "  Type:            %s" (recurringTypeLabel b.Type)
-        printfn "  Week of Month:   %s" (weekLabel b.WeekOfMonth)
-        printfn "  Day of Week:     %s" (dayOfWeekLabel b.DayOfWeek)
+        printfn "  Schedule:        %s" (scheduleLabel b)
         printfn "  Active:          %s" (if b.Active then "yes" else "no")
         printfn "  Created:         %s" (formatDate b.DateCreated)
         match b.LastAppliedDate with

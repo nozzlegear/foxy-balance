@@ -120,6 +120,9 @@ module Codecs =
               Amount = get.Required.Field "amount" Decode.decimal
               WeekOfMonth = get.Required.Field "weekOfMonth" Decode.int
               DayOfWeek = get.Required.Field "dayOfWeek" Decode.int
+              ScheduleType = get.Optional.Field "scheduleType" Decode.string |> Option.defaultValue "week"
+              DayOfMonth = get.Optional.Field "dayOfMonth" Decode.int
+              ApplyDate = get.Optional.Field "applyDate" Decode.string
               DateCreated = get.Required.Field "dateCreated" Decode.datetimeOffset
               LastAppliedDate = get.Optional.Field "lastAppliedDate" Decode.datetimeOffset
               Active = get.Required.Field "active" Decode.bool
@@ -184,6 +187,13 @@ module Codecs =
             "amount", Encode.decimal b.Amount
             "weekOfMonth", Encode.int b.WeekOfMonth
             "dayOfWeek", Encode.int b.DayOfWeek
+            "scheduleType", Encode.string b.ScheduleType
+            match b.DayOfMonth with
+            | Some d -> "dayOfMonth", Encode.int d
+            | None -> ()
+            match b.ApplyDate with
+            | Some a -> "applyDate", Encode.string a
+            | None -> ()
             "dateCreated", Encode.datetimeOffset b.DateCreated
             match b.LastAppliedDate with
             | Some d -> "lastAppliedDate", Encode.datetimeOffset d
@@ -244,9 +254,24 @@ module Codecs =
         Encode.object [
             "name", Encode.string r.Name
             "amount", Encode.string r.Amount
-            "weekOfMonth", Encode.string r.WeekOfMonth
-            "dayOfWeek", Encode.string r.DayOfWeek
-            "type", Encode.string r.Type
+            match r.ScheduleType with
+            | Some s -> "scheduleType", Encode.string s
+            | None -> ()
+            match r.WeekOfMonth with
+            | Some w -> "weekOfMonth", Encode.string w
+            | None -> ()
+            match r.DayOfWeek with
+            | Some d -> "dayOfWeek", Encode.string d
+            | None -> ()
+            match r.DayOfMonth with
+            | Some d -> "dayOfMonth", Encode.string d
+            | None -> ()
+            match r.ApplyDate with
+            | Some a when not (System.String.IsNullOrWhiteSpace a) -> "applyDate", Encode.string a
+            | _ -> ()
+            match r.Type with
+            | Some t -> "type", Encode.string t
+            | None -> ()
         ]
 
     let apiMatchRequestEncoder (r: ApiMatchRequest) : IEncodable =

@@ -78,47 +78,58 @@ module RecurringTransactions =
     let createCommand : System.CommandLine.Command =
         let nameOpt = optionMaybe<string> "--name" |> desc "Recurring transaction name"
         let amountOpt = optionMaybe<string> "--amount" |> desc "Amount (e.g. 50.00)"
-        let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4)"
-        let dayOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0=Sunday through 6=Saturday)"
+        let scheduleTypeOpt = optionMaybe<string> "--schedule-type" |> desc "Schedule type: week or date [default: week]"
+        let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4) [when schedule-type=week]"
+        let dayOfWeekOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0=Sunday through 6=Saturday) [when schedule-type=week]"
+        let dayOfMonthOpt = optionMaybe<string> "--day-of-month" |> desc "Day of month (1-31) [when schedule-type=date]"
+        let applyDateOpt = optionMaybe<string> "--apply-date" |> desc "Apply policy for days 29-31: early or late [when schedule-type=date]"
         let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income [default: bill]"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (name: string option, amount: string option, week: string option, day: string option, typ: string option, json: bool) =
+        let action (ctx: ActionContext) =
+            let name = ctx.ParseResult.GetValue<string option> "--name"
+            let amount = ctx.ParseResult.GetValue<string option> "--amount"
+            let scheduleType = ctx.ParseResult.GetValue<string option> "--schedule-type"
+            let week = ctx.ParseResult.GetValue<string option> "--week-of-month"
+            let dayOfWeek = ctx.ParseResult.GetValue<string option> "--day-of-week"
+            let dayOfMonth = ctx.ParseResult.GetValue<string option> "--day-of-month"
+            let applyDate = ctx.ParseResult.GetValue<string option> "--apply-date"
+            let typ = ctx.ParseResult.GetValue<string option> "--type"
+            let json = ctx.ParseResult.GetValue<bool> "--json"
             async {
-                let resolvedName =
-                    match name with
-                    | Some n when not (String.IsNullOrWhiteSpace n) -> n
+                let resolve promptStr input =
+                    match input with
+                    | Some v when not (String.IsNullOrWhiteSpace v) -> v
                     | _ ->
-                        printf "Name: "
+                        printf "%s" promptStr
                         Console.ReadLine()
 
-                let resolvedAmount =
-                    match amount with
-                    | Some a when not (String.IsNullOrWhiteSpace a) -> a
-                    | _ ->
-                        printf "Amount: "
-                        Console.ReadLine()
+                let resolvedName = resolve "Name: " name
+                let resolvedAmount = resolve "Amount (e.g. 50.00): " amount
+                let resolvedScheduleType =
+                    let s = resolve "Schedule type (week or date) [default: week]: " scheduleType
+                    if String.IsNullOrWhiteSpace s then "week" else s.ToLowerInvariant()
 
-                let resolvedWeek =
-                    match week with
-                    | Some w when not (String.IsNullOrWhiteSpace w) -> w
-                    | _ ->
-                        printf "Week of month (1-4): "
-                        Console.ReadLine()
-
-                let resolvedDay =
-                    match day with
-                    | Some d when not (String.IsNullOrWhiteSpace d) -> d
-                    | _ ->
-                        printf "Day of week (0=Sunday, 6=Saturday): "
-                        Console.ReadLine()
+                // Only prompt for fields relevant to the chosen schedule type.
+                let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt =
+                    if resolvedScheduleType = "date" then
+                        let dom = resolve "Day of month (1-31): " dayOfMonth
+                        let apply = resolve "Apply policy for days 29-31 (early or late, leave blank if N/A): " applyDate
+                        None, None, Some dom, (if String.IsNullOrWhiteSpace apply then None else Some apply)
+                    else
+                        let w = resolve "Week of month (1-4): " week
+                        let d = resolve "Day of week (0=Sunday, 6=Saturday): " dayOfWeek
+                        Some w, Some d, None, None
 
                 let request: ApiRecurringTransactionRequest =
                     { Name = resolvedName
                       Amount = resolvedAmount
-                      WeekOfMonth = resolvedWeek
-                      DayOfWeek = resolvedDay
-                      Type = typ |> Option.defaultValue "bill" }
+                      ScheduleType = Some resolvedScheduleType
+                      WeekOfMonth = weekOfMonthOpt
+                      DayOfWeek = dayOfWeekOpt
+                      DayOfMonth = dayOfMonthOpt
+                      ApplyDate = applyDateOpt
+                      Type = typ |> Option.map (fun t -> t.ToLowerInvariant()) }
 
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
@@ -139,7 +150,8 @@ module RecurringTransactions =
 
         command "create" {
             description "Create a new recurring transaction"
-            inputs (nameOpt, amountOpt, weekOpt, dayOpt, typeOpt, jsonOpt)
+            inputs context
+            addInputs [ nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; typeOpt; jsonOpt ]
             setAction action
         }
 
@@ -149,12 +161,25 @@ module RecurringTransactions =
         let idArg = argument<string> "id" |> desc "Recurring transaction ID or HATEOAS link href"
         let nameOpt = optionMaybe<string> "--name" |> desc "Recurring transaction name"
         let amountOpt = optionMaybe<string> "--amount" |> desc "Amount"
-        let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4)"
-        let dayOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0-6)"
+        let scheduleTypeOpt = optionMaybe<string> "--schedule-type" |> desc "Schedule type: week or date"
+        let weekOpt = optionMaybe<string> "--week-of-month" |> desc "Week of month (1-4) [when schedule-type=week]"
+        let dayOfWeekOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0-6) [when schedule-type=week]"
+        let dayOfMonthOpt = optionMaybe<string> "--day-of-month" |> desc "Day of month (1-31) [when schedule-type=date]"
+        let applyDateOpt = optionMaybe<string> "--apply-date" |> desc "Apply policy for days 29-31: early or late [when schedule-type=date]"
         let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
-        let action (idOrLink: string, name: string option, amount: string option, week: string option, day: string option, typ: string option, json: bool) =
+        let action (ctx: ActionContext) =
+            let idOrLink = ctx.ParseResult.GetValue<string> "id"
+            let name = ctx.ParseResult.GetValue<string option> "--name"
+            let amount = ctx.ParseResult.GetValue<string option> "--amount"
+            let scheduleType = ctx.ParseResult.GetValue<string option> "--schedule-type"
+            let week = ctx.ParseResult.GetValue<string option> "--week-of-month"
+            let dayOfWeek = ctx.ParseResult.GetValue<string option> "--day-of-week"
+            let dayOfMonth = ctx.ParseResult.GetValue<string option> "--day-of-month"
+            let applyDate = ctx.ParseResult.GetValue<string option> "--apply-date"
+            let typ = ctx.ParseResult.GetValue<string option> "--type"
+            let json = ctx.ParseResult.GetValue<bool> "--json"
             async {
                 let baseUrl = getBaseUrl ()
                 let client = FoxyBalanceClient(baseUrl)
@@ -167,6 +192,39 @@ module RecurringTransactions =
                     return ExitCodes.generalError
                 | Ok existingResource ->
                     let existingTransaction = existingResource.Data
+                    // Resolve schedule type: use the explicit option, or fall back to the existing one.
+                    let resolvedScheduleType =
+                        match scheduleType with
+                        | Some s when not (String.IsNullOrWhiteSpace s) -> s.ToLowerInvariant()
+                        | _ -> existingTransaction.ScheduleType
+
+                    // Build schedule fields based on the resolved schedule type.
+                    // For fields not provided, fall back to the existing transaction's values.
+                    let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt =
+                        if resolvedScheduleType = "date" then
+                            let dom =
+                                match dayOfMonth with
+                                | Some d when not (String.IsNullOrWhiteSpace d) -> d
+                                | _ ->
+                                    match existingTransaction.DayOfMonth with
+                                    | Some d -> string d
+                                    | None -> ""
+                            let apply =
+                                match applyDate with
+                                | Some a when not (String.IsNullOrWhiteSpace a) -> Some a
+                                | _ -> existingTransaction.ApplyDate
+                            None, None, Some dom, apply
+                        else
+                            let w =
+                                match week with
+                                | Some w when not (String.IsNullOrWhiteSpace w) -> w
+                                | _ -> string existingTransaction.WeekOfMonth
+                            let d =
+                                match dayOfWeek with
+                                | Some d when not (String.IsNullOrWhiteSpace d) -> d
+                                | _ -> string existingTransaction.DayOfWeek
+                            Some w, Some d, None, None
+
                     let request: ApiRecurringTransactionRequest =
                         { Name =
                             match name with
@@ -176,18 +234,15 @@ module RecurringTransactions =
                             match amount with
                             | Some a when not (String.IsNullOrWhiteSpace a) -> a
                             | _ -> string existingTransaction.Amount
-                          WeekOfMonth =
-                            match week with
-                            | Some w when not (String.IsNullOrWhiteSpace w) -> w
-                            | _ -> string existingTransaction.WeekOfMonth
-                          DayOfWeek =
-                            match day with
-                            | Some d when not (String.IsNullOrWhiteSpace d) -> d
-                            | _ -> string existingTransaction.DayOfWeek
+                          ScheduleType = Some resolvedScheduleType
+                          WeekOfMonth = weekOfMonthOpt
+                          DayOfWeek = dayOfWeekOpt
+                          DayOfMonth = dayOfMonthOpt
+                          ApplyDate = applyDateOpt
                           Type =
                             match typ with
-                            | Some t when not (String.IsNullOrWhiteSpace t) -> t
-                            | _ -> existingTransaction.Type }
+                            | Some t when not (String.IsNullOrWhiteSpace t) -> Some (t.ToLowerInvariant())
+                            | _ -> Some existingTransaction.Type }
 
                     let! result = client.PutResourceAsync(Codecs.apiRecurringTransactionRequestEncoder, Codecs.recurringTransactionDtoDecoder, path, request)
 
@@ -203,10 +258,10 @@ module RecurringTransactions =
                         return ExitCodes.success
             }
             |> Async.RunSynchronously
-
         command "update" {
             description "Update an existing recurring transaction (accepts ID or HATEOAS link)"
-            inputs (idArg, nameOpt, amountOpt, weekOpt, dayOpt, typeOpt, jsonOpt)
+            inputs context
+            addInputs [ idArg; nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; typeOpt; jsonOpt ]
             setAction action
         }
 

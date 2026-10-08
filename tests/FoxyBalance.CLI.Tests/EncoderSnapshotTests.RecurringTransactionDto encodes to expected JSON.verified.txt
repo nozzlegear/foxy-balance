@@ -4,6 +4,7 @@
   amount: 1500.00,
   weekOfMonth: 1,
   dayOfWeek: 1,
+  scheduleType: week,
   dateCreated: DateTimeOffset_1,
   lastAppliedDate: DateTimeOffset_2,
   active: true,

@@ -1,6 +1,7 @@
 ﻿{
   name: Rent,
   amount: 1500.00,
+  scheduleType: week,
   weekOfMonth: 1,
   dayOfWeek: 1,
   type: bill
