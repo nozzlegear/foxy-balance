@@ -295,6 +295,10 @@ module RequestModels =
             | Ok name, Ok amount, Ok schedule, Ok rtType ->
                 Ok { Name = name; Amount = amount; Schedule = schedule; Type = rtType }
     [<CLIMutable>]
+    type MatchTransactionsRequest =
+        { OtherTransactionId : int64 }
+
+    [<CLIMutable>]
     type MatchTransactionRequest =
         { RecurringTransactionId : int64 }
 
