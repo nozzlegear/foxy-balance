@@ -35,6 +35,7 @@
     <Compile Include="Api\HalBuilder.fs" />
     <Compile Include="Api\JwtService.fs" />
     <Compile Include="Api\ApiKeyService.fs" />
+    <Compile Include="Api\Requests.fs" />
     <Compile Include="Api\Middleware.fs" />
     <Compile Include="Api\Routes\ApiRouteUtils.fs" />
     <Compile Include="Api\Routes\Auth.fs" />

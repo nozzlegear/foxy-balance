@@ -37,8 +37,8 @@ type ApiRecurringTransactionRequest =
 
 [<CLIMutable>]
 type ApiMatchRequest =
-    { TransactionId: int64
-      RecurringTransactionId: int64 }
+    { TransactionId: string
+      RecurringTransactionId: string }
 
 [<CLIMutable>]
 type ApiBulkImportRequest =

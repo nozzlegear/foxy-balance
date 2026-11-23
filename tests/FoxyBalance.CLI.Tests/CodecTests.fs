@@ -309,7 +309,7 @@ type CodecTests() =
 
     [<Fact>]
     let ``ApiMatchRequest encodes correctly`` () =
-        let request : ApiMatchRequest = { TransactionId = 42L; RecurringTransactionId = 7L }
+        let request : ApiMatchRequest = { TransactionId = "42"; RecurringTransactionId = "7" }
         let json = Codecs.serialize Codecs.apiMatchRequestEncoder request
 
         %json.Should().Contain("42")

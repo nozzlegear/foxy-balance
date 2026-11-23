@@ -67,8 +67,8 @@ module Match =
                     return ExitCodes.generalError
                 else
                     let request: ApiMatchRequest =
-                        { TransactionId = txId
-                          RecurringTransactionId = recurringTransactionId }
+                        { TransactionId = string txId
+                          RecurringTransactionId = string recurringTransactionId }
 
                     let baseUrl = getBaseUrl ()
                     let client = FoxyBalanceClient(baseUrl)

@@ -290,8 +290,8 @@ module Codecs =
 
     let apiMatchRequestEncoder (r: ApiMatchRequest) : IEncodable =
         Encode.object [
-            "transactionId", Encode.int64 r.TransactionId
-            "recurringTransactionId", Encode.int64 r.RecurringTransactionId
+            "transactionId", Encode.string r.TransactionId
+            "recurringTransactionId", Encode.string r.RecurringTransactionId
         ]
 
     let apiBulkImportRequestEncoder (r: ApiBulkImportRequest) : IEncodable =

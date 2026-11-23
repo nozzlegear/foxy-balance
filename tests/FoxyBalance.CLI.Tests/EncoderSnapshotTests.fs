@@ -64,7 +64,7 @@ type EncoderSnapshotTests() =
 
     [<Fact>]
     member self.``ApiMatchRequest encodes to expected JSON`` () = task {
-        let request : ApiMatchRequest = { TransactionId = 42L; RecurringTransactionId = 7L }
+        let request : ApiMatchRequest = { TransactionId = "42"; RecurringTransactionId = "7" }
         let json = Codecs.serialize Codecs.apiMatchRequestEncoder request
         let! _ = self.VerifyJson(json)
         return ()
