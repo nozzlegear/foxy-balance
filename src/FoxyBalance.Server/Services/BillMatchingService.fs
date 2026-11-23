@@ -72,13 +72,15 @@ type RecurringTransactionMatchingService(
           RecurringTransaction = rt
           MatchScore = totalScore }
 
-    member this.GetMatchSuggestionsForUser(userId: UserId) =
+    member this.GetMatchSuggestionsForUser(userId: UserId, ?now: DateTimeOffset) =
         task {
+            let now = defaultArg now DateTimeOffset.UtcNow
+
             // Get all active recurring transactions for the user
             let! recurringTransactions = recurringTransactionDb.ListAsync(userId, true)
 
             // Get recent unmatched transactions (no RecurringTransactionId, not auto-generated, within 60 days).
-            let cutoffDate = DateTimeOffset.UtcNow.AddDays(-60.0)
+            let cutoffDate = now.AddDays(-60.0)
             let! unmatchedTransactions = transactionDb.ListMatchCandidatesAsync(userId, cutoffDate)
             let unmatchedTransactions = unmatchedTransactions |> List.ofSeq
 

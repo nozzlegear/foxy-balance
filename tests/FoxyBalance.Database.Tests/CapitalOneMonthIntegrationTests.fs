@@ -158,7 +158,7 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
 
             // Act
             // Get match suggestions
-            let! matches = service.GetMatchSuggestionsForUser userId
+            let! matches = service.GetMatchSuggestionsForUser(userId, now = DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero))
             let matchesList = matches |> Seq.toList
 
             // Verify
