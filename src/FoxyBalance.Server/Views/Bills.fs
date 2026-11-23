@@ -32,6 +32,9 @@ module Bills =
             $"{formatWeekOfMonth sched.WeekOfMonth} week, {formatDayOfWeek sched.DayOfWeek}"
         | ScheduleType.ByCalendarDate sched ->
             $"Day {sched.Date} of month"
+        | ScheduleType.ByInterval sched ->
+            let unitStr = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
+            if sched.Count = 1 then $"Every {unitStr}" else $"Every {sched.Count} {unitStr}s"
 
     let private recurringTypeLabel (t : RecurringTransactionType) =
         match t with
@@ -167,6 +170,7 @@ module Bills =
                     Form.SelectOption.Options [
                         {| Label = "By week of month"; Value = "week"; Selected = viewModel.ScheduleType = "week" |}
                         {| Label = "By calendar date"; Value = "date"; Selected = viewModel.ScheduleType = "date" |}
+                        {| Label = "By interval (every N days/weeks/months)"; Value = "interval"; Selected = viewModel.ScheduleType = "interval" |}
                     ]
                     Form.SelectOption.Value viewModel.ScheduleType ]
 
@@ -246,6 +250,32 @@ module Bills =
                                     None)
 
                         Some (Form.Element.Group [ dayOfMonthSelect; applySelect ])
+                    else
+                        None)
+
+                // Interval fields: only relevant (and rendered) for the "interval" schedule type.
+                Form.Element.MaybeElement (
+                    if viewModel.ScheduleType = "interval" then
+                        Some (Form.Element.Group [
+                            Form.Element.NumberInput [
+                                Form.Placeholder "e.g. 2"
+                                Form.LabelText "Every (count)"
+                                Form.HtmlName "byIntervalCount"
+                                Form.Min 1M
+                                Form.Step 1M
+                                Form.Required
+                                Form.Value viewModel.ByIntervalCount ]
+
+                            Form.Element.SelectBox [
+                                Form.SelectOption.LabelText "Interval unit"
+                                Form.SelectOption.HtmlName "byIntervalUnit"
+                                Form.SelectOption.Options [
+                                    {| Label = "Day(s)"; Value = "day"; Selected = viewModel.ByIntervalUnit = "day" |}
+                                    {| Label = "Week(s)"; Value = "week"; Selected = viewModel.ByIntervalUnit = "week" |}
+                                    {| Label = "Month(s)"; Value = "month"; Selected = viewModel.ByIntervalUnit = "month" |}
+                                ]
+                                Form.SelectOption.Value viewModel.ByIntervalUnit ]
+                        ])
                     else
                         None)
 

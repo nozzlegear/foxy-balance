@@ -25,9 +25,11 @@ type ApiRecurringTransactionRequest =
       Amount: string
       WeekOfMonth: string option
       DayOfWeek: string option
-      ScheduleType: string option    // "week" | "date"
+      ScheduleType: string option    // "week" | "date" | "interval"
       DayOfMonth: string option      // 1-31 (when ScheduleType = "date")
       ApplyDate: string option       // "early" | "late" (when day may not exist)
+      ByIntervalCount: string option // New: interval count
+      ByIntervalUnit: string option  // New: "day" | "week" | "month"
       Type: string option }
 
 /// Match execution request

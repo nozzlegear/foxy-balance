@@ -172,6 +172,11 @@ module Formatters =
             | Some "early" -> sprintf "Day %d of month (early)" day
             | Some "late" -> sprintf "Day %d of month (late)" day
             | _ -> sprintf "Day %d of month" day
+        | "interval" ->
+            let count = b.ByIntervalCount |> Option.defaultValue 1
+            let unit = b.ByIntervalUnit |> Option.defaultValue "day"
+            if count = 1 then sprintf "Every %s" unit
+            else sprintf "Every %d %ss" count unit
         | _ ->
             sprintf "%s week, %s" (weekLabel b.WeekOfMonth) (dayOfWeekLabel b.DayOfWeek)
 

@@ -206,11 +206,13 @@ module RequestModels =
     type EditRecurringTransactionRequest =
         { Name : string
           Amount : string
-          ScheduleType : string option    // "week" | "date"; defaults to "week"
+          ScheduleType : string option    // "week" | "date" | "interval"
           WeekOfMonth : string option
           DayOfWeek : string option
           DayOfMonth : string option      // 1-31 (when ScheduleType = "date")
           ApplyDate : string option       // "early" | "late" (when day may not exist)
+          ByIntervalCount : string option
+          ByIntervalUnit : string option
           Type : string option }
         with
         static member Validate model : Result<PartialRecurringTransaction, string> =
@@ -278,6 +280,22 @@ module RequestModels =
                             | false, Some _ ->
                                 // Day always exists; apply policy is irrelevant but harmless. Ignore it.
                                 Ok (ScheduleType.ByCalendarDate { Date = day; Apply = None })
+                | "interval" ->
+                    // Interval path: parse count and unit.
+                    match model.ByIntervalCount, model.ByIntervalUnit with
+                    | Some countStr, Some unitStr ->
+                        let countOk, count = System.Int32.TryParse countStr
+                        if not countOk || count < 1 then
+                            Error "Interval count must be a positive integer."
+                        else
+                            let unitLower = unitStr.ToLowerInvariant()
+                            match unitLower with
+                            | "day" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Day })
+                            | "week" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Week })
+                            | "month" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Month })
+                            | other -> Error (sprintf "Unrecognized interval unit '%s'. Use 'day', 'week', or 'month'." other)
+                    | _ ->
+                        Error "You must specify both an interval count and unit for an interval schedule."
                 | other ->
                     Error (sprintf "Unrecognized schedule type '%s'. Use 'week' or 'date'." other)
 
@@ -481,11 +499,13 @@ module ViewModels =
         { Error : string option
           Name : string
           Amount : string
-          ScheduleType : string    // "week" | "date"
+          ScheduleType : string    // "week" | "date" | "interval"
           WeekOfMonth : string
           DayOfWeek : string
           DayOfMonth : string     // 1-31 (when ScheduleType = "date")
           ApplyDate : string      // "early" | "late" | "" (chosen apply policy)
+          ByIntervalCount : string
+          ByIntervalUnit : string
           Type : string }
         with
         static member Default =
@@ -497,16 +517,21 @@ module ViewModels =
               DayOfWeek = "0"
               DayOfMonth = "1"
               ApplyDate = ""
+              ByIntervalCount = ""
+              ByIntervalUnit = ""
               Type = "bill" }
 
         static member FromExistingTransaction (t: RecurringTransaction) =
-            let scheduleType, weekOfMonth, dayOfWeek, dayOfMonth, applyDate =
+            let scheduleType, weekOfMonth, dayOfWeek, dayOfMonth, applyDate, byIntervalCount, byIntervalUnit =
                 match t.Schedule with
                 | ScheduleType.ByWeekOfMonth sched ->
-                    ("week", sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, 1, "")
+                    ("week", sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, 1, "", "", "")
                 | ScheduleType.ByCalendarDate sched ->
                     let apply = sched.Apply |> Option.map (fun a -> a.ToDbString()) |> Option.defaultValue ""
-                    ("date", 1, 0, sched.Date, apply)
+                    ("date", 1, 0, sched.Date, apply, "", "")
+                | ScheduleType.ByInterval sched ->
+                    let unitStr = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
+                    ("interval", 1, 0, 1, "", string sched.Count, unitStr)
             { Error = None
               Name = t.Name
               Amount = string t.Amount
@@ -515,6 +540,8 @@ module ViewModels =
               DayOfWeek = string dayOfWeek
               DayOfMonth = string dayOfMonth
               ApplyDate = applyDate
+              ByIntervalCount = byIntervalCount
+              ByIntervalUnit = byIntervalUnit
               Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income" }
 
     type BillViewModel =

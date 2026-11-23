@@ -12,20 +12,25 @@ type RecurringTransactionApplicationService(
 
     /// Check if we're in the correct week to apply a transaction
     let shouldApplyNow (rt: RecurringTransaction) (currentDate: DateTimeOffset) =
-        // Apply if we're on or after the target date but haven't applied this month.
-        // If the target date doesn't exist in this month (e.g. the 31st in a 30-day month),
-        // the recurring transaction is skipped for this month.
-        match RecurringSchedule.targetDateForMonth rt.Schedule currentDate with
-        | None -> false
-        | Some targetDate ->
-            let isAfterTargetDate = currentDate.Date >= targetDate.Date
-            let notAppliedThisMonth =
-                match rt.LastAppliedDate with
-                | None -> true
-                | Some lastApplied ->
-                    lastApplied.Year < currentDate.Year || lastApplied.Month < currentDate.Month
+        match rt.Schedule with
+        | ScheduleType.ByInterval { Count = count; Unit = unit } ->
+            // Interval schedules are continuous: due when currentDate >= lastApplied + interval.
+            fst (RecurringSchedule.dueDateByInterval count unit rt.LastAppliedDate currentDate)
+        | _ ->
+            // Apply if we're on or after the target date but haven't applied this month.
+            // If the target date doesn't exist in this month (e.g. the 31st in a 30-day month),
+            // the recurring transaction is skipped for this month.
+            match RecurringSchedule.targetDateForMonth rt.Schedule currentDate with
+            | None -> false
+            | Some targetDate ->
+                let isAfterTargetDate = currentDate.Date >= targetDate.Date
+                let notAppliedThisMonth =
+                    match rt.LastAppliedDate with
+                    | None -> true
+                    | Some lastApplied ->
+                        lastApplied.Year < currentDate.Year || lastApplied.Month < currentDate.Month
 
-            isAfterTargetDate && notAppliedThisMonth
+                isAfterTargetDate && notAppliedThisMonth
 
     member this.ApplyRecurringTransactionsForAllUsers() =
         task {
@@ -44,10 +49,14 @@ type RecurringTransactionApplicationService(
                     try
                         // Create a pending transaction from this recurring transaction
                         let targetDate =
-                            // shouldApplyNow already validated that the target date exists for this month
-                            match RecurringSchedule.targetDateForMonth rt.Schedule currentDate with
-                            | Some d -> d
-                            | None -> currentDate
+                            match rt.Schedule with
+                            | ScheduleType.ByInterval { Count = count; Unit = unit } ->
+                                snd (RecurringSchedule.dueDateByInterval count unit rt.LastAppliedDate currentDate)
+                            | _ ->
+                                // shouldApplyNow already validated that the target date exists for this month
+                                match RecurringSchedule.targetDateForMonth rt.Schedule currentDate with
+                                | Some d -> d
+                                | None -> currentDate
 
                         let partialTransaction : PartialTransaction =
                             { Name = rt.Name

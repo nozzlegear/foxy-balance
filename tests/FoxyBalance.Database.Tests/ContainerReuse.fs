@@ -66,7 +66,7 @@ module ContainerReuse =
     /// Gets the port publishing arguments for a database type
     let getPortPublishArgs (dbPrefix: string) : string =
         match dbPrefix with
-        | "postgres" -> "-p 5433:5432"
+        | "postgres" -> "-p 5544:5432"
         | "mssql" -> "-p 1433:1433"
         | _ -> ""
 

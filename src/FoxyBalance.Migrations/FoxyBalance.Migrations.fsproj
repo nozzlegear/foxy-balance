@@ -17,6 +17,7 @@
     <Compile Include="Migrations\Migration_010_AddRecurringTransactionType.fs" />
     <Compile Include="Migrations\Migration_011_RenameScheduledDateColumn.fs" />
     <Compile Include="Migrations\Migration_012_AddScheduleApplyDateColumn.fs" />
+    <Compile Include="Migrations\Migration_013_AddIntervalSupport.fs" />
     <Compile Include="Migrator.fs" />
   </ItemGroup>
   <ItemGroup>

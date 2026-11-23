@@ -26,6 +26,14 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                     { Date = read.int "scheduleddate"
                       Apply = read.stringOrNone "scheduleapplydate" |> Option.bind ApplyDate.FromDbString }
                 ScheduleType.ByCalendarDate(sched)
+            | 2 ->
+                let unit =
+                    match read.stringOrNone "byintervalunit" with
+                    | Some "week" -> IntervalUnit.Week
+                    | Some "month" -> IntervalUnit.Month
+                    | _ -> IntervalUnit.Day
+                let count = read.intOrNone "byintervalcount" |> Option.defaultValue 1
+                ScheduleType.ByInterval { Count = count; Unit = unit }
             | _ -> 
                 let sched : WeekOfMonthScheduleDef = { WeekOfMonth = WeekOfMonth.FromInt(read.int "scheduleweekofmonth"); DayOfWeek = enum<System.DayOfWeek>(read.int "scheduledayofweek") }
                 ScheduleType.ByWeekOfMonth(sched)
@@ -68,16 +76,19 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
             }
 
         member _.CreateAsync(userId, recurringTransaction) =
-            let scheduleType, weekOfMonth, dayOfWeek, scheduledDate, applyDate =
+            let scheduleType, weekOfMonth, dayOfWeek, scheduledDate, applyDate, intervalCount, intervalUnit =
                 match recurringTransaction.Schedule with
-                | ByWeekOfMonth wms -> (0, wms.WeekOfMonth.ToInt(), int wms.DayOfWeek, None, None)
-                | ByCalendarDate sd -> (1, 0, 0, Some sd.Date, sd.Apply |> Option.map (fun a -> a.ToDbString()))
+                | ByWeekOfMonth wms -> (0, wms.WeekOfMonth.ToInt(), int wms.DayOfWeek, None, None, None, None)
+                | ByCalendarDate sd -> (1, 0, 0, Some sd.Date, sd.Apply |> Option.map (fun a -> a.ToDbString()), None, None)
+                | ByInterval iv ->
+                    let u = match iv.Unit with | Day -> "day" | Week -> "week" | Month -> "month"
+                    (2, 0, 0, None, None, Some iv.Count, Some u)
             connection
             |> Sql.query """
                 INSERT INTO foxybalance_recurringtransactions (
-                    userid, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, scheduleapplydate, recurringtype, datecreated, active
+                    userid, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, scheduleapplydate, byintervalcount, byintervalunit, recurringtype, datecreated, active
                 ) VALUES (
-                    @userId, @name, @amount, @scheduleType, @weekOfMonth, @dayOfWeek, @scheduledDate, @scheduleApplyDate, @recurringType, now(), true
+                    @userId, @name, @amount, @scheduleType, @weekOfMonth, @dayOfWeek, @scheduledDate, @scheduleApplyDate, @byIntervalCount, @byIntervalUnit, @recurringType, now(), true
                 )
                 RETURNING *
             """
@@ -90,15 +101,20 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 "dayOfWeek", Sql.int dayOfWeek
                 "scheduledDate", match scheduledDate with Some d -> Sql.int d | None -> Sql.dbnull
                 "scheduleApplyDate", match applyDate with Some a -> Sql.string a | None -> Sql.dbnull
+                "byIntervalCount", match intervalCount with Some n -> Sql.int n | None -> Sql.dbnull
+                "byIntervalUnit", match intervalUnit with Some u -> Sql.string u | None -> Sql.dbnull
                 "recurringType", Sql.string (match recurringTransaction.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income")
             ]
             |> Sql.executeRowAsync mapRowToRecurringTransaction
 
         member _.UpdateAsync(userId, recurringTransactionId, recurringTransaction) =
-            let scheduleType, weekOfMonth, dayOfWeek, scheduledDate, applyDate =
+            let scheduleType, weekOfMonth, dayOfWeek, scheduledDate, applyDate, intervalCount, intervalUnit =
                 match recurringTransaction.Schedule with
-                | ByWeekOfMonth wms -> (0, wms.WeekOfMonth.ToInt(), int wms.DayOfWeek, None, None)
-                | ByCalendarDate sd -> (1, 0, 0, Some sd.Date, sd.Apply |> Option.map (fun a -> a.ToDbString()))
+                | ByWeekOfMonth wms -> (0, wms.WeekOfMonth.ToInt(), int wms.DayOfWeek, None, None, None, None)
+                | ByCalendarDate sd -> (1, 0, 0, Some sd.Date, sd.Apply |> Option.map (fun a -> a.ToDbString()), None, None)
+                | ByInterval iv ->
+                    let u = match iv.Unit with | Day -> "day" | Week -> "week" | Month -> "month"
+                    (2, 0, 0, None, None, Some iv.Count, Some u)
             connection
             |> Sql.query """
                 UPDATE foxybalance_recurringtransactions
@@ -109,6 +125,8 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                     scheduledayofweek = @dayOfWeek,
                     scheduleddate = @scheduledDate,
                     scheduleapplydate = @scheduleApplyDate,
+                    byintervalcount = @byIntervalCount,
+                    byintervalunit = @byIntervalUnit,
                     recurringtype = @recurringType
                 WHERE userid = @userId AND id = @recurringTransactionId
                 RETURNING *
@@ -123,6 +141,8 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 "dayOfWeek", Sql.int dayOfWeek
                 "scheduledDate", match scheduledDate with Some d -> Sql.int d | None -> Sql.dbnull
                 "scheduleApplyDate", match applyDate with Some a -> Sql.string a | None -> Sql.dbnull
+                "byIntervalCount", match intervalCount with Some n -> Sql.int n | None -> Sql.dbnull
+                "byIntervalUnit", match intervalUnit with Some u -> Sql.string u | None -> Sql.dbnull
                 "recurringType", Sql.string (match recurringTransaction.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income")
             ]
             |> Sql.executeRowAsync mapRowToRecurringTransaction
@@ -183,12 +203,16 @@ type RecurringTransactionDatabase(options : IDatabaseOptions) =
                 let! results =
                     connection
                     |> Sql.query """
-                        SELECT userid, id, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, scheduleapplydate, recurringtype, datecreated, lastapplieddate, active
+                        SELECT userid, id, name, amount, scheduletype, scheduleweekofmonth, scheduledayofweek, scheduleddate, scheduleapplydate, byintervalcount, byintervalunit, recurringtype, datecreated, lastapplieddate, active
                         FROM foxybalance_recurringtransactions
                         WHERE active = true
                         AND (
+                            -- Month-based schedules: only re-evaluate if not applied in the last week.
                             lastapplieddate IS NULL
                             OR lastapplieddate < @weekStart
+                            -- Interval schedules may be due more often than weekly (e.g. every 2 days),
+                            -- so always include them; shouldApplyNow decides based on LastAppliedDate.
+                            OR scheduletype = 2
                         )
                     """
                     |> Sql.parameters [

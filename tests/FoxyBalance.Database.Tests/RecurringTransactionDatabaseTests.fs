@@ -72,6 +72,44 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
                 %result.Schedule.Should().Be(ScheduleType.ByWeekOfMonth { WeekOfMonth = week; DayOfWeek = day })
         }
 
+    [<Theory>]
+    [<CombinatorialData>]
+    member _.``ByInterval schedules round-trip through create/get/update``([<CombinatorialValues(1, 2, 7)>] count: int, [<CombinatorialValues("day", "week", "month")>] unitStr: string) =
+        task {
+            let unit =
+                match unitStr with
+                | "day" -> IntervalUnit.Day
+                | "week" -> IntervalUnit.Week
+                | "month" -> IntervalUnit.Month
+                | _ -> failwith "bad unit"
+
+            let! user = createUser ()
+            let partial: PartialRecurringTransaction =
+                { Name = $"Interval {count} {unitStr}"
+                  Amount = 42.50M
+                  Schedule = ScheduleType.ByInterval { Count = count; Unit = unit }
+                  Type = RecurringTransactionType.Bill }
+
+            // Create then read back
+            let! created = database.CreateAsync(user.Id, partial)
+            %created.Schedule.Should().Be(partial.Schedule)
+
+            let! fetched = database.GetAsync(user.Id, created.Id)
+            match fetched with
+            | Some rt -> %rt.Schedule.Should().Be(partial.Schedule)
+            | None -> failwith "expected recurring transaction to exist"
+
+            // Update to a different interval and read back
+            let updatedSchedule = ScheduleType.ByInterval { Count = count + 1; Unit = unit }
+            let! updated = database.UpdateAsync(user.Id, created.Id, { partial with Schedule = updatedSchedule })
+            %updated.Schedule.Should().Be(updatedSchedule)
+
+            let! refetched = database.GetAsync(user.Id, created.Id)
+            match refetched with
+            | Some rt -> %rt.Schedule.Should().Be(updatedSchedule)
+            | None -> failwith "expected recurring transaction to exist after update"
+        }
+
     [<Fact>]
     member _.``CreateAsync should fail if the user does not exist``() =
         task {

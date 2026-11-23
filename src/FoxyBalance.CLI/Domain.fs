@@ -28,9 +28,11 @@ type ApiRecurringTransactionRequest =
       Amount: string
       WeekOfMonth: string option
       DayOfWeek: string option
-      ScheduleType: string option    // "week" | "date"
+      ScheduleType: string option    // "week" | "date" | "interval"
       DayOfMonth: string option      // 1-31 (when ScheduleType = "date")
       ApplyDate: string option       // "early" | "late" (when day may not exist)
+      ByIntervalCount: string option // N (when ScheduleType = "interval")
+      ByIntervalUnit: string option  // "day" | "week" | "month" (when ScheduleType = "interval")
       Type: string option }
 
 [<CLIMutable>]
@@ -77,9 +79,11 @@ type RecurringTransactionDto =
       Amount: decimal
       WeekOfMonth: int
       DayOfWeek: int
-      ScheduleType: string    // "week" | "date"
+      ScheduleType: string    // "week" | "date" | "interval"
       DayOfMonth: int option   // 1-31 (when ScheduleType = "date")
       ApplyDate: string option // "early" | "late" | null
+      ByIntervalCount: int option  // N (when ScheduleType = "interval")
+      ByIntervalUnit: string option // "day" | "week" | "month" | null
       DateCreated: DateTimeOffset
       LastAppliedDate: DateTimeOffset option
       Active: bool

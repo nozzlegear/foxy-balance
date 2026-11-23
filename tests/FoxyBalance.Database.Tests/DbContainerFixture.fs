@@ -77,7 +77,7 @@ type DbContainerFixture() =
         member this.InitializeAsync(): ValueTask =
             ValueTask(task {
                 let args = "-e POSTGRES_PASSWORD=postgres"
-                let buildConnStr ip = $"Host={ip};Port=5433;Username=postgres;Password=postgres"
+                let buildConnStr ip = $"Host={ip};Port=5544;Username=postgres;Password=postgres"
                 let runMigrations = this.MigrationStrategy = ContainerMigrationStrategy.MigrateOnStartup
                 let migrateFn cs = Migrator.migrate Migrator.MigrationTarget.Latest cs
                 let testcontainersCallback _ = ()

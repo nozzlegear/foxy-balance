@@ -28,6 +28,7 @@ module BillMatching =
                             match rt.Schedule with
                             | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth.ToInt(), int sched.DayOfWeek)
                             | ScheduleType.ByCalendarDate sched -> (0, sched.Date)
+                            | ScheduleType.ByInterval _ -> (0, 0)
 
                         let rtDto =
                             {| Id = rt.Id

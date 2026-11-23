@@ -118,9 +118,13 @@ type ScheduledDateScheduleDef =
     { Date : int                      // 1-31
       Apply : ApplyDate option }      // None = skip months where Date doesn't exist (legacy behavior)
 
+type IntervalUnit = Day | Week | Month
+type IntervalScheduleDef = { Count: int; Unit: IntervalUnit }
+
 type ScheduleType =
     | ByWeekOfMonth of WeekOfMonthScheduleDef
     | ByCalendarDate of ScheduledDateScheduleDef
+    | ByInterval of IntervalScheduleDef
 
 type RecurringTransactionType =
     | Bill

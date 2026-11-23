@@ -83,6 +83,8 @@ module RecurringTransactions =
         let dayOfWeekOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0=Sunday through 6=Saturday) [when schedule-type=week]"
         let dayOfMonthOpt = optionMaybe<string> "--day-of-month" |> desc "Day of month (1-31) [when schedule-type=date]"
         let applyDateOpt = optionMaybe<string> "--apply-date" |> desc "Apply policy for days 29-31: early or late [when schedule-type=date]"
+        let intervalCountOpt = optionMaybe<string> "--interval-count" |> desc "Interval count N (e.g. 2) [when schedule-type=interval]"
+        let intervalUnitOpt = optionMaybe<string> "--interval-unit" |> desc "Interval unit: day, week, or month [when schedule-type=interval]"
         let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income [default: bill]"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
@@ -94,6 +96,8 @@ module RecurringTransactions =
             let dayOfWeek = ctx.ParseResult.GetValue<string option> "--day-of-week"
             let dayOfMonth = ctx.ParseResult.GetValue<string option> "--day-of-month"
             let applyDate = ctx.ParseResult.GetValue<string option> "--apply-date"
+            let intervalCount = ctx.ParseResult.GetValue<string option> "--interval-count"
+            let intervalUnit = ctx.ParseResult.GetValue<string option> "--interval-unit"
             let typ = ctx.ParseResult.GetValue<string option> "--type"
             let json = ctx.ParseResult.GetValue<bool> "--json"
             async {
@@ -107,19 +111,23 @@ module RecurringTransactions =
                 let resolvedName = resolve "Name: " name
                 let resolvedAmount = resolve "Amount (e.g. 50.00): " amount
                 let resolvedScheduleType =
-                    let s = resolve "Schedule type (week or date) [default: week]: " scheduleType
+                    let s = resolve "Schedule type (week, date, or interval) [default: week]: " scheduleType
                     if String.IsNullOrWhiteSpace s then "week" else s.ToLowerInvariant()
 
                 // Only prompt for fields relevant to the chosen schedule type.
-                let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt =
+                let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt, intervalCountOpt, intervalUnitOpt =
                     if resolvedScheduleType = "date" then
                         let dom = resolve "Day of month (1-31): " dayOfMonth
                         let apply = resolve "Apply policy for days 29-31 (early or late, leave blank if N/A): " applyDate
-                        None, None, Some dom, (if String.IsNullOrWhiteSpace apply then None else Some apply)
+                        None, None, Some dom, (if String.IsNullOrWhiteSpace apply then None else Some apply), None, None
+                    elif resolvedScheduleType = "interval" then
+                        let count = resolve "Interval count (e.g. 2): " intervalCount
+                        let unit = resolve "Interval unit (day, week, or month): " intervalUnit
+                        None, None, None, None, Some count, (if String.IsNullOrWhiteSpace unit then None else Some (unit.ToLowerInvariant()))
                     else
                         let w = resolve "Week of month (1-4): " week
                         let d = resolve "Day of week (0=Sunday, 6=Saturday): " dayOfWeek
-                        Some w, Some d, None, None
+                        Some w, Some d, None, None, None, None
 
                 let request: ApiRecurringTransactionRequest =
                     { Name = resolvedName
@@ -129,6 +137,8 @@ module RecurringTransactions =
                       DayOfWeek = dayOfWeekOpt
                       DayOfMonth = dayOfMonthOpt
                       ApplyDate = applyDateOpt
+                      ByIntervalCount = intervalCountOpt
+                      ByIntervalUnit = intervalUnitOpt
                       Type = typ |> Option.map (fun t -> t.ToLowerInvariant()) }
 
                 let baseUrl = getBaseUrl ()
@@ -151,7 +161,7 @@ module RecurringTransactions =
         command "create" {
             description "Create a new recurring transaction"
             inputs context
-            addInputs [ nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; typeOpt; jsonOpt ]
+            addInputs [ nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; intervalCountOpt; intervalUnitOpt; typeOpt; jsonOpt ]
             setAction action
         }
 
@@ -166,6 +176,8 @@ module RecurringTransactions =
         let dayOfWeekOpt = optionMaybe<string> "--day-of-week" |> desc "Day of week (0-6) [when schedule-type=week]"
         let dayOfMonthOpt = optionMaybe<string> "--day-of-month" |> desc "Day of month (1-31) [when schedule-type=date]"
         let applyDateOpt = optionMaybe<string> "--apply-date" |> desc "Apply policy for days 29-31: early or late [when schedule-type=date]"
+        let intervalCountOpt = optionMaybe<string> "--interval-count" |> desc "Interval count N (e.g. 2) [when schedule-type=interval]"
+        let intervalUnitOpt = optionMaybe<string> "--interval-unit" |> desc "Interval unit: day, week, or month [when schedule-type=interval]"
         let typeOpt = optionMaybe<string> "--type" |> desc "Transaction type: bill or income"
         let jsonOpt = option<bool> "--json" |> desc "Output as JSON (includes HATEOAS links)" |> defaultValue false
 
@@ -178,6 +190,8 @@ module RecurringTransactions =
             let dayOfWeek = ctx.ParseResult.GetValue<string option> "--day-of-week"
             let dayOfMonth = ctx.ParseResult.GetValue<string option> "--day-of-month"
             let applyDate = ctx.ParseResult.GetValue<string option> "--apply-date"
+            let intervalCount = ctx.ParseResult.GetValue<string option> "--interval-count"
+            let intervalUnit = ctx.ParseResult.GetValue<string option> "--interval-unit"
             let typ = ctx.ParseResult.GetValue<string option> "--type"
             let json = ctx.ParseResult.GetValue<bool> "--json"
             async {
@@ -200,7 +214,7 @@ module RecurringTransactions =
 
                     // Build schedule fields based on the resolved schedule type.
                     // For fields not provided, fall back to the existing transaction's values.
-                    let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt =
+                    let weekOfMonthOpt, dayOfWeekOpt, dayOfMonthOpt, applyDateOpt, intervalCountOpt, intervalUnitOpt =
                         if resolvedScheduleType = "date" then
                             let dom =
                                 match dayOfMonth with
@@ -213,7 +227,20 @@ module RecurringTransactions =
                                 match applyDate with
                                 | Some a when not (String.IsNullOrWhiteSpace a) -> Some a
                                 | _ -> existingTransaction.ApplyDate
-                            None, None, Some dom, apply
+                            None, None, Some dom, apply, None, None
+                        elif resolvedScheduleType = "interval" then
+                            let count =
+                                match intervalCount with
+                                | Some c when not (String.IsNullOrWhiteSpace c) -> c
+                                | _ ->
+                                    match existingTransaction.ByIntervalCount with
+                                    | Some c -> string c
+                                    | None -> ""
+                            let unit =
+                                match intervalUnit with
+                                | Some u when not (String.IsNullOrWhiteSpace u) -> Some (u.ToLowerInvariant())
+                                | _ -> existingTransaction.ByIntervalUnit
+                            None, None, None, None, Some count, unit
                         else
                             let w =
                                 match week with
@@ -223,7 +250,7 @@ module RecurringTransactions =
                                 match dayOfWeek with
                                 | Some d when not (String.IsNullOrWhiteSpace d) -> d
                                 | _ -> string existingTransaction.DayOfWeek
-                            Some w, Some d, None, None
+                            Some w, Some d, None, None, None, None
 
                     let request: ApiRecurringTransactionRequest =
                         { Name =
@@ -239,6 +266,8 @@ module RecurringTransactions =
                           DayOfWeek = dayOfWeekOpt
                           DayOfMonth = dayOfMonthOpt
                           ApplyDate = applyDateOpt
+                          ByIntervalCount = intervalCountOpt
+                          ByIntervalUnit = intervalUnitOpt
                           Type =
                             match typ with
                             | Some t when not (String.IsNullOrWhiteSpace t) -> Some (t.ToLowerInvariant())
@@ -261,7 +290,7 @@ module RecurringTransactions =
         command "update" {
             description "Update an existing recurring transaction (accepts ID or HATEOAS link)"
             inputs context
-            addInputs [ idArg; nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; typeOpt; jsonOpt ]
+            addInputs [ idArg; nameOpt; amountOpt; scheduleTypeOpt; weekOpt; dayOfWeekOpt; dayOfMonthOpt; applyDateOpt; intervalCountOpt; intervalUnitOpt; typeOpt; jsonOpt ]
             setAction action
         }
 

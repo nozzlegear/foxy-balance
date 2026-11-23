@@ -62,6 +62,8 @@ module Bills =
           DayOfWeek = request.DayOfWeek |> Option.defaultValue "0"
           DayOfMonth = request.DayOfMonth |> Option.defaultValue "1"
           ApplyDate = request.ApplyDate |> Option.defaultValue ""
+          ByIntervalCount = request.ByIntervalCount |> Option.defaultValue ""
+          ByIntervalUnit = request.ByIntervalUnit |> Option.defaultValue ""
           Type = request.Type |> Option.defaultValue "bill" }
 
     let newBillPostHandler : HttpHandler =

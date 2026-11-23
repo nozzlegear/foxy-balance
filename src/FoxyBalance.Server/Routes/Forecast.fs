@@ -19,6 +19,8 @@ module Forecast =
           Week : int option
           Day : int option
           Date : int option
+          IntervalCount : int option
+          IntervalUnit : string option
           Type : string }   // "bill" | "income"
 
     let private jsonOptions = JsonSerializerOptions()
@@ -34,16 +36,21 @@ module Forecast =
                         match d.Type with
                         | "income" -> RecurringTransactionType.Income
                         | _ -> RecurringTransactionType.Bill
-                    match d.Week, d.Day, d.Date with
-                    | Some w, Some day, _ ->
+                    match d.Week, d.Day, d.Date, d.IntervalCount, d.IntervalUnit with
+                    | Some w, Some day, _, _, _ ->
                         Some { Name = d.Name; Amount = d.Amount
                                Schedule = ScheduleType.ByWeekOfMonth
                                    { WeekOfMonth = WeekOfMonth.FromInt w
                                      DayOfWeek = enum<System.DayOfWeek> day }
                                Type = tempType }
-                    | _, _, Some date ->
+                    | _, _, Some date, _, _ ->
                         Some { Name = d.Name; Amount = d.Amount
                                Schedule = ScheduleType.ByCalendarDate { Date = date; Apply = None }
+                               Type = tempType }
+                    | _, _, _, Some count, Some unit ->
+                        let u = match unit with | "week" -> IntervalUnit.Week | "month" -> IntervalUnit.Month | _ -> IntervalUnit.Day
+                        Some { Name = d.Name; Amount = d.Amount
+                               Schedule = ScheduleType.ByInterval { Count = count; Unit = u }
                                Type = tempType }
                     | _ -> None)
             with
@@ -60,10 +67,18 @@ module Forecast =
                       Week = Some (sched.WeekOfMonth.ToInt())
                       Day = Some (int sched.DayOfWeek)
                       Date = None
+                      IntervalCount = None; IntervalUnit = None
                       Type = typeStr }
                 | ScheduleType.ByCalendarDate sched ->
                     { Name = t.Name; Amount = t.Amount
                       Week = None; Day = None; Date = Some sched.Date
+                      IntervalCount = None; IntervalUnit = None
+                      Type = typeStr }
+                | ScheduleType.ByInterval sched ->
+                    let u = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
+                    { Name = t.Name; Amount = t.Amount
+                      Week = None; Day = None; Date = None
+                      IntervalCount = Some sched.Count; IntervalUnit = Some u
                       Type = typeStr })
         JsonSerializer.Serialize<TempRecurringTransactionDto list>(dtos, jsonOptions)
 

@@ -46,6 +46,16 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
             return! billDatabase.CreateAsync(userId, partialBill)
         }
 
+    let createIntervalBill (userId: UserId) (name: string) (amount: decimal) (count: int) (unit: IntervalUnit) =
+        task {
+            let partialBill: PartialRecurringTransaction =
+                { Name = name
+                  Amount = amount
+                  Schedule = ByInterval { Count = count; Unit = unit }
+                  Type = RecurringTransactionType.Income }
+            return! billDatabase.CreateAsync(userId, partialBill)
+        }
+
     let createAutoGenTx (userId: UserId) (bill: RecurringTransaction) (date: DateTimeOffset) (txType: TransactionType) =
         task {
             let partialTx: PartialTransaction =
@@ -81,9 +91,12 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
             let! bill6 = createBill userId "Hardman West Inc." 500M FourthWeek DayOfWeek.Monday
             let! bill7 = createBill userId "Kirlin Inc" 972.57M SecondWeek DayOfWeek.Tuesday
             let! bill8 = createBill userId "Stracke - Leannon" 145M ThirdWeek DayOfWeek.Monday
+            // ByInterval schedule: every 2 weeks, $20.00 credit (income). No CSV transaction has this
+            // amount, so it stays unmatched like the pending bills.
+            let! bill9 = createIntervalBill userId "Biweekly Allowance Credit" 20.00M 2 IntervalUnit.Week
 
             let matchingBills: RecurringTransaction[] = [| bill1; bill2; bill3; bill4; bill7; bill8 |]
-            let pendingBills: RecurringTransaction[] = [| bill5; bill6 |]
+            let pendingBills: RecurringTransaction[] = [| bill5; bill6; bill9 |]
 
             // Setup
             // Create auto-generated pending transactions for ALL bills
@@ -95,6 +108,8 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
             let! ag8 = createAutoGenTx userId bill8 (match bill8.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Credit
             let! ag5 = createAutoGenTx userId bill5 (match bill5.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
             let! ag6 = createAutoGenTx userId bill6 (match bill6.Schedule with | ByWeekOfMonth { WeekOfMonth = w; DayOfWeek = d } -> calculateTargetDate w d | _ -> failwith "ByCalendarDate schedule not supported for auto-generation") Debit
+            // Auto-gen for the interval credit: first September occurrence of the every-2-weeks schedule is Sep 1; use Sep 15.
+            let! ag9 = createAutoGenTx userId bill9 (DateTimeOffset(2026, 9, 15, 0, 0, 0, TimeSpan.Zero)) Credit
 
             // Setup
             // Parse and bulk import CSV transactions as Cleared
@@ -222,7 +237,7 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
 
             // Verification 7
             // Transaction counts
-            // ListAsync excludes matched auto-gen: 14 CSV + 1 starting balance + 4 pending auto-gen = 19
+            // ListAsync excludes matched auto-gen: CSV + 1 starting balance + pending auto-gen (bill5, bill6, bill9)
             let csvTxCount = parsedTransactions.Length
             let expectedListedCount = csvTxCount + 1 + pendingBills.Length // CSV + starting balance + 4 pending auto-gen
             %allTxs.Should().HaveLength(expectedListedCount)

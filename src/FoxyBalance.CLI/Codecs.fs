@@ -123,6 +123,8 @@ module Codecs =
               ScheduleType = get.Optional.Field "scheduleType" Decode.string |> Option.defaultValue "week"
               DayOfMonth = get.Optional.Field "dayOfMonth" Decode.int
               ApplyDate = get.Optional.Field "applyDate" Decode.string
+              ByIntervalCount = get.Optional.Field "byIntervalCount" Decode.int
+              ByIntervalUnit = get.Optional.Field "byIntervalUnit" Decode.string
               DateCreated = get.Required.Field "dateCreated" Decode.datetimeOffset
               LastAppliedDate = get.Optional.Field "lastAppliedDate" Decode.datetimeOffset
               Active = get.Required.Field "active" Decode.bool
@@ -193,6 +195,12 @@ module Codecs =
             | None -> ()
             match b.ApplyDate with
             | Some a -> "applyDate", Encode.string a
+            | None -> ()
+            match b.ByIntervalCount with
+            | Some n -> "byIntervalCount", Encode.int n
+            | None -> ()
+            match b.ByIntervalUnit with
+            | Some u -> "byIntervalUnit", Encode.string u
             | None -> ()
             "dateCreated", Encode.datetimeOffset b.DateCreated
             match b.LastAppliedDate with
@@ -268,6 +276,12 @@ module Codecs =
             | None -> ()
             match r.ApplyDate with
             | Some a when not (System.String.IsNullOrWhiteSpace a) -> "applyDate", Encode.string a
+            | _ -> ()
+            match r.ByIntervalCount with
+            | Some n -> "byIntervalCount", Encode.string n
+            | None -> ()
+            match r.ByIntervalUnit with
+            | Some u when not (System.String.IsNullOrWhiteSpace u) -> "byIntervalUnit", Encode.string u
             | _ -> ()
             match r.Type with
             | Some t -> "type", Encode.string t

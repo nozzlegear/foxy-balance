@@ -53,26 +53,46 @@ module ApiDtos =
     /// Convert a RecurringTransaction to a DTO
     let rec scheduleInfo (t: RecurringTransaction) =
         match t.Schedule with
-        | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth.ToInt(), int sched.DayOfWeek)
-        | ScheduleType.ByCalendarDate sched -> (0, sched.Date)
+        | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, None, None)
+        | ScheduleType.ByCalendarDate sched -> (0, sched.Date, None, None)
+        | ScheduleType.ByInterval sched -> (0, 0, Some sched.Count, Some (intervalUnitToString sched.Unit))
+
+    and intervalUnitToString (unit: IntervalUnit) =
+        match unit with
+        | Day -> "day"
+        | Week -> "week"
+        | Month -> "month"
 
     let private scheduleTypeStr (t: RecurringTransaction) =
         match t.Schedule with
         | ScheduleType.ByWeekOfMonth _ -> "week"
         | ScheduleType.ByCalendarDate _ -> "date"
+        | ScheduleType.ByInterval _ -> "interval"
 
     let private dayOfMonth (t: RecurringTransaction) =
         match t.Schedule with
         | ScheduleType.ByWeekOfMonth _ -> None
         | ScheduleType.ByCalendarDate sched -> Some sched.Date
+        | ScheduleType.ByInterval _ -> None
 
     let private applyDateStr (t: RecurringTransaction) =
         match t.Schedule with
         | ScheduleType.ByWeekOfMonth _ -> None
         | ScheduleType.ByCalendarDate sched -> sched.Apply |> Option.map (fun a -> a.ToDbString())
+        | ScheduleType.ByInterval _ -> None
+
+    let private byIntervalCount (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByInterval sched -> Some (string sched.Count)
+        | _ -> None
+
+    let private byIntervalUnit (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByInterval sched -> Some (intervalUnitToString sched.Unit)
+        | _ -> None
 
     let fromRecurringTransaction (t: RecurringTransaction) =
-        let weekOfMonth, dayOfWeek = scheduleInfo t
+        let weekOfMonth, dayOfWeek, byIntervalCountOpt, byIntervalUnitOpt = scheduleInfo t
         {| Id = t.Id
            Name = t.Name
            Amount = t.Amount
@@ -81,6 +101,8 @@ module ApiDtos =
            ScheduleType = scheduleTypeStr t
            DayOfMonth = dayOfMonth t
            ApplyDate = applyDateStr t
+           ByIntervalCount = byIntervalCountOpt
+           ByIntervalUnit = byIntervalUnitOpt
            Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income"
            DateCreated = t.DateCreated
            LastAppliedDate = t.LastAppliedDate

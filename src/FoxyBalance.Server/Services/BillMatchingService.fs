@@ -37,6 +37,7 @@ type RecurringTransactionMatchingService(
             match rt.Schedule with
             | ScheduleType.ByWeekOfMonth sched -> (sched.WeekOfMonth, sched.DayOfWeek)
             | ScheduleType.ByCalendarDate _ -> (WeekOfMonth.FirstWeek, DayOfWeek.Monday)
+            | ScheduleType.ByInterval _ -> (WeekOfMonth.FirstWeek, DayOfWeek.Monday)
         let expectedDate = calculateTargetDateForWeek weekOfMonth dayOfWeek transaction.DateCreated
 
         // Date score based on proximity to expected date

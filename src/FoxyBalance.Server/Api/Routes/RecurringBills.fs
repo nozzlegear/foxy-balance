@@ -19,6 +19,8 @@ module RecurringTransactions =
           DayOfWeek = req.DayOfWeek
           DayOfMonth = req.DayOfMonth
           ApplyDate = req.ApplyDate
+          ByIntervalCount = req.ByIntervalCount
+          ByIntervalUnit = req.ByIntervalUnit
           Type = req.Type }
 
     /// GET /api/v1/bills  (recurring transactions)
