@@ -25,7 +25,8 @@
 
   <ItemGroup>
     <Compile Include="AppleContainer.fs" />
-    <Compile Include="ContainerReuse.fs" />
+    <Compile Include="TestDatabaseContainer.fs" />
+    <Compile Include="AssemblyFixtures.fs" />
     <Compile Include="DbContainerFixture.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="TransactionDatabaseTests.fs" />

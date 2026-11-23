@@ -12,7 +12,7 @@ type ContainerMigrationStrategy =
     | MigrateOnStartup
     | DoNotMigrate
 
-module private PgAdmin =
+module PgAdmin =
     let exec (cs: string) (sql: string) =
         task {
             use cn = new NpgsqlConnection(cs)
@@ -61,6 +61,9 @@ WHERE pg_stat_activity.datname = '{db}'
             do! exec postgresCs $"DROP DATABASE IF EXISTS {db};"
         }
 
+/// One database per test collection, inside the container shared by the whole assembly
+/// (see AssemblyFixtures.fs). The collection fixture drops its database on dispose; the assembly
+/// fixture removes the container after all tests finish.
 type DbContainerFixture() =
     static let [<Literal>] image = "docker.io/library/postgres:18-alpine"
     static let [<Literal>] digest = "sha256:154ea39af68ff30dec041cd1f1b5600009993724c811dbadde54126eb10bedd1"
@@ -77,27 +80,27 @@ type DbContainerFixture() =
         member this.InitializeAsync(): ValueTask =
             ValueTask(task {
                 let args = "-e POSTGRES_PASSWORD=postgres"
-                let buildConnStr ip = $"Host={ip};Port=5544;Username=postgres;Password=postgres"
+                let buildConnStr hostPort = $"Host=127.0.0.1;Port={hostPort};Username=postgres;Password=postgres"
                 let runMigrations = this.MigrationStrategy = ContainerMigrationStrategy.MigrateOnStartup
                 let migrateFn cs = Migrator.migrate Migrator.MigrationTarget.Latest cs
-                let testcontainersCallback _ = ()
+                let cancellationToken = TestContext.Current.CancellationToken
 
-                let! result =
-                    ContainerReuse.startContainerAndReuse
-                        "postgres" image digest args buildConnStr
-                        PgAdmin.recreateDb runMigrations migrateFn
-                        testcontainersCallback
-                        TestContext.Current.CancellationToken
+                let! container =
+                    TestDatabaseContainer.getShared "postgres" image digest args buildConnStr cancellationToken
+
+                let! connectionString =
+                    TestDatabaseContainer.createDatabase
+                        container "postgres" PgAdmin.recreateDb runMigrations migrateFn cancellationToken
 
                 dbName <-
-                    result.ConnectionString.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries)
                     |> Array.toList
                     |> List.tryFind (fun s -> s.StartsWith("Database="))
                     |> Option.map (fun s -> s.Substring(9))
                     |> function
                        | Some db -> db
                        | None -> String.Empty
-                dbConn <- result.ConnectionString
+                dbConn <- connectionString
             })
 
         member this.DisposeAsync(): ValueTask =
@@ -127,6 +130,6 @@ type IncomeDatabaseCollection() =
 type RecurringTransactionDatabaseCollection() =
     interface ICollectionFixture<DbContainerFixture>
 
- [<CollectionDefinition("RecurringTransactionMatchingService")>]
+[<CollectionDefinition("RecurringTransactionMatchingService")>]
 type RecurringTransactionMatchingServiceCollection() =
     interface ICollectionFixture<DbContainerFixture>

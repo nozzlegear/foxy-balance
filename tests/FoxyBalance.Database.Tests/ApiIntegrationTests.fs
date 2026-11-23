@@ -50,42 +50,23 @@ type ApiTestFixture() =
             ValueTask(
                 task {
                     let args = "-e POSTGRES_PASSWORD=postgres"
-                    let buildConnStr ip = $"Host={ip};Port=5433;Username=postgres;Password=postgres"
-                    let testcontainersCallback _ = ()
-
-                    // recreateDb: create the test database inside the container
-                    let recreateDb (cs: string) (db: string) =
-                        task {
-                            use cn = new Npgsql.NpgsqlConnection(cs)
-                            do! cn.OpenAsync()
-                            let terminateConnections = $"""
-SELECT pg_terminate_backend(pg_stat_activity.pid)
-FROM pg_stat_activity
-WHERE pg_stat_activity.datname = '{db}'
-  AND pid <> pg_backend_pid();
-"""
-                            use termCmd = new Npgsql.NpgsqlCommand(terminateConnections, cn)
-                            let! _ = termCmd.ExecuteNonQueryAsync()
-                            use dropCmd = new Npgsql.NpgsqlCommand($"DROP DATABASE IF EXISTS {db};", cn)
-                            let! _ = dropCmd.ExecuteNonQueryAsync()
-                            use createCmd = new Npgsql.NpgsqlCommand($"CREATE DATABASE {db};", cn)
-                            let! _ = createCmd.ExecuteNonQueryAsync()
-                            return ()
-                        }
+                    let buildConnStr hostPort = $"Host=127.0.0.1;Port={hostPort};Username=postgres;Password=postgres"
 
                     let migrateFn cs =
                         FoxyBalance.Migrations.Migrator.migrate
                             FoxyBalance.Migrations.Migrator.MigrationTarget.Latest
                             cs
 
-                    let! result =
-                        ContainerReuse.startContainerAndReuse
-                            "postgres" image digest args buildConnStr
-                            recreateDb true migrateFn
-                            testcontainersCallback
-                            TestContext.Current.CancellationToken
+                    let cancellationToken = TestContext.Current.CancellationToken
 
-                    dbConn <- result.ConnectionString
+                    let! container =
+                        TestDatabaseContainer.getShared "postgres" image digest args buildConnStr cancellationToken
+
+                    let! connectionString =
+                        TestDatabaseContainer.createDatabase
+                            container "postgres" PgAdmin.recreateDb true migrateFn cancellationToken
+
+                    dbConn <- connectionString
 
                     // Create the test server with the test database connection
                     let webAppFactory =
