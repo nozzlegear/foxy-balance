@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine@sha256:7d98d5883675c6bca25b1db91f393b24b85125b5b00b405e55404fd6b8d2aead as build-layer
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404-alpine3.24@sha256:0294f285d062afacc8b5f6d7febb0cd4ee879320e5585fa15f2f4ebf1feb9ba7 as build-layer
 WORKDIR /app
 ARG BUILD=DEV
 
@@ -12,7 +12,7 @@ RUN dotnet publish \
     src/FoxyBalance.Server/FoxyBalance.Server.fsproj
 
 # "Chisel" the wget binary from the Ubuntu image so we can use it in the container's healthcheck
-FROM docker.io/library/ubuntu:24.04 AS wget-slice
+FROM docker.io/library/ubuntu:26.04@sha256:d66b366dac61b575bee2aef07e9c26e8070096fbe84a3d4d3eb0da069b5d76db AS wget-slice
 
 RUN apt-get update && apt-get install -y wget
 
@@ -25,10 +25,10 @@ RUN wget "https://github.com/canonical/chisel/releases/download/v1.4.1/chisel_v1
     mv chisel /usr/local/bin/
 
 # Cut the wget slice with chisel
-RUN mkdir -p /wget-slice && chisel cut --release ubuntu-24.04 --root /wget-slice wget_bins
+RUN mkdir -p /wget-slice && chisel cut --release ubuntu-26.04 --root /wget-slice wget_bins
 
-# Switch to alpine for running the application
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:70781c828be42869ac1d15c42dcbdf14484e10bffcb5f8220617018a387db02c as runlayer
+# Switch to the chiseled runtime image (Ubuntu 26.04) for running the application
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-resolute-chiseled-extra@sha256:728d90568c65ec25adf8bacd9da65356a7f5bbeb37eaca1193e6ed082900a1bc as runlayer
 WORKDIR /app
 
 # Copy the published files from the build layer
