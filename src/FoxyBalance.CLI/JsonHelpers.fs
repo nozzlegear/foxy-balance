@@ -74,6 +74,7 @@ module JsonHelpers =
             member _.asFloat jsonValue = jsonValue.GetDouble()
             member _.asFloat32 jsonValue = jsonValue.GetSingle()
             member _.asInt jsonValue = jsonValue.GetInt32()
+            member _.numberToString jsonValue = jsonValue.GetRawText()
             member _.getProperties jsonValue =
                 jsonValue.EnumerateObject() |> Seq.map (fun prop -> prop.Name)
             member _.getProperty(fieldName, jsonValue) = jsonValue.GetProperty(fieldName)
