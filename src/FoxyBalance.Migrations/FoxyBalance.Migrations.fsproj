@@ -27,7 +27,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentMigrator" />
-    <PackageReference Include="FluentMigrator.Runner" />
+    <PackageReference Include="FluentMigrator.Runner.Core" />
     <PackageReference Include="FluentMigrator.Runner.Postgres" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="FSharp.Core" />
