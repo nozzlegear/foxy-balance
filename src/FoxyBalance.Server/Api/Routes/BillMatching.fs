@@ -68,36 +68,36 @@ module BillMatching =
             task {
                 let! request = ctx.BindJsonAsync<ApiMatchRequest>()
 
-                match System.Int64.TryParse request.TransactionId with
-                | true, transactionId when transactionId > 0L ->
-                    match System.Int64.TryParse request.RecurringTransactionId with
-                    | true, recurringTransactionId when recurringTransactionId > 0L ->
-                        // Verify the recurring transaction belongs to this user
-                        let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
-                        match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
-                        | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
-                        | Some _ ->
-                            let matchingService = ctx.RequestServices.GetRequiredService<RecurringTransactionMatchingService>()
+                match System.Int64.TryParse request.TransactionId, System.Int64.TryParse request.RecurringTransactionId with
+                | (true, transactionId), (true, recurringTransactionId) when transactionId > 0L && recurringTransactionId > 0L ->
+                    // Verify the recurring transaction belongs to this user
+                    let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
+                    match! recTxDb.GetAsync(session.UserId, recurringTransactionId) with
+                    | None -> return! ApiRouteUtils.notFound "Recurring transaction" next ctx
+                    | Some _ ->
+                        let matchingService = ctx.RequestServices.GetRequiredService<RecurringTransactionMatchingService>()
 
-                            match! matchingService.MatchTransactionToRecurringTransaction(
-                                session.UserId,
-                                transactionId,
-                                recurringTransactionId
-                            )
-                            with
-                            | Error msg when msg.Contains("not found", System.StringComparison.OrdinalIgnoreCase) ->
-                                return! ApiRouteUtils.notFound "Transaction" next ctx
-                            | Error msg -> return! ApiRouteUtils.validationError msg next ctx
-                            | Ok transaction ->
-                            // Convert to DTO for serialization
-                            let transactionDto = ApiDtos.fromTransaction transaction
+                        match! matchingService.MatchTransactionToRecurringTransaction(
+                            session.UserId,
+                            transactionId,
+                            recurringTransactionId
+                        )
+                        with
+                        | Error msg when msg.Contains("not found", System.StringComparison.OrdinalIgnoreCase) ->
+                            return! ApiRouteUtils.notFound "Transaction" next ctx
+                        | Error msg -> return! ApiRouteUtils.validationError msg next ctx
+                        | Ok transaction ->
+                        // Convert to DTO for serialization
+                        let transactionDto = ApiDtos.fromTransaction transaction
 
-                            let halResponse =
-                                HalBuilder.resource
-                                    transactionDto
-                                    [ LinkRel.Self, HalBuilder.link $"/api/v1/transactions/{transaction.Id}"
-                                      LinkRel.RecurringTransaction recurringTransactionId, HalBuilder.link $"/api/v1/bills/{recurringTransactionId}"
-                                      LinkRel.MatchSuggestions, HalBuilder.link "/api/v1/bills/match/suggestions" ]
+                        let halResponse =
+                            HalBuilder.resource
+                                transactionDto
+                                [ LinkRel.Self, HalBuilder.link $"/api/v1/transactions/{transaction.Id}"
+                                  LinkRel.RecurringTransaction recurringTransactionId, HalBuilder.link $"/api/v1/bills/{recurringTransactionId}"
+                                  LinkRel.MatchSuggestions, HalBuilder.link "/api/v1/bills/match/suggestions" ]
 
-                            return! ApiRouteUtils.halJson halResponse next ctx
+                        return! ApiRouteUtils.halJson halResponse next ctx
+                | _ ->
+                    return! ApiRouteUtils.validationError "TransactionId and RecurringTransactionId must be positive integers" next ctx
             })
