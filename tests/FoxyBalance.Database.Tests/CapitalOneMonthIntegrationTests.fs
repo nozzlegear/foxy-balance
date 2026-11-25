@@ -51,7 +51,7 @@ type CapitalOneMonthIntegrationTests(fixture: DbContainerFixture) =
             let partialBill: PartialRecurringTransaction =
                 { Name = name
                   Amount = amount
-                  Schedule = ByInterval { Count = count; Unit = unit }
+                  Schedule = ByInterval { Count = count; Unit = unit; StartDate = september2026 }
                   Type = RecurringTransactionType.Income }
             return! billDatabase.CreateAsync(userId, partialBill)
         }

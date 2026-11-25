@@ -87,7 +87,7 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
             let partial: PartialRecurringTransaction =
                 { Name = $"Interval {count} {unitStr}"
                   Amount = 42.50M
-                  Schedule = ScheduleType.ByInterval { Count = count; Unit = unit }
+                  Schedule = ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) }
                   Type = RecurringTransactionType.Bill }
 
             // Create then read back
@@ -100,7 +100,7 @@ type RecurringTransactionDatabaseTests(fixture: DbContainerFixture) =
             | None -> failwith "expected recurring transaction to exist"
 
             // Update to a different interval and read back
-            let updatedSchedule = ScheduleType.ByInterval { Count = count + 1; Unit = unit }
+            let updatedSchedule = ScheduleType.ByInterval { Count = count + 1; Unit = unit; StartDate = DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero) }
             let! updated = database.UpdateAsync(user.Id, created.Id, { partial with Schedule = updatedSchedule })
             %updated.Schedule.Should().Be(updatedSchedule)
 

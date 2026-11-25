@@ -42,7 +42,8 @@ module RecurringScheduleTests =
             | _ -> failwith "bad unit"
         let from = DateTimeOffset.Parse(fromStr).ToUniversalTime() |> fun d -> DateTimeOffset(d.Year, d.Month, d.Day, 0, 0, 0, TimeSpan.Zero)
         let to' = DateTimeOffset.Parse(toStr).ToUniversalTime() |> fun d -> DateTimeOffset(d.Year, d.Month, d.Day, 0, 0, 0, TimeSpan.Zero)
-        let schedule = ScheduleType.ByInterval { Count = count; Unit = unit }
+        // Anchor at the range start so the expected occurrences are unchanged.
+        let schedule = ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = from }
 
         let occ = RecurringSchedule.enumerateOccurrences schedule from to'
 
@@ -59,7 +60,7 @@ module RecurringScheduleTests =
         let expectedStepDays = if unitStr = "day" then count else count * 7
         let from = dto 2026 1 1
         let to' = dto 2026 4 1
-        let schedule = ScheduleType.ByInterval { Count = count; Unit = unit }
+        let schedule = ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = from }
 
         let occ = RecurringSchedule.enumerateOccurrences schedule from to'
 
@@ -74,7 +75,7 @@ module RecurringScheduleTests =
         ([<CombinatorialValues(1, 2, 3, 6, 12)>] count: int) =
         let from = dto 2026 1 31
         let to' = dto 2027 12 31
-        let schedule = ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Month }
+        let schedule = ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Month; StartDate = from }
 
         let occ = RecurringSchedule.enumerateOccurrences schedule from to'
 
@@ -90,7 +91,7 @@ module RecurringScheduleTests =
     let ``ByInterval every 2 weeks starting Nov 5 2026 yields 2 in November and 3 in December`` () =
         let from = dto 2026 11 5
         let to' = dto 2026 12 31
-        let schedule = ScheduleType.ByInterval { Count = 2; Unit = IntervalUnit.Week }
+        let schedule = ScheduleType.ByInterval { Count = 2; Unit = IntervalUnit.Week; StartDate = from }
 
         let occ = RecurringSchedule.enumerateOccurrences schedule from to'
 
@@ -105,14 +106,14 @@ module RecurringScheduleTests =
     let ``enumerateOccurrences ByInterval includes both range endpoints when they land on occurrences`` () =
         let from = dto 2026 3 1
         let to' = dto 2026 3 15
-        let occ = RecurringSchedule.enumerateOccurrences (ScheduleType.ByInterval { Count = 7; Unit = IntervalUnit.Day }) from to'
+        let occ = RecurringSchedule.enumerateOccurrences (ScheduleType.ByInterval { Count = 7; Unit = IntervalUnit.Day; StartDate = from }) from to'
         Assert.Equal("2026-03-01,2026-03-08,2026-03-15", String.Join(",", dates occ))
 
     [<Fact>]
     let ``enumerateOccurrences ByInterval empty when range shorter than interval`` () =
         let from = dto 2026 3 1
         let to' = dto 2026 3 5
-        let occ = RecurringSchedule.enumerateOccurrences (ScheduleType.ByInterval { Count = 10; Unit = IntervalUnit.Day }) from to'
+        let occ = RecurringSchedule.enumerateOccurrences (ScheduleType.ByInterval { Count = 10; Unit = IntervalUnit.Day; StartDate = from }) from to'
         Assert.Equal("2026-03-01", String.Join(",", dates occ))
 
     // ---- existing schedule types still work (regression) ----
@@ -136,22 +137,23 @@ module RecurringScheduleTests =
     // ---- dueDateByInterval ----
 
     let getDueDateCases() = [
-        // count, unit, lastApplied (null = never), current, expectedDue, expectedStamp
-        2, "day", null, "2026-03-10", true, "2026-03-10"            // never applied -> due now
-        2, "day", "2026-03-01", "2026-03-02", false, "2026-03-02"    // due 03-03, not yet; stamp = today
-        2, "day", "2026-03-01", "2026-03-03", true, "2026-03-03"     // due 03-03, today
-        2, "day", "2026-03-01", "2026-03-10", true, "2026-03-03"     // overdue; stamp with due date
-        1, "week", "2026-03-01", "2026-03-07", false, "2026-03-07"  // due 03-08, not yet
-        1, "week", "2026-03-01", "2026-03-08", true, "2026-03-08"   // due 03-08, today
-        1, "month", "2026-01-31", "2026-02-27", false, "2026-02-27" // due 02-28 (Feb 31 clamps), not yet
-        1, "month", "2026-01-31", "2026-02-28", true, "2026-02-28"  // due 02-28, today
+        // count, unit, startDate, lastApplied (null = never), current, expectedDue, expectedStamp
+        2, "day", "2026-03-01", null, "2026-03-10", true, "2026-03-01"            // never applied -> due at start date
+        2, "day", "2026-03-15", null, "2026-03-10", false, "2026-03-10"           // start date in future gates first application
+        2, "day", "2026-03-01", "2026-03-01", "2026-03-02", false, "2026-03-02"    // next occurrence 03-03, not yet; stamp = today
+        2, "day", "2026-03-01", "2026-03-01", "2026-03-03", true, "2026-03-03"     // occurrence 03-03, today
+        2, "day", "2026-03-01", "2026-03-01", "2026-03-10", true, "2026-03-03"     // overdue; stamp with occurrence date
+        1, "week", "2026-03-01", "2026-03-01", "2026-03-07", false, "2026-03-07"  // occurrence 03-08, not yet
+        1, "week", "2026-03-01", "2026-03-01", "2026-03-08", true, "2026-03-08"   // occurrence 03-08, today
+        1, "month", "2026-01-31", "2026-01-31", "2026-02-27", false, "2026-02-27" // occurrence 02-28 (Feb 31 clamps), not yet
+        1, "month", "2026-01-31", "2026-01-31", "2026-02-28", true, "2026-02-28"  // occurrence 02-28, today
     ]
 
     [<Theory>]
     [<MemberData(nameof getDueDateCases)>]
     let ``dueDateByInterval computes due flag and stamp date`` (
         
-        count: int, unitStr: string, lastAppliedStr: string, currentStr: string, expectedDue: bool, expectedStampStr: string
+        count: int, unitStr: string, startDateStr: string, lastAppliedStr: string, currentStr: string, expectedDue: bool, expectedStampStr: string
     ) =
         let unit =
             match unitStr with
@@ -163,9 +165,10 @@ module RecurringScheduleTests =
             match lastAppliedStr with
             | null -> None
             | s -> Some (DateTimeOffset.Parse(s + "T00:00:00Z"))
+        let startDate = DateTimeOffset.Parse(startDateStr + "T00:00:00Z")
         let current = DateTimeOffset.Parse(currentStr + "T00:00:00Z")
 
-        let (due, stamp) = RecurringSchedule.dueDateByInterval count unit lastApplied current
+        let (due, stamp) = RecurringSchedule.dueDateByInterval count unit startDate lastApplied current
 
         Assert.Equal(expectedDue, due)
         Assert.Equal(DateTimeOffset.Parse(expectedStampStr + "T00:00:00Z").Date, stamp.Date)
