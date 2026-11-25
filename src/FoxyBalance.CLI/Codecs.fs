@@ -125,6 +125,7 @@ module Codecs =
               ApplyDate = get.Optional.Field "applyDate" Decode.string
               ByIntervalCount = get.Optional.Field "byIntervalCount" Decode.int
               ByIntervalUnit = get.Optional.Field "byIntervalUnit" Decode.string
+              ByIntervalStartDate = get.Optional.Field "byIntervalStartDate" Decode.datetimeOffset
               DateCreated = get.Required.Field "dateCreated" Decode.datetimeOffset
               LastAppliedDate = get.Optional.Field "lastAppliedDate" Decode.datetimeOffset
               Active = get.Required.Field "active" Decode.bool
@@ -201,6 +202,9 @@ module Codecs =
             | None -> ()
             match b.ByIntervalUnit with
             | Some u -> "byIntervalUnit", Encode.string u
+            | None -> ()
+            match b.ByIntervalStartDate with
+            | Some d -> "byIntervalStartDate", Encode.datetimeOffset d
             | None -> ()
             "dateCreated", Encode.datetimeOffset b.DateCreated
             match b.LastAppliedDate with
@@ -282,6 +286,9 @@ module Codecs =
             | None -> ()
             match r.ByIntervalUnit with
             | Some u when not (System.String.IsNullOrWhiteSpace u) -> "byIntervalUnit", Encode.string u
+            | _ -> ()
+            match r.ByIntervalStartDate with
+            | Some d when not (System.String.IsNullOrWhiteSpace d) -> "byIntervalStartDate", Encode.string d
             | _ -> ()
             match r.Type with
             | Some t -> "type", Encode.string t

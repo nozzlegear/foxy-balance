@@ -164,6 +164,25 @@ module Formatters =
 
     /// Human-readable schedule description for a recurring transaction DTO.
     /// Week: "1st week, Monday". Date: "Day 15 of month" (with apply policy if present).
+    /// Interval: "Every 2 weeks, next occurrence Nov 26, 2026".
+    let private nextIntervalOccurrence (startDate: DateTimeOffset) (count: int) (unit: string) (lastApplied: DateTimeOffset option) : DateTimeOffset =
+        let step (i: int) =
+            match unit with
+            | "week" -> startDate.AddDays(float (count * 7 * i))
+            | "month" -> startDate.AddMonths(count * i)
+            | _ -> startDate.AddDays(float (count * i))
+        match lastApplied with
+        | None -> step 0
+        | Some last ->
+            let est =
+                match unit with
+                | "week" -> max 0 ((last.Date - startDate.Date).Days / (count * 7))
+                | "month" -> max 0 (((last.Year - startDate.Year) * 12 + (last.Month - startDate.Month)) / count)
+                | _ -> max 0 ((last.Date - startDate.Date).Days / count)
+            let rec walkUp k = if (step k).Date > last.Date then k else walkUp (k + 1)
+            let rec walkDown k = if k > 0 && (step (k - 1)).Date > last.Date then walkDown (k - 1) else k
+            step (walkDown (walkUp est))
+
     let scheduleLabel (b: RecurringTransactionDto) : string =
         match b.ScheduleType with
         | "date" ->
@@ -175,8 +194,12 @@ module Formatters =
         | "interval" ->
             let count = b.ByIntervalCount |> Option.defaultValue 1
             let unit = b.ByIntervalUnit |> Option.defaultValue "day"
-            if count = 1 then sprintf "Every %s" unit
-            else sprintf "Every %d %ss" count unit
+            let every = if count = 1 then sprintf "Every %s" unit else sprintf "Every %d %ss" count unit
+            match b.ByIntervalStartDate with
+            | Some startDate ->
+                let next = nextIntervalOccurrence startDate count unit b.LastAppliedDate
+                sprintf "%s, next occurrence %s" every (next.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture))
+            | None -> every
         | _ ->
             sprintf "%s week, %s" (weekLabel b.WeekOfMonth) (dayOfWeekLabel b.DayOfWeek)
 
