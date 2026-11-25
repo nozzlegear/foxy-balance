@@ -119,7 +119,9 @@ type ScheduledDateScheduleDef =
       Apply : ApplyDate option }      // None = skip months where Date doesn't exist (legacy behavior)
 
 type IntervalUnit = Day | Week | Month
-type IntervalScheduleDef = { Count: int; Unit: IntervalUnit }
+/// StartDate anchors occurrence enumeration: occurrences are StartDate + k * (Count x Unit),
+/// stepped by index so month arithmetic doesn't drift.
+type IntervalScheduleDef = { Count: int; Unit: IntervalUnit; StartDate: DateTimeOffset }
 
 type ScheduleType =
     | ByWeekOfMonth of WeekOfMonthScheduleDef
