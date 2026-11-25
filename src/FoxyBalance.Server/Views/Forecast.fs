@@ -43,7 +43,8 @@ module Forecast =
             $"Day {sched.Date} of month"
         | ScheduleType.ByInterval sched ->
             let unitStr = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
-            if sched.Count = 1 then $"Every {unitStr}" else $"Every {sched.Count} {unitStr}s"
+            let every = if sched.Count = 1 then $"Every {unitStr}" else $"Every {sched.Count} {unitStr}s"
+            $"{every} from {Format.date sched.StartDate}"
 
     /// Hidden inputs that carry forecast state (dates + toggled + tmp + on-event txn ids)
     /// across GET forms that live outside the main forecast form (temp list + add dialog).

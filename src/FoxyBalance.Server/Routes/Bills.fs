@@ -1,5 +1,6 @@
 namespace FoxyBalance.Server.Routes
 
+open Npgsql
 open FoxyBalance.Database.Interfaces
 open FoxyBalance.Server.Services
 open Giraffe
@@ -64,7 +65,16 @@ module Bills =
           ApplyDate = request.ApplyDate |> Option.defaultValue ""
           ByIntervalCount = request.ByIntervalCount |> Option.defaultValue ""
           ByIntervalUnit = request.ByIntervalUnit |> Option.defaultValue ""
+          ByIntervalStartDate = request.ByIntervalStartDate |> Option.defaultValue ""
           Type = request.Type |> Option.defaultValue "bill" }
+
+    /// Humanize a Postgres constraint violation into a user-facing form error.
+    let private friendlyDbError (ex: PostgresException) : string =
+        match ex.SqlState with
+        | "23514" -> "A required field is missing for the chosen schedule type (interval schedules require a start date)."
+        | "23505" -> "A record with this value already exists."
+        | "23503" -> "A referenced record does not exist."
+        | _ -> ex.Message
 
     let newBillPostHandler : HttpHandler =
         RouteUtils.withSession (fun session next ctx -> task {
@@ -84,8 +94,19 @@ module Bills =
 
                 return! view next ctx
             | Ok partialTransaction ->
-                let! _created = database.CreateAsync(session.UserId, partialTransaction)
-                return! redirectTo false "/recurring" next ctx
+                try
+                    let! _created = database.CreateAsync(session.UserId, partialTransaction)
+                    return! redirectTo false "/recurring" next ctx
+                with
+                | :? PostgresException as ex when (ex.SqlState = "23514" || ex.SqlState = "23505" || ex.SqlState = "23503") ->
+                    let model = modelFromFailedRequest request (friendlyDbError ex)
+                    let view =
+                        model
+                        |> NewBill
+                        |> Views.createOrEditBillPage
+                        |> htmlView
+                        >=> setStatusCode 400
+                    return! view next ctx
         })
 
     let existingBillPostHandler (billId : int64) : HttpHandler =
@@ -106,8 +127,19 @@ module Bills =
 
                 return! view next ctx
             | Ok partialTransaction ->
-                let! _updated = database.UpdateAsync(session.UserId, billId, partialTransaction)
-                return! redirectTo false "/recurring" next ctx
+                try
+                    let! _updated = database.UpdateAsync(session.UserId, billId, partialTransaction)
+                    return! redirectTo false "/recurring" next ctx
+                with
+                | :? PostgresException as ex when (ex.SqlState = "23514" || ex.SqlState = "23505" || ex.SqlState = "23503") ->
+                    let model = modelFromFailedRequest request (friendlyDbError ex)
+                    let view =
+                        (billId, model)
+                        |> ExistingBill
+                        |> Views.createOrEditBillPage
+                        |> htmlView
+                        >=> setStatusCode 400
+                    return! view next ctx
         })
 
     let deleteBillPostHandler (billId : int64) : HttpHandler =

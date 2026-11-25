@@ -1,6 +1,7 @@
 namespace FoxyBalance.Server.Api.Responses
 
 open System
+open System.Globalization
 open FoxyBalance.Database.Models
 
 /// Token response for auth endpoints
@@ -91,6 +92,11 @@ module ApiDtos =
         | ScheduleType.ByInterval sched -> Some (intervalUnitToString sched.Unit)
         | _ -> None
 
+    let private byIntervalStartDate (t: RecurringTransaction) =
+        match t.Schedule with
+        | ScheduleType.ByInterval sched -> Some (sched.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+        | _ -> None
+
     let fromRecurringTransaction (t: RecurringTransaction) =
         let weekOfMonth, dayOfWeek, byIntervalCountOpt, byIntervalUnitOpt = scheduleInfo t
         {| Id = t.Id
@@ -103,6 +109,7 @@ module ApiDtos =
            ApplyDate = applyDateStr t
            ByIntervalCount = byIntervalCountOpt
            ByIntervalUnit = byIntervalUnitOpt
+           ByIntervalStartDate = byIntervalStartDate t
            Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income"
            DateCreated = t.DateCreated
            LastAppliedDate = t.LastAppliedDate

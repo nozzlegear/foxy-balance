@@ -30,6 +30,7 @@ type ApiRecurringTransactionRequest =
       ApplyDate: string option       // "early" | "late" (when day may not exist)
       ByIntervalCount: string option // New: interval count
       ByIntervalUnit: string option  // New: "day" | "week" | "month"
+      ByIntervalStartDate: string option // New: yyyy-MM-dd, required when ScheduleType = "interval"
       Type: string option }
 
 /// Match execution request

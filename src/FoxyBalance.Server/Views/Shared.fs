@@ -114,6 +114,10 @@ module Shared =
                         str "Income"
                     ]
 
+                    a [_class "navbar-item"; _href "/recurring"] [
+                        str "Recurring"
+                    ]
+
                     a [_class "navbar-item"; _href "/forecast"] [
                         str "Forecast"
                     ]

@@ -34,7 +34,8 @@ module Bills =
             $"Day {sched.Date} of month"
         | ScheduleType.ByInterval sched ->
             let unitStr = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
-            if sched.Count = 1 then $"Every {unitStr}" else $"Every {sched.Count} {unitStr}s"
+            let every = if sched.Count = 1 then $"Every {unitStr}" else $"Every {sched.Count} {unitStr}s"
+            $"{every} from {Format.date sched.StartDate}"
 
     let private recurringTypeLabel (t : RecurringTransactionType) =
         match t with
@@ -275,6 +276,12 @@ module Bills =
                                     {| Label = "Month(s)"; Value = "month"; Selected = viewModel.ByIntervalUnit = "month" |}
                                 ]
                                 Form.SelectOption.Value viewModel.ByIntervalUnit ]
+
+                            Form.Element.DateInput [
+                                Form.LabelText "Start date"
+                                Form.HtmlName "byIntervalStartDate"
+                                Form.Required
+                                Form.Value viewModel.ByIntervalStartDate ]
                         ])
                     else
                         None)

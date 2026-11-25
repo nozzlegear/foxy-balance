@@ -2,6 +2,7 @@ namespace FoxyBalance.Server.Api.Routes
 
 open System
 open Giraffe
+open Npgsql
 open Microsoft.Extensions.DependencyInjection
 open FoxyBalance.Server.Api
 open FoxyBalance.Server.Api.Domain
@@ -21,7 +22,16 @@ module RecurringTransactions =
           ApplyDate = req.ApplyDate
           ByIntervalCount = req.ByIntervalCount
           ByIntervalUnit = req.ByIntervalUnit
+          ByIntervalStartDate = req.ByIntervalStartDate
           Type = req.Type }
+
+    /// Humanize a Postgres constraint violation for the API error response.
+    let private friendlyDbError (ex: PostgresException) : string =
+        match ex.SqlState with
+        | "23514" -> "A required field is missing for the chosen schedule type (interval schedules require byIntervalStartDate)."
+        | "23505" -> "A record with this value already exists."
+        | "23503" -> "A referenced record does not exist."
+        | _ -> ex.Message
 
     /// GET /api/v1/bills  (recurring transactions)
     let listHandler: HttpHandler =
@@ -81,12 +91,16 @@ module RecurringTransactions =
                 | Error msg -> return! ApiRouteUtils.validationError msg next ctx
                 | Ok partialTransaction ->
                     let recTxDb = ctx.RequestServices.GetRequiredService<IRecurringTransactionDatabase>()
-                    let! created = recTxDb.CreateAsync(session.UserId, partialTransaction)
+                    try
+                        let! created = recTxDb.CreateAsync(session.UserId, partialTransaction)
 
-                    let halResponse =
-                        HalBuilder.resource (ApiDtos.fromRecurringTransaction created) (HalBuilder.recurringTransactionLinks created.Id)
+                        let halResponse =
+                            HalBuilder.resource (ApiDtos.fromRecurringTransaction created) (HalBuilder.recurringTransactionLinks created.Id)
 
-                    return! ApiRouteUtils.created halResponse next ctx
+                        return! ApiRouteUtils.created halResponse next ctx
+                    with
+                    | :? PostgresException as ex when (ex.SqlState = "23514" || ex.SqlState = "23505" || ex.SqlState = "23503") ->
+                        return! ApiRouteUtils.apiError 400 (friendlyDbError ex) next ctx
             })
 
     /// PUT /api/v1/bills/{id}
@@ -103,12 +117,16 @@ module RecurringTransactions =
                     match EditRecurringTransactionRequest.Validate(toEditTransactionRequest request) with
                     | Error msg -> return! ApiRouteUtils.validationError msg next ctx
                     | Ok partialTransaction ->
-                        let! updated = recTxDb.UpdateAsync(session.UserId, recurringTransactionId, partialTransaction)
+                        try
+                            let! updated = recTxDb.UpdateAsync(session.UserId, recurringTransactionId, partialTransaction)
 
-                        let halResponse =
-                            HalBuilder.resource (ApiDtos.fromRecurringTransaction updated) (HalBuilder.recurringTransactionLinks recurringTransactionId)
+                            let halResponse =
+                                HalBuilder.resource (ApiDtos.fromRecurringTransaction updated) (HalBuilder.recurringTransactionLinks recurringTransactionId)
 
-                        return! ApiRouteUtils.halJson halResponse next ctx
+                            return! ApiRouteUtils.halJson halResponse next ctx
+                        with
+                        | :? PostgresException as ex when (ex.SqlState = "23514" || ex.SqlState = "23505" || ex.SqlState = "23503") ->
+                            return! ApiRouteUtils.apiError 400 (friendlyDbError ex) next ctx
             })
 
     /// DELETE /api/v1/bills/{id}

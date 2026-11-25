@@ -213,6 +213,7 @@ module RequestModels =
           ApplyDate : string option       // "early" | "late" (when day may not exist)
           ByIntervalCount : string option
           ByIntervalUnit : string option
+          ByIntervalStartDate : string option // yyyy-MM-dd, required when ScheduleType = "interval"
           Type : string option }
         with
         static member Validate model : Result<PartialRecurringTransaction, string> =
@@ -281,21 +282,30 @@ module RequestModels =
                                 // Day always exists; apply policy is irrelevant but harmless. Ignore it.
                                 Ok (ScheduleType.ByCalendarDate { Date = day; Apply = None })
                 | "interval" ->
-                    // Interval path: parse count and unit.
+                    // Interval path: parse count, unit, and the required start date.
                     match model.ByIntervalCount, model.ByIntervalUnit with
+                    | None, _ | _, None ->
+                        Error "You must specify both an interval count and unit for an interval schedule."
                     | Some countStr, Some unitStr ->
                         let countOk, count = System.Int32.TryParse countStr
                         if not countOk || count < 1 then
                             Error "Interval count must be a positive integer."
                         else
-                            let unitLower = unitStr.ToLowerInvariant()
-                            match unitLower with
-                            | "day" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Day })
-                            | "week" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Week })
-                            | "month" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Month })
-                            | other -> Error (sprintf "Unrecognized interval unit '%s'. Use 'day', 'week', or 'month'." other)
-                    | _ ->
-                        Error "You must specify both an interval count and unit for an interval schedule."
+                            match model.ByIntervalStartDate with
+                            | Some startStr when not (System.String.IsNullOrWhiteSpace startStr) ->
+                                match System.DateTimeOffset.TryParseExact(startStr, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None) with
+                                | false, _ ->
+                                    Error "Interval start date must be a valid date (yyyy-MM-dd)."
+                                | true, sd ->
+                                    let startDate = System.DateTimeOffset(sd.Year, sd.Month, sd.Day, 0, 0, 0, System.TimeSpan.Zero)
+                                    let unitLower = unitStr.ToLowerInvariant()
+                                    match unitLower with
+                                    | "day" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Day; StartDate = startDate })
+                                    | "week" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Week; StartDate = startDate })
+                                    | "month" -> Ok (ScheduleType.ByInterval { Count = count; Unit = IntervalUnit.Month; StartDate = startDate })
+                                    | other -> Error (sprintf "Unrecognized interval unit '%s'. Use 'day', 'week', or 'month'." other)
+                            | _ ->
+                                Error "You must specify an interval start date (yyyy-MM-dd) for an interval schedule."
                 | other ->
                     Error (sprintf "Unrecognized schedule type '%s'. Use 'week' or 'date'." other)
 
@@ -506,6 +516,7 @@ module ViewModels =
           ApplyDate : string      // "early" | "late" | "" (chosen apply policy)
           ByIntervalCount : string
           ByIntervalUnit : string
+          ByIntervalStartDate : string // yyyy-MM-dd (when ScheduleType = "interval")
           Type : string }
         with
         static member Default =
@@ -519,19 +530,20 @@ module ViewModels =
               ApplyDate = ""
               ByIntervalCount = ""
               ByIntervalUnit = ""
+              ByIntervalStartDate = ""
               Type = "bill" }
 
         static member FromExistingTransaction (t: RecurringTransaction) =
-            let scheduleType, weekOfMonth, dayOfWeek, dayOfMonth, applyDate, byIntervalCount, byIntervalUnit =
+            let scheduleType, weekOfMonth, dayOfWeek, dayOfMonth, applyDate, byIntervalCount, byIntervalUnit, byIntervalStartDate =
                 match t.Schedule with
                 | ScheduleType.ByWeekOfMonth sched ->
-                    ("week", sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, 1, "", "", "")
+                    ("week", sched.WeekOfMonth.ToInt(), int sched.DayOfWeek, 1, "", "", "", "")
                 | ScheduleType.ByCalendarDate sched ->
                     let apply = sched.Apply |> Option.map (fun a -> a.ToDbString()) |> Option.defaultValue ""
-                    ("date", 1, 0, sched.Date, apply, "", "")
+                    ("date", 1, 0, sched.Date, apply, "", "", "")
                 | ScheduleType.ByInterval sched ->
                     let unitStr = match sched.Unit with | IntervalUnit.Day -> "day" | IntervalUnit.Week -> "week" | IntervalUnit.Month -> "month"
-                    ("interval", 1, 0, 1, "", string sched.Count, unitStr)
+                    ("interval", 1, 0, 1, "", string sched.Count, unitStr, Format.date sched.StartDate)
             { Error = None
               Name = t.Name
               Amount = string t.Amount
@@ -542,6 +554,7 @@ module ViewModels =
               ApplyDate = applyDate
               ByIntervalCount = byIntervalCount
               ByIntervalUnit = byIntervalUnit
+              ByIntervalStartDate = byIntervalStartDate
               Type = match t.Type with | RecurringTransactionType.Bill -> "bill" | RecurringTransactionType.Income -> "income" }
 
     type BillViewModel =
