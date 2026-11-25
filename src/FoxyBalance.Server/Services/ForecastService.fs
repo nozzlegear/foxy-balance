@@ -104,7 +104,7 @@ type ForecastService(
             let! recs = recurringTransactionDb.ListAsync(userId, true)
             let recsList = Seq.toList recs
             // (recurringTransactionId, year, month) for every real transaction linked to a
-            // recurring transaction within the forecast range.
+            // recurring transaction within the forecast range. Used for month-based schedules.
             let appliedRecurrenceMonths =
                 realTxns
                 |> Seq.toList
@@ -112,11 +112,32 @@ type ForecastService(
                     t.RecurringTransactionId
                     |> Option.map (fun rid -> rid, t.DateCreated.Year, t.DateCreated.Month))
                 |> Set.ofList
+            // (recurringTransactionId, date) for every real transaction linked to a recurring
+            // transaction within the forecast range. Interval schedules can have several
+            // occurrences per month, so they suppress per exact occurrence date instead.
+            let appliedRecurrenceDates =
+                realTxns
+                |> Seq.toList
+                |> List.choose (fun t ->
+                    t.RecurringTransactionId
+                    |> Option.map (fun rid -> rid, t.DateCreated.Date))
+                |> Set.ofList
+            // An interval occurrence is also suppressed when it's on or before the recurring
+            // transaction's last applied date: the application job applies occurrences in
+            // order, so everything <= lastAppliedDate was already booked (possibly before
+            // the forecast range start).
+            let isSuppressed (rt: RecurringTransaction) (d: DateTimeOffset) =
+                match rt.Schedule with
+                | ScheduleType.ByInterval _ ->
+                    appliedRecurrenceDates.Contains (rt.Id, d.Date)
+                    || (rt.LastAppliedDate |> Option.exists (fun la -> d.Date <= la.Date))
+                | _ ->
+                    appliedRecurrenceMonths.Contains (rt.Id, d.Year, d.Month)
             let predictedEvents =
                 recsList
                 |> List.collect (fun rt ->
                     RecurringSchedule.enumerateOccurrences rt.Schedule startDate endDate
-                    |> List.filter (fun d -> not (appliedRecurrenceMonths.Contains (rt.Id, d.Year, d.Month)))
+                    |> List.filter (fun d -> not (isSuppressed rt d))
                     |> List.map (fun d ->
                         {| Date = d
                            Label = match rt.Type with | RecurringTransactionType.Bill -> "Bill" | RecurringTransactionType.Income -> "Income"

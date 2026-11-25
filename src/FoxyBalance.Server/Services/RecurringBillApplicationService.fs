@@ -13,9 +13,11 @@ type RecurringTransactionApplicationService(
     /// Check if we're in the correct week to apply a transaction
     let shouldApplyNow (rt: RecurringTransaction) (currentDate: DateTimeOffset) =
         match rt.Schedule with
-        | ScheduleType.ByInterval { Count = count; Unit = unit } ->
-            // Interval schedules are continuous: due when currentDate >= lastApplied + interval.
-            fst (RecurringSchedule.dueDateByInterval count unit rt.LastAppliedDate currentDate)
+        | ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = startDate } ->
+            // Interval schedules are anchored at their start date: due when the first
+            // occurrence after lastApplied (or the start date itself, if never applied)
+            // has arrived.
+            fst (RecurringSchedule.dueDateByInterval count unit startDate rt.LastAppliedDate currentDate)
         | _ ->
             // Apply if we're on or after the target date but haven't applied this month.
             // If the target date doesn't exist in this month (e.g. the 31st in a 30-day month),
@@ -50,8 +52,8 @@ type RecurringTransactionApplicationService(
                         // Create a pending transaction from this recurring transaction
                         let targetDate =
                             match rt.Schedule with
-                            | ScheduleType.ByInterval { Count = count; Unit = unit } ->
-                                snd (RecurringSchedule.dueDateByInterval count unit rt.LastAppliedDate currentDate)
+                            | ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = startDate } ->
+                                snd (RecurringSchedule.dueDateByInterval count unit startDate rt.LastAppliedDate currentDate)
                             | _ ->
                                 // shouldApplyNow already validated that the target date exists for this month
                                 match RecurringSchedule.targetDateForMonth rt.Schedule currentDate with
@@ -74,8 +76,14 @@ type RecurringTransactionApplicationService(
                         // Create the transaction
                         let! _createdTransaction = transactionDb.CreateAsync(userId, partialTransaction)
 
-                        // Update the recurring transaction's last applied date
-                        do! recurringTransactionDb.UpdateLastAppliedDateAsync(userId, rt.Id, currentDate)
+                        // Update the recurring transaction's last applied date. For interval
+                        // schedules, store the occurrence date (not wall-clock now) so the
+                        // start-date-anchored due rule stays exact.
+                        let appliedDate =
+                            match rt.Schedule with
+                            | ScheduleType.ByInterval _ -> targetDate
+                            | _ -> currentDate
+                        do! recurringTransactionDb.UpdateLastAppliedDateAsync(userId, rt.Id, appliedDate)
 
                         logger.LogInformation("Applied recurring transaction {TransactionId} ({TransactionName}) for user {UserId} with amount {Amount}",
                             rt.Id, rt.Name, userId, rt.Amount)

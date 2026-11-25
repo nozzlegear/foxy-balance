@@ -42,33 +42,47 @@ module RecurringSchedule =
             // targetDateForMonth is not meaningful for ByInterval.
             None
 
-    /// For a ByInterval schedule, compute the next due date given the last applied date.
-    /// Returns (isDue, dueDate): isDue is true when currentDate is on or after the due date.
-    let dueDateByInterval (count: int) (unit: IntervalUnit) (lastApplied: DateTimeOffset option) (currentDate: DateTimeOffset) : bool * DateTimeOffset =
+    /// Step function for a ByInterval schedule: the k-th occurrence anchored at `startDate`.
+    /// Steps by index so month arithmetic doesn't drift
+    /// (chaining AddMonths would clamp, e.g. Jan 31 + 3mo = Apr 30, + 3mo = Jul 30).
+    let private intervalStep (count: int) (unit: IntervalUnit) (startDate: DateTimeOffset) (i: int) : DateTimeOffset =
+        match unit with
+        | Day -> startDate.AddDays(float (count * i))
+        | Week -> startDate.AddDays(float (count * 7 * i))
+        | Month -> startDate.AddMonths(count * i)
+
+    /// For a ByInterval schedule anchored at `startDate`, compute the next due date given the
+    /// last applied date. Returns (isDue, dueDate): isDue is true when currentDate is on or
+    /// after the due date; dueDate is the occurrence date when due, otherwise currentDate.
+    /// Never applied: due iff currentDate >= startDate (the first occurrence gates application).
+    /// Otherwise: due iff the smallest occurrence strictly after lastApplied has arrived.
+    let dueDateByInterval (count: int) (unit: IntervalUnit) (startDate: DateTimeOffset) (lastApplied: DateTimeOffset option) (currentDate: DateTimeOffset) : bool * DateTimeOffset =
+        let step = intervalStep count unit startDate
         let nextDue =
             match lastApplied with
-            | None -> currentDate
+            | None -> step 0
             | Some last ->
-                match unit with
-                | Day -> last.AddDays(float count)
-                | Week -> last.AddDays(float (count * 7))
-                | Month -> last.AddMonths(count)
+                // Estimate a starting index near lastApplied, then correct in both directions
+                // (month clamping makes the estimate inexact, e.g. Jan 31 anchor).
+                let est =
+                    match unit with
+                    | Day -> max 0 ((last.Date - startDate.Date).Days / count)
+                    | Week -> max 0 ((last.Date - startDate.Date).Days / (count * 7))
+                    | Month -> max 0 (((last.Year - startDate.Year) * 12 + (last.Month - startDate.Month)) / count)
+                let rec walkUp k = if (step k).Date > last.Date then k else walkUp (k + 1)
+                let rec walkDown k = if k > 0 && (step (k - 1)).Date > last.Date then walkDown (k - 1) else k
+                step (walkDown (walkUp est))
         let due = currentDate.Date >= nextDue.Date
-        let stampDate = if nextDue.Date <= currentDate.Date then nextDue else currentDate
+        let stampDate = if due then nextDue else currentDate
         (due, stampDate)
 
     /// Enumerate occurrences for ByInterval schedule type.
-    /// Steps by the interval from a starting point and collects all dates within [from, to].
-    let private enumerateOccurrencesByInterval (count: int) (unit: IntervalUnit) (from : DateTimeOffset) (to' : DateTimeOffset) : DateTimeOffset list =
+    /// Steps by the interval from the schedule's start date and collects all occurrences
+    /// within [from, to].
+    let private enumerateOccurrencesByInterval (count: int) (unit: IntervalUnit) (startDate: DateTimeOffset) (from : DateTimeOffset) (to' : DateTimeOffset) : DateTimeOffset list =
         let fromDate = from.Date
         let toDate = to'.Date
-        // Step from the anchor by index so month arithmetic doesn't drift
-        // (chaining AddMonths would clamp, e.g. Jan 31 + 3mo = Apr 30, + 3mo = Jul 30).
-        let step (i: int) =
-            match unit with
-            | Day -> from.AddDays(float (count * i))
-            | Week -> from.AddDays(float (count * 7 * i))
-            | Month -> from.AddMonths(count * i)
+        let step = intervalStep count unit startDate
         let rec loop (i: int) acc =
             let current = step i
             let currentDate = current.Date
@@ -84,8 +98,8 @@ module RecurringSchedule =
     /// falls within the range.
     let enumerateOccurrences (schedule : ScheduleType) (from : DateTimeOffset) (to' : DateTimeOffset) : DateTimeOffset list =
         match schedule with
-        | ScheduleType.ByInterval { Count = count; Unit = unit } ->
-            enumerateOccurrencesByInterval count unit from to'
+        | ScheduleType.ByInterval { Count = count; Unit = unit; StartDate = startDate } ->
+            enumerateOccurrencesByInterval count unit startDate from to'
         | _ ->
             // For ByWeekOfMonth and ByCalendarDate, use the month-looping approach
             let fromDate = from.Date

@@ -50,7 +50,8 @@ module Forecast =
                     | _, _, _, Some count, Some unit ->
                         let u = match unit with | "week" -> IntervalUnit.Week | "month" -> IntervalUnit.Month | _ -> IntervalUnit.Day
                         Some { Name = d.Name; Amount = d.Amount
-                               Schedule = ScheduleType.ByInterval { Count = count; Unit = u }
+                               // Temp items have no persisted start date; anchor them at today.
+                               Schedule = ScheduleType.ByInterval { Count = count; Unit = u; StartDate = DateTimeOffset.UtcNow.Date }
                                Type = tempType }
                     | _ -> None)
             with
